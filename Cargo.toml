@@ -5,7 +5,7 @@ edition = "2021"
 
 authors = [
   "Mikołaj Gazeel <m.j.gazeel@student.tudelft.nl>",
-  "Lukáš Chládek <l.chladek@student.tudelft.nl>",
+  "Lukáš Chládek <l@chla.cz>",
   "Andreas Tsatsanis <a.tsatsanis@student.tudelft.nl>",
   "Jan Piotrowski <j.p.piotrowski@student.tudelft.nl>",
   "Rūta Giedrytė <r.giedryte@student.tudelft.nl>"
