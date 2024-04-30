@@ -1,0 +1,101 @@
+default:
+  image: rust:1.77.2-alpine3.18
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo
+
+.rust_container_template: &rust_container_slim
+  image: rust:1.77.2-alpine3.18
+  cache:
+    # key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - $CARGO_HOME
+
+.rust_container_template: &rust_container_fat
+  image: rustlang/rust:nightly-buster
+  cache:
+    # key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - $CARGO_HOME
+
+stages:
+  - build
+  - lint
+  - test
+
+check:
+  <<: *rust_container_slim
+  stage: build
+  script:
+    - cargo check --release
+
+build:
+  <<: *rust_container_slim
+  stage: build
+  needs:
+  - check
+  script:
+  - cargo build --verbose --release
+  artifacts:
+    when: on_success
+    name: binary (musl-x86_64)
+    expose_as: binary
+    paths:
+      - target/release/gourd
+
+fmt:
+  <<: *rust_container_slim
+  stage: lint
+  needs:
+    - build
+  before_script:
+    - rustup component add rustfmt
+  script:
+    - cargo fmt -- --check
+  allow_failure: true
+
+clippy:
+  <<: *rust_container_slim
+  stage: lint
+  needs:
+    - build
+  before_script:
+    - rustup component add clippy
+  script:
+    - cargo clippy --release --all-targets -- -D warnings
+  allow_failure: true
+
+
+coverage:
+  <<: *rust_container_fat
+  stage: test
+  needs:
+    - build
+  before_script:
+    - cargo install cargo-tarpaulin
+  script:
+    - cargo tarpaulin --engine llvm --out Xml --root . --manifest-path Cargo.toml
+  coverage: '/\d+.\d+\% coverage,.*lines covered/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: cobertura.xml
+  allow_failure: true
+
+tests:
+  <<: *rust_container_fat
+  stage: test
+  needs:
+    - build
+  before_script:
+    - cargo install cargo2junit
+    - cargo test -- -Z unstable-options --format json --report-time | $CARGO_HOME/bin/cargo2junit > results.xml
+  script:
+    - cargo test --verbose --release --tests
+  artifacts:
+    when: always
+    paths:
+      - results.xml
+    reports:
+      junit: results.xml

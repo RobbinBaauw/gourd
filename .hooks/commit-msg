@@ -1,0 +1,26 @@
+#!/bin/bash
+
+echo "validating commit message..."
+
+test "" = "$(grep '^Signed-off-by: ' "$1" |
+	sort | uniq -c | sed -e '/^[ 	]*1[ 	]/d')" || {
+	echo >&2 duplicate Signed-off-by lines.
+	exit 1
+}
+
+message=$(head -n 1 "$1")
+check=${#message}
+
+if [[ $message =~ ^[[:upper:]] ]]; then
+	echo >&2 "the commit message needs to start with a lowercase letter."
+	echo >&2 ""
+	echo >&2 "rejecting"
+	exit 1
+fi
+
+if [ $check -ge 50 ]; then
+	echo >&2 "the commit message needs to be shorter than 50 chars."
+	echo >&2 ""
+	echo >&2 "rejecting"
+	exit 1
+fi

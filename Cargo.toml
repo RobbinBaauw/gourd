@@ -1,8 +1,17 @@
 [package]
 name = "gourd"
-version = "0.1.0"
+version = "0.1.0-alpha"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = [
+  "Mikołaj Gazeel <m.j.gazeel@student.tudelft.nl>",
+  "Lukáš Chládek <l.chladek@student.tudelft.nl>",
+  "Andreas Tsatsanis <a.tsatsanis@student.tudelft.nl>",
+  "Jan Piotrowski <j.p.piotrowski@student.tudelft.nl>",
+  "Rūta Giedrytė <r.giedryte@student.tudelft.nl>"
+]
 
 [dependencies]
+
+[dev-dependencies]
+easybench = "1.1.1"
