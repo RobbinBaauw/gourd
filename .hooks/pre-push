@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ $(git symbolic-ref HEAD | sed -e 's,.*/\(.*\),\1,') = "main" ]
+then
+	echo >&2 "do *not* push to main"
+	echo >&2 ""
+	echo >&2 "rejecting"
+	exit 1
+fi
+
+exit 0
