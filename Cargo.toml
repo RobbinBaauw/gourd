@@ -24,6 +24,8 @@ toml = "0.8.12"
 
 reqwest = { version = "0.12.4", features = ["blocking", "json"] }
 
+clap = { version = "4.5.4", features = ["derive"] }
+
 [dev-dependencies]
 easybench = "1.1.1"
 tempdir = "0.3.7"
