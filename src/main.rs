@@ -20,7 +20,7 @@ use crate::wrapper::Program;
 
 #[cfg(test)]
 /// The tests validating the behaviour of `gourd`.
-mod tests;
+pub mod tests;
 
 /// The error type of `gourd`.
 pub mod error;

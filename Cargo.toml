@@ -2,7 +2,7 @@
 name = "gourd"
 version = "0.1.0-alpha"
 edition = "2021"
-
+default-run = "gourd"
 authors = [
   "Mikołaj Gazeel <m.j.gazeel@student.tudelft.nl>",
   "Lukáš Chládek <l@chla.cz>",
@@ -13,16 +13,30 @@ authors = [
 
 [dependencies]
 elf = "0.7.4"
+tokio = { version = "1", features = ["full"] }
 libc = "0.2"
 
 serde = { version = "1.0", features = ["derive"] }
 
 toml = "0.8.12"
+postcard = { version = "1.0.8", features = ["alloc"], default_features = false }
+futures = "0.3.30"
 
 [dev-dependencies]
 easybench = "1.1.1"
 tempdir = "0.3.7"
 
 [[bin]]
+name = "gourd"
+path = "src/main.rs"
+
+[[bin]]
 name = "gourd-wrapper"
 path = "src/wrapper_binary.rs"
+
+
+# Binaries for testing
+[[bin]]
+name = "fibonacci_example"
+path = "src/tests/examples/fibonacci.rs"
+

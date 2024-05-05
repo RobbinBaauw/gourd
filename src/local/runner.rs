@@ -1,8 +1,40 @@
 use std::process::Command;
 use std::process::ExitStatus;
 
+use futures::future::join_all;
+use tokio::runtime;
+use tokio::task::spawn_blocking;
+
 use crate::error::GourdError;
 
+/// # Multithreaded _local_ runner for tasks
+/// (more documentation needed tbh)
 pub fn run_locally(tasks: Vec<Command>) -> Result<Vec<ExitStatus>, GourdError> {
-    todo!()
+    let rt = runtime::Runtime::new().unwrap();
+
+    rt.block_on(async {
+        let task_futures: Vec<_> = tasks
+            .into_iter()
+            .map(|mut cmd| {
+                spawn_blocking(move || {
+                    let status = cmd.status();
+                    match status {
+                        Ok(status) => status,
+                        Err(err) => panic!("Could not execute the child (runner.rs): {}", err),
+                    }
+                })
+            })
+            .collect();
+        // .collect::<Vec<dyn Future<Output=ExitStatus>>>();
+        // Run all commands concurrently and collect their results
+        let results = join_all(task_futures).await;
+        let mut output = vec![];
+        for (_i, result) in results.into_iter().enumerate() {
+            match result {
+                Ok(status) => output.push(status),
+                Err(err) => return Err(GourdError::ChildJoinError(err)),
+            }
+        }
+        Ok(output)
+    })
 }
