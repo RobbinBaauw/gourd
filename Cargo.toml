@@ -35,4 +35,3 @@ path = "src/main.rs"
 [[bin]]
 name = "gourd-wrapper"
 path = "src/wrapper_binary.rs"
-
