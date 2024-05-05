@@ -23,6 +23,10 @@ mod tests;
 /// The error type of `gourd`.
 pub mod error;
 
+/// A struct and related methods for global configuration,
+/// declaratively specifying experiments.
+pub mod config;
+
 /// The binary wrapper around run programs.
 pub mod wrapper;
 
@@ -38,6 +42,12 @@ pub mod measurement;
 #[cfg(not(tarpaulin_include))]
 fn main() {
     println!("Hello, world!");
+    let config_path = String::from("gourd.toml");
+
+    println!("Loading configuration file at '{}'", config_path);
+    let config = config::load(config_path).unwrap();
+    // Prints contents of the configuration file. Remove.
+    println!("{:?}", config);
 
     let path = "./bin".parse::<PathBuf>().unwrap();
 
@@ -48,6 +58,7 @@ fn main() {
         }],
         vec!["./test1".parse().unwrap()],
         X86_64_E_MACHINE,
+        &config,
     )
     .unwrap()
     .iter_mut()
