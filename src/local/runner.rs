@@ -9,6 +9,7 @@ use crate::error::GourdError;
 
 /// # Multithreaded _local_ runner for tasks
 /// (more documentation needed tbh)
+#[allow(dead_code, unused)]
 pub fn run_locally(tasks: Vec<Command>) -> Result<Vec<ExitStatus>, GourdError> {
     let rt = runtime::Runtime::new().unwrap();
 
@@ -29,7 +30,7 @@ pub fn run_locally(tasks: Vec<Command>) -> Result<Vec<ExitStatus>, GourdError> {
         // Run all commands concurrently and collect their results
         let results = join_all(task_futures).await;
         let mut output = vec![];
-        for (_i, result) in results.into_iter().enumerate() {
+        for result in results.into_iter() {
             match result {
                 Ok(status) => output.push(status),
                 Err(err) => return Err(GourdError::ChildJoinError(err)),

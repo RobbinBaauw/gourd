@@ -8,6 +8,7 @@ use elf::ParseError;
 use tokio::task::JoinError;
 
 /// This error type is used by all gourd functions.
+#[allow(dead_code)]
 pub enum GourdError {
     /// The configuration file could not be read.
     ConfigLoadError(Option<std::io::Error>, String),
