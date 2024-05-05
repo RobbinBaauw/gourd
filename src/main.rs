@@ -40,6 +40,7 @@ pub mod local;
 
 /// Code shared between the wrapper and `gourd`.
 pub mod measurement;
+mod local;
 
 /// Code for accessing and managing resouces
 pub mod resources;
