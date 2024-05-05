@@ -37,6 +37,7 @@ pub mod constants;
 
 /// Code shared between the wrapper and `gourd`.
 pub mod measurement;
+mod local;
 
 /// The main entrypoint.
 ///
