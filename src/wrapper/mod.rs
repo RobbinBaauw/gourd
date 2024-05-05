@@ -5,29 +5,32 @@ use std::process::Command;
 use elf::endian::AnyEndian;
 use elf::ElfBytes;
 
+use crate::constants::WRAPPER;
 use crate::error::GourdError;
 use crate::error::GourdError::*;
 
 type MachineType = u16;
 
-const WRAPPER: &'static str = "./wrapper";
-
-pub struct Run {
+/// A pair of a path to a binary and cli arguments.
+#[derive(Debug, Clone)]
+pub struct Program {
+    /// The path to the executable.
     pub binary: PathBuf,
+
+    /// The cli arguments for the executable.
     pub arguments: Vec<String>,
 }
 
-/// This function wraps a executable in a testing harness.
+/// This function returns the commands to be run for an n x m matching of the runs to tests.
+///
+/// The results and outputs will be located in `config.output_dir`.
 pub fn wrap(
-    runs: Vec<Run>,
+    runs: Vec<Program>,
     tests: Vec<PathBuf>,
     arch: MachineType,
 ) -> Result<Vec<Command>, GourdError> {
     let this_will_be_in_the_config_output_path: PathBuf = "/tmp/gourd/".parse().unwrap();
     let this_will_be_in_the_config_result_path: PathBuf = "/tmp/gourd/".parse().unwrap();
-
-    fs::create_dir_all(&this_will_be_in_the_config_result_path)?;
-    fs::create_dir_all(&this_will_be_in_the_config_output_path)?;
 
     let mut result = Vec::new();
 
@@ -40,11 +43,11 @@ pub fn wrap(
                 .arg(fs::canonicalize(test).map_err(|x| FileError(test.clone(), x))?)
                 .arg(
                     this_will_be_in_the_config_output_path
-                        .join(format!("run{}_{}_output", run_id, test_id)),
+                        .join(format!("algo_{}/{}_output", run_id, test_id)),
                 )
                 .arg(
                     this_will_be_in_the_config_result_path
-                        .join(format!("run{}_{}_result", run_id, test_id)),
+                        .join(format!("algo_{}/{}_result", run_id, test_id)),
                 )
                 .args(&run.arguments);
 

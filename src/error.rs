@@ -1,3 +1,5 @@
+#![cfg(not(tarpaulin_include))]
+
 use std::fmt::Debug;
 use std::path::PathBuf;
 
@@ -7,7 +9,13 @@ use elf::ParseError;
 /// This error type is used by all gourd functions.
 pub enum GourdError {
     /// The architecture does not match the one we want to run on.
-    ArchitectureMismatch { expected: u16, binary: u16 },
+    ArchitectureMismatch {
+        /// The expected architecture in `e_machine` format.
+        expected: u16,
+
+        /// The architecture of the binary in `e_machine` format.
+        binary: u16,
+    },
 
     /// A filesystem error occured.
     FileError(PathBuf, std::io::Error),
