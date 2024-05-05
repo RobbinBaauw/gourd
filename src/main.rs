@@ -8,9 +8,11 @@
 //! Gourd allows
 
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process::ExitStatus;
 
+use crate::config::Config;
 use crate::constants::X86_64_E_MACHINE;
 use crate::measurement::Measurement;
 use crate::wrapper::wrap;
@@ -45,7 +47,7 @@ fn main() {
     let config_path = String::from("gourd.toml");
 
     println!("Loading configuration file at '{}'", config_path);
-    let config = config::load(config_path).unwrap();
+    let config = Config::from_file(Path::new(&config_path)).unwrap();
     // Prints contents of the configuration file. Remove.
     println!("{:?}", config);
 

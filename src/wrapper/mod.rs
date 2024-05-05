@@ -2,15 +2,12 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
-<<<<<<< HEAD:src/wrapper/mod.rs
 #[cfg(target_os = "linux")]
-=======
-use crate::config::Config;
->>>>>>> 761b74d (implement config file parsing):src/wrapper.rs
 use elf::endian::AnyEndian;
 #[cfg(target_os = "linux")]
 use elf::ElfBytes;
 
+use crate::config::Config;
 use crate::constants::WRAPPER;
 use crate::error::GourdError;
 use crate::error::GourdError::*;
@@ -33,19 +30,9 @@ pub struct Program {
 pub fn wrap(
     runs: Vec<Program>,
     tests: Vec<PathBuf>,
-<<<<<<< HEAD:src/wrapper/mod.rs
     #[allow(unused_variables)] arch: MachineType,
-) -> Result<Vec<Command>, GourdError> {
-    let this_will_be_in_the_config_output_path: PathBuf = "/tmp/gourd/".parse().unwrap();
-    let this_will_be_in_the_config_result_path: PathBuf = "/tmp/gourd/".parse().unwrap();
-=======
-    arch: MachineType,
     conf: &Config,
 ) -> Result<Vec<Command>, GourdError> {
-    fs::create_dir_all(&conf.result_path)?;
-    fs::create_dir_all(&conf.output_path)?;
->>>>>>> 761b74d (implement config file parsing):src/wrapper.rs
-
     let mut result = Vec::new();
 
     for (run_id, run) in runs.iter().enumerate() {
@@ -57,23 +44,14 @@ pub fn wrap(
             cmd.arg(fs::canonicalize(&run.binary).map_err(|x| FileError(run.binary.clone(), x))?)
                 .arg(fs::canonicalize(test).map_err(|x| FileError(test.clone(), x))?)
                 .arg(
-<<<<<<< HEAD:src/wrapper/mod.rs
-                    this_will_be_in_the_config_output_path
-                        .join(format!("algo_{}/{}_output", run_id, test_id)),
-                )
-                .arg(
-                    this_will_be_in_the_config_result_path
-                        .join(format!("algo_{}/{}_result", run_id, test_id)),
-=======
                     &conf
                         .output_path
-                        .join(format!("run{}_{}_output", run_id, test_id)),
+                        .join(format!("algo_{}/{}_output", run_id, test_id)),
                 )
                 .arg(
                     &conf
                         .result_path
-                        .join(format!("run{}_{}_result", run_id, test_id)),
->>>>>>> 761b74d (implement config file parsing):src/wrapper.rs
+                        .join(format!("algo_{}/{}_result", run_id, test_id)),
                 )
                 .args(&run.arguments);
 
