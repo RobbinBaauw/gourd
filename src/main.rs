@@ -12,11 +12,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::ExitStatus;
 
-use crate::config::Config;
-use clap::Args;
-use clap::Parser;
-use clap::Subcommand;
-
 use crate::constants::X86_64_E_MACHINE;
 use crate::measurement::Measurement;
 use crate::wrapper::wrap;
@@ -48,119 +43,20 @@ pub mod measurement;
 /// Code for accessing and managing resouces
 pub mod resources;
 
-#[derive(Parser)]
-struct Cli {
-    #[command(subcommand)]
-    command: Command,
-
-    #[arg(
-        short,
-        long,
-        help = "Disable interactive mode (For use in scripts)",
-        global = true
-    )]
-    script: bool,
-
-    #[arg(
-        short,
-        long,
-        help = "Verbose mode (Displays debug info)",
-        global = true
-    )]
-    verbose: bool,
-}
-
-#[derive(Args)]
-struct RunStruct {
-    #[command(subcommand)]
-    sub_command: RunSubcommand,
-}
-
-#[derive(Subcommand)]
-enum RunSubcommand {
-    #[command(about = "Schedule run on local machine")]
-    Local {
-        #[arg(help = "Path to gourd configuration file")]
-        config_path: String,
-    },
-
-    #[command(about = "Schedule run using slurm")]
-    Slurm {
-        #[arg(help = "Path to gourd configuration file")]
-        config_path: String,
-    },
-}
-
-#[derive(Args)]
-struct StatusStruct {
-    #[arg(help = "Path to gourd configuration file")]
-    config_path: String,
-
-    #[arg(
-        id = "run-failed",
-        value_name = "bool",
-        default_missing_value = "true",
-        hide_possible_values = true,
-        short,
-        long,
-        help = "Rerun failed jobs"
-    )]
-    run_failed: Option<bool>,
-}
-
-#[derive(Args)]
-struct InitStruct {}
-
-#[derive(Args)]
-struct AnalStruct {
-    #[arg(help = "Path to gourd configuration file")]
-    config_path: String,
-}
-
-#[derive(Subcommand)]
-enum Command {
-    #[command(about = "Schedule run")]
-    Run(RunStruct),
-
-    #[command(about = "Display status of newest run")]
-    Status(StatusStruct),
-
-    #[command(about = "Analyze run")]
-    Anal(AnalStruct),
-
-    #[command(about = "Initialize new experiment")]
-    Init(InitStruct),
-}
-
-fn parse_command() {
-    let command = Cli::parse();
-
-    match command.command {
-        Command::Run(args) => match args.sub_command {
-            RunSubcommand::Local { .. } => {
-                panic!("Running locally has not been implemented yet")
-            }
-            RunSubcommand::Slurm { .. } => {
-                panic!("Running on Slurm has not been implemented yet")
-            }
-        },
-        Command::Status(_) => panic!("Checking status has not been implemented yet"),
-        Command::Init(_) => panic!("Gourd Init has not been implemented yet"),
-        Command::Anal(_) => panic!("Analyze has not been implemented yet"),
-    }
-}
+pub mod cli;
+pub mod wrapper_binary;
 
 /// The main entrypoint.
 ///
 /// This function is the main entrypoint of the program.
 #[cfg(not(tarpaulin_include))]
 fn main() {
-    parse_command();
+    cli::parse_command();
     println!("Hello, world!");
     let config_path = String::from("gourd.toml");
 
     println!("Loading configuration file at '{}'", config_path);
-    let config = Config::from_file(Path::new(&config_path)).unwrap();
+    let config = config::Config::from_file(Path::new(&config_path)).unwrap();
     // Prints contents of the configuration file. Remove.
     println!("{:?}", config);
 
