@@ -24,8 +24,6 @@ use std::process::Stdio;
 use std::time::Duration;
 use std::time::Instant;
 
-use libc::WEXITSTATUS;
-use libc::WIFEXITED;
 use serde::Deserialize;
 use serde::Serialize;
 
