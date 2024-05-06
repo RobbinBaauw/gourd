@@ -1,51 +1,52 @@
 use std::fs::File;
-use std::io::Result;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::ExitStatus;
 
 use reqwest;
 
+use crate::error::GourdError;
+
 /// gets the files given the filepaths
 #[allow(unused)]
-pub fn get_resources(filepaths: Vec<&PathBuf>) -> Vec<File> {
+pub fn get_resources(filepaths: Vec<&PathBuf>) -> Result<Vec<File>, GourdError> {
     let mut files: Vec<File> = vec![];
 
     for path in filepaths {
-        match get_file(path) {
-            Ok(file) => files.push(file),
-            Err(_) => println!("{:?} not found :((", path),
-        }
+        files.push(File::open(path).map_err(|x| GourdError::FileError(path.clone(), x))?);
     }
 
-    files
-}
-
-/// gets a file given the filepath
-#[allow(unused)]
-pub fn get_file(filepath: &PathBuf) -> Result<File> {
-    File::open(filepath)
+    Ok(files)
 }
 
 /// downloads a file given a url
 #[allow(unused)]
-pub fn download_from_url(url: &str, output_dir: &PathBuf, output_name: &str) {
-    let response = reqwest::blocking::get(url).expect("failed to get the file");
-    let body = response.bytes().expect("file contents are not valid");
+pub fn download_from_url(
+    url: &str,
+    output_dir: &PathBuf,
+    output_name: &str,
+) -> Result<(), GourdError> {
+    let response = reqwest::blocking::get(url).map_err(GourdError::NetworkError)?;
+    let body = response.bytes().map_err(GourdError::NetworkError)?;
 
-    std::fs::create_dir_all(output_dir).expect("directory creation failed");
-    println!("{:?}", output_dir.join(output_name));
-    std::fs::write(output_dir.join(output_name), &body).expect("writing file failed");
+    std::fs::create_dir_all(output_dir)
+        .map_err(|x| GourdError::FileError(output_dir.clone(), x))?;
+    std::fs::write(output_dir.join(output_name), &body)
+        .map_err(|x| GourdError::FileError(output_dir.clone(), x))?;
+
+    Ok(())
 }
 
 /// runs a shell script
 #[allow(unused)]
-pub fn run_script(arguments: Vec<&str>) -> Result<ExitStatus> {
+pub fn run_script(arguments: Vec<&str>) -> Result<ExitStatus, GourdError> {
     let mut command = Command::new("sh");
 
-    for arg in arguments {
-        command.arg(arg);
-    }
+    command.args(arguments);
 
-    command.spawn().expect("sh command failed to start").wait()
+    command
+        .spawn()
+        .map_err(GourdError::ChildSpawnError)?
+        .wait()
+        .map_err(GourdError::ChildSpawnError)
 }

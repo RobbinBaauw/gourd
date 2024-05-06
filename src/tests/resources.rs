@@ -4,7 +4,6 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::ExitStatus;
 
 use tempdir::TempDir;
 
@@ -20,21 +19,6 @@ EOF
 "#;
 
 #[test]
-fn test_get_file() {
-    let tmp_dir = TempDir::new("testing").unwrap();
-    let file_path = tmp_dir.path().join("test.sh");
-
-    let tmp_file = File::create(&file_path).unwrap();
-    fs::write(&file_path, PREPROGRAMMED_SH_SCRIPT).unwrap();
-
-    let res = resources::get_file(&file_path);
-    assert!(res.is_ok());
-
-    drop(tmp_file);
-    assert!(tmp_dir.close().is_ok());
-}
-
-#[test]
 fn test_get_resources() {
     let tmp_dir = TempDir::new("testing").unwrap();
     let file_path = tmp_dir.path().join("test.sh");
@@ -42,8 +26,9 @@ fn test_get_resources() {
     let tmp_file = File::create(&file_path).unwrap();
     fs::write(&file_path, PREPROGRAMMED_SH_SCRIPT).unwrap();
 
-    let res = resources::get_resources(vec![&file_path, &file_path.join("2")]);
-    assert_eq!(res.len(), 1);
+    let res = resources::get_resources(vec![&file_path]);
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap().len(), 1);
 
     drop(tmp_file);
     assert!(tmp_dir.close().is_ok());
@@ -58,7 +43,7 @@ fn test_downloading_from_url() {
     let tmp_dir_path = PathBuf::from(tmp_dir.path());
     println!("{:?}", tmp_dir_path);
 
-    resources::download_from_url("https://sh.rustup.rs", &tmp_dir_path, output_name);
+    resources::download_from_url("https://sh.rustup.rs", &tmp_dir_path, output_name).unwrap();
 
     let mut file = File::open(file_path).expect("could not open the file");
     let mut contents = String::new();
@@ -79,8 +64,7 @@ fn test_sh_script() {
     let tmp_file = File::create(&file_path).unwrap();
     fs::write(&file_path, PREPROGRAMMED_SH_SCRIPT).unwrap();
 
-    let res: Result<ExitStatus, std::io::Error> =
-        resources::run_script(vec!["-C", &(file_path.into_os_string().to_str().unwrap())]);
+    let res = resources::run_script(vec!["-C", &(file_path.into_os_string().to_str().unwrap())]);
     assert!(res.is_ok());
 
     let full_path = PathBuf::from("./filename");
