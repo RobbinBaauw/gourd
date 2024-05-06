@@ -8,9 +8,11 @@
 //! Gourd allows
 
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process::ExitStatus;
 
+use crate::config::Config;
 use crate::constants::X86_64_E_MACHINE;
 use crate::measurement::Measurement;
 use crate::wrapper::wrap;
@@ -22,6 +24,10 @@ mod tests;
 
 /// The error type of `gourd`.
 pub mod error;
+
+/// A struct and related methods for global configuration,
+/// declaratively specifying experiments.
+pub mod config;
 
 /// The binary wrapper around run programs.
 pub mod wrapper;
@@ -38,6 +44,12 @@ pub mod measurement;
 #[cfg(not(tarpaulin_include))]
 fn main() {
     println!("Hello, world!");
+    let config_path = String::from("gourd.toml");
+
+    println!("Loading configuration file at '{}'", config_path);
+    let config = Config::from_file(Path::new(&config_path)).unwrap();
+    // Prints contents of the configuration file. Remove.
+    println!("{:?}", config);
 
     let path = "./bin".parse::<PathBuf>().unwrap();
 
@@ -48,6 +60,7 @@ fn main() {
         }],
         vec!["./test1".parse().unwrap()],
         X86_64_E_MACHINE,
+        &config,
     )
     .unwrap()
     .iter_mut()

@@ -7,6 +7,7 @@ use elf::endian::AnyEndian;
 #[cfg(target_os = "linux")]
 use elf::ElfBytes;
 
+use crate::config::Config;
 use crate::constants::WRAPPER;
 use crate::error::GourdError;
 use crate::error::GourdError::*;
@@ -30,10 +31,8 @@ pub fn wrap(
     runs: Vec<Program>,
     tests: Vec<PathBuf>,
     #[allow(unused_variables)] arch: MachineType,
+    conf: &Config,
 ) -> Result<Vec<Command>, GourdError> {
-    let this_will_be_in_the_config_output_path: PathBuf = "/tmp/gourd/".parse().unwrap();
-    let this_will_be_in_the_config_result_path: PathBuf = "/tmp/gourd/".parse().unwrap();
-
     let mut result = Vec::new();
 
     for (run_id, run) in runs.iter().enumerate() {
@@ -45,12 +44,14 @@ pub fn wrap(
             cmd.arg(fs::canonicalize(&run.binary).map_err(|x| FileError(run.binary.clone(), x))?)
                 .arg(fs::canonicalize(test).map_err(|x| FileError(test.clone(), x))?)
                 .arg(
-                    this_will_be_in_the_config_output_path
+                    &conf
+                        .output_path
                         .join(format!("algo_{}/{}_output", run_id, test_id)),
                 )
                 .arg(
-                    this_will_be_in_the_config_result_path
-                        .join(format!("algo_{}/{}_result", run_id, test_id)),
+                    &conf
+                        .metrics_path
+                        .join(format!("algo_{}/{}_metrics", run_id, test_id)),
                 )
                 .args(&run.arguments);
 

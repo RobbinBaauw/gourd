@@ -8,6 +8,9 @@ use elf::ParseError;
 
 /// This error type is used by all gourd functions.
 pub enum GourdError {
+    /// The configuration file could not be read.
+    ConfigLoadError(Option<std::io::Error>, String),
+
     /// The architecture does not match the one we want to run on.
     ArchitectureMismatch {
         /// The expected architecture in `e_machine` format.
@@ -30,6 +33,9 @@ pub enum GourdError {
 impl Debug for GourdError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::ConfigLoadError(_err, reason) => {
+                write!(f, "The configuration file could not be read: {}", reason)
+            }
             Self::ArchitectureMismatch { expected, binary } => write!(
                 f,
                 "The {:?} architecture does not match {:?}, the runners architecture",
