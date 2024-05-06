@@ -3,8 +3,10 @@ use std::process::Command;
 
 use tempdir::TempDir;
 
+use crate::config::Config;
 use crate::constants::WRAPPER;
 use crate::constants::X86_64_E_MACHINE;
+#[cfg(target_os = "linux")]
 use crate::error::GourdError;
 use crate::wrapper::wrap;
 use crate::wrapper::Program;
@@ -24,6 +26,7 @@ fn main() {
 }
 "#;
 
+#[cfg(target_os = "linux")]
 const ARM_PREPROGRAMED_BINARY: &str = r#"
 #![no_main]
 #![no_std]
@@ -38,6 +41,7 @@ fn panic(_panic: &PanicInfo<'_>) -> ! {
 
 /// This test will generate a ARM binary and check if [crate::wrapper::wrap] rightfully rejects it.
 #[test]
+#[cfg(target_os = "linux")]
 fn unmatching_arch() {
     let tmp = TempDir::new("unmatch").unwrap();
 
@@ -72,6 +76,7 @@ fn unmatching_arch() {
         }],
         vec![],
         X86_64_E_MACHINE,
+        &Config::default(),
     ) {
         Err(GourdError::ArchitectureMismatch {
             expected: X86_64_E_MACHINE,
@@ -110,6 +115,11 @@ fn matching_arch() {
         .wait()
         .unwrap();
 
+    let conf = Config {
+        output_path: tmp.path().to_path_buf(),
+        metrics_path: tmp.path().to_path_buf(),
+    };
+
     let cmds = wrap(
         vec![Program {
             binary: tmp.path().join("prog"),
@@ -117,20 +127,21 @@ fn matching_arch() {
         }],
         vec![input.clone()],
         X86_64_E_MACHINE,
+        &conf,
     )
     .unwrap();
 
-    assert!(cmds.len() == 1);
+    assert_eq!(1, cmds.len());
 
-    assert!(
-        format!("{:?}", cmds[0])
-            == format!(
-                "{:?}",
-                Command::new(WRAPPER)
-                    .arg(tmp.path().join("prog").canonicalize().unwrap())
-                    .arg(input.canonicalize().unwrap())
-                    .arg("/tmp/gourd/algo_0/0_output")
-                    .arg("/tmp/gourd/algo_0/0_result")
-            )
+    assert_eq!(
+        format!("{:?}", cmds[0]),
+        format!(
+            "{:?}",
+            Command::new(WRAPPER)
+                .arg(tmp.path().join("prog").canonicalize().unwrap())
+                .arg(input.canonicalize().unwrap())
+                .arg(conf.output_path.join("algo_0/0_output"))
+                .arg(conf.metrics_path.join("algo_0/0_metrics"))
+        )
     );
 }

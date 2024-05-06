@@ -50,8 +50,8 @@ pub fn wrap(
                 )
                 .arg(
                     &conf
-                        .result_path
-                        .join(format!("algo_{}/{}_result", run_id, test_id)),
+                        .metrics_path
+                        .join(format!("algo_{}/{}_metrics", run_id, test_id)),
                 )
                 .args(&run.arguments);
 
