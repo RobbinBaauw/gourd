@@ -1,8 +1,10 @@
 extern crate tempdir;
 
 use std::fs::File;
+#[cfg(target_os = "unix")]
 use std::fs::Permissions;
 use std::io::Write;
+#[cfg(target_os = "unix")]
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
@@ -90,6 +92,9 @@ fn config_nonexistent_file() {
 }
 
 #[test]
+// Tests on a file without read permissions.
+// The test does not run on Windows because we access Unix-style permissions here.
+#[cfg(target_os = "unix")]
 fn config_unreadable_file() {
     let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
     let file_pathbuf = dir.path().join("file.toml");

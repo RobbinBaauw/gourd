@@ -85,6 +85,7 @@ unsafe fn empty_raw_rusage() -> libc::rusage {
 }
 
 /// Converts a `libc::timeval` to a `std::time::Duration`.
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 fn duration_from_timeval(timeval: libc::timeval) -> Duration {
     Duration::new(timeval.tv_sec as u64, (timeval.tv_usec * 1000) as u32)
 }
