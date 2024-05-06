@@ -4,8 +4,8 @@ use std::process::Command;
 use tempdir::TempDir;
 
 mod config;
-mod runner;
 mod resources;
+mod runner;
 mod wrapper;
 
 pub fn get_compiled_example(
