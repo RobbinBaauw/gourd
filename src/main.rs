@@ -40,11 +40,11 @@ pub mod local;
 /// Code shared between the wrapper and `gourd`.
 pub mod measurement;
 
-/// Code for accessing and managing resouces
+/// Accessing and managing resources.
 pub mod resources;
 
+/// The command line interface and relevant structures.
 pub mod cli;
-pub mod wrapper_binary;
 
 /// The main entrypoint.
 ///
