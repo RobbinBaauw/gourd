@@ -2,7 +2,9 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
+#[cfg(target_os = "linux")]
 use elf::endian::AnyEndian;
+#[cfg(target_os = "linux")]
 use elf::ElfBytes;
 
 use crate::constants::WRAPPER;
@@ -27,7 +29,7 @@ pub struct Program {
 pub fn wrap(
     runs: Vec<Program>,
     tests: Vec<PathBuf>,
-    arch: MachineType,
+    #[allow(unused_variables)] arch: MachineType,
 ) -> Result<Vec<Command>, GourdError> {
     let this_will_be_in_the_config_output_path: PathBuf = "/tmp/gourd/".parse().unwrap();
     let this_will_be_in_the_config_result_path: PathBuf = "/tmp/gourd/".parse().unwrap();
@@ -35,6 +37,7 @@ pub fn wrap(
     let mut result = Vec::new();
 
     for (run_id, run) in runs.iter().enumerate() {
+        #[cfg(target_os = "linux")]
         verify_arch(&run.binary, arch)?;
 
         for (test_id, test) in tests.iter().enumerate() {
@@ -58,6 +61,7 @@ pub fn wrap(
     Ok(result)
 }
 
+#[cfg(target_os = "linux")]
 fn verify_arch(binary: &PathBuf, expected: MachineType) -> Result<(), GourdError> {
     let elf = fs::read(binary).map_err(|x| FileError(binary.clone(), x))?;
 

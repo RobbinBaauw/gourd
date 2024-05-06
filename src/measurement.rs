@@ -5,7 +5,9 @@
 use std::process::Child;
 use std::time::Duration;
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use libc::WEXITSTATUS;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use libc::WIFEXITED;
 use serde::Deserialize;
 use serde::Serialize;
@@ -77,7 +79,7 @@ pub trait GetRUsage {
 }
 
 /// Returns an empty `libc::rusage` struct.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 unsafe fn empty_raw_rusage() -> libc::rusage {
     std::mem::zeroed()
 }
@@ -89,10 +91,11 @@ fn duration_from_timeval(timeval: libc::timeval) -> Duration {
 
 impl GetRUsage for Child {
     fn wait_for_rusage(&mut self) -> Result<RUsage, Error> {
-        let pid = self.id() as i32;
-        let mut status: i32 = 0;
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
+            let pid = self.id() as i32;
+            let mut status: i32 = 0;
+
             let mut rusage;
             unsafe {
                 rusage = empty_raw_rusage();
@@ -128,7 +131,7 @@ impl GetRUsage for Child {
                 Err(Error::Unavailable)
             }
         }
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(not(any(target_os = "linux", target_os = "macos")))]
         {
             Err(Error::UnsupportedPlatform)
         }

@@ -1,4 +1,6 @@
 #![warn(missing_docs)]
+// for tarpaulin cfg
+#![allow(unexpected_cfgs)]
 #![cfg(not(tarpaulin_include))]
 #![allow(unused_imports)]
 //! This wrapper runs the binary and measures metrics

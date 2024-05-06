@@ -2,6 +2,8 @@
 #![warn(missing_debug_implementations)]
 #![warn(missing_copy_implementations)]
 #![allow(clippy::redundant_static_lifetimes)]
+// for tarpaulin cfg
+#![allow(unexpected_cfgs)]
 
 //! Gourd allows
 
