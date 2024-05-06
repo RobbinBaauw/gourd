@@ -36,6 +36,7 @@ fn panic(_panic: &PanicInfo<'_>) -> ! {
 }
 "#;
 
+/// This test will generate a ARM binary and check if [crate::wrapper::wrap] rightfully rejects it.
 #[test]
 fn unmatching_arch() {
     let tmp = TempDir::new("unmatch").unwrap();
@@ -86,6 +87,8 @@ fn unmatching_arch() {
     }
 }
 
+/// This test will generate a X86 binary and check if [crate::wrapper::wrap]
+/// accepts it and generates correct commands.
 #[test]
 fn matching_arch() {
     let tmp = TempDir::new("match").unwrap();

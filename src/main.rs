@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use std::process::ExitStatus;
 
 use crate::constants::X86_64_E_MACHINE;
-use crate::shared::Measurement;
+use crate::measurement::Measurement;
 use crate::wrapper::wrap;
 use crate::wrapper::Program;
 
@@ -28,7 +28,7 @@ pub mod wrapper;
 pub mod constants;
 
 /// Code shared between the wrapper and `gourd`.
-pub mod shared;
+pub mod measurement;
 
 /// The main entrypoint.
 ///

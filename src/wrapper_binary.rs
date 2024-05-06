@@ -10,7 +10,7 @@
 //!   - The path where the metrics should be output
 //! As arguments, the wrapper will then perform the experiment.
 
-mod shared;
+mod measurement;
 
 use std::env;
 use std::fs;
@@ -27,8 +27,9 @@ use libc::WIFEXITED;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::shared::Measurement;
-use crate::shared::RUsage;
+use crate::measurement::GetRUsage;
+use crate::measurement::Measurement;
+use crate::measurement::RUsage;
 
 #[allow(dead_code)]
 fn main() {
@@ -88,87 +89,5 @@ fn stop_measuring(clk: Clock, rusage: RUsage) -> Measurement {
     Measurement {
         wall_micros: clk.wall_time.elapsed(),
         rusage,
-    }
-}
-
-// The follwing code is originally from: https://docs.rs/command-rusage
-// Licensed under MIT.
-// It exists because we have to modify the behaviour of it.
-
-/// Error type for `getrusage` failures.
-#[derive(Debug, Clone, Copy)]
-pub enum Error {
-    /// The process exists, but its resource usage statistics are unavailable.
-    Unavailable,
-    /// This platform is not supported. There is only support for linux.
-    UnsupportedPlatform,
-}
-
-/// A trait for getting resource usage statistics for a process.
-pub trait GetRUsage {
-    /// Waits for the process to exit and returns its resource usage statistics.
-    /// Works only on linux with wait4 syscall available.
-    fn wait_for_rusage(&mut self) -> Result<RUsage, Error>;
-}
-
-/// Type wrapper for result.
-pub type RUsageResult = std::result::Result<RUsage, Error>;
-
-/// Returns an empty `libc::rusage` struct.
-#[cfg(target_os = "linux")]
-unsafe fn empty_raw_rusage() -> libc::rusage {
-    std::mem::zeroed()
-}
-
-/// Converts a `libc::timeval` to a `std::time::Duration`.
-fn duration_from_timeval(timeval: libc::timeval) -> Duration {
-    Duration::new(timeval.tv_sec as u64, (timeval.tv_usec * 1000) as u32)
-}
-
-impl GetRUsage for Child {
-    fn wait_for_rusage(&mut self) -> Result<RUsage, Error> {
-        let pid = self.id() as i32;
-        let mut status: i32 = 0;
-        #[cfg(target_os = "linux")]
-        {
-            let mut rusage;
-            unsafe {
-                rusage = empty_raw_rusage();
-                libc::wait4(
-                    pid,
-                    &mut status as *mut libc::c_int,
-                    0i32,
-                    &mut rusage as *mut libc::rusage,
-                );
-            }
-
-            if WIFEXITED(status) {
-                Ok(RUsage {
-                    utime: duration_from_timeval(rusage.ru_utime),
-                    stime: duration_from_timeval(rusage.ru_stime),
-                    maxrss: rusage.ru_maxrss as usize,
-                    ixrss: rusage.ru_ixrss as usize,
-                    idrss: rusage.ru_idrss as usize,
-                    isrss: rusage.ru_isrss as usize,
-                    minflt: rusage.ru_minflt as usize,
-                    majflt: rusage.ru_majflt as usize,
-                    nswap: rusage.ru_nswap as usize,
-                    inblock: rusage.ru_inblock as usize,
-                    oublock: rusage.ru_oublock as usize,
-                    msgsnd: rusage.ru_msgsnd as usize,
-                    msgrcv: rusage.ru_msgrcv as usize,
-                    nsignals: rusage.ru_nsignals as usize,
-                    nvcsw: rusage.ru_nvcsw as usize,
-                    nivcsw: rusage.ru_nivcsw as usize,
-                    exit_status: WEXITSTATUS(status),
-                })
-            } else {
-                Err(Error::Unavailable)
-            }
-        }
-        #[cfg(not(target_os = "linux"))]
-        {
-            Err(Error::UnsupportedPlatform)
-        }
     }
 }
