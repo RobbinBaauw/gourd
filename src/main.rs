@@ -35,7 +35,9 @@ pub mod wrapper;
 /// Constant values.
 pub mod constants;
 
-mod local;
+/// The local runner module: `gourd run local`.
+pub mod local;
+
 /// Code shared between the wrapper and `gourd`.
 pub mod measurement;
 

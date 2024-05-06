@@ -11,7 +11,7 @@ use crate::error::GourdError;
 /// (more documentation needed tbh)
 #[allow(dead_code, unused)]
 pub fn run_locally(tasks: Vec<Command>) -> Result<Vec<ExitStatus>, GourdError> {
-    let rt = runtime::Runtime::new().unwrap();
+    let rt = runtime::Runtime::new().map_err(GourdError::IoError)?;
 
     rt.block_on(async {
         let task_futures: Vec<_> = tasks
@@ -26,7 +26,6 @@ pub fn run_locally(tasks: Vec<Command>) -> Result<Vec<ExitStatus>, GourdError> {
                 })
             })
             .collect();
-        // .collect::<Vec<dyn Future<Output=ExitStatus>>>();
         // Run all commands concurrently and collect their results
         let results = join_all(task_futures).await;
         let mut output = vec![];

@@ -50,7 +50,7 @@ impl Debug for GourdError {
             Self::FileError(file, io_err) => {
                 write!(f, "Could not access file {:?}: {}", file, io_err)
             }
-            Self::IoError(io_err) => write!(f, "A IO error occurred: {}", io_err),
+            Self::IoError(io_err) => write!(f, "An IO error occurred: {}", io_err),
             Self::ElfParseError(err) => write!(f, "This is not a valid elf file: {}", err),
             Self::ChildJoinError(err) => write!(f, "Could not join child to main thread: {}", err),
         }
