@@ -5,6 +5,7 @@ use tempdir::TempDir;
 
 mod config;
 mod runner;
+mod resources;
 mod wrapper;
 
 pub fn get_compiled_example(

@@ -41,6 +41,9 @@ pub mod local;
 /// Code shared between the wrapper and `gourd`.
 pub mod measurement;
 
+/// Code for accessing and managing resouces
+pub mod resources;
+
 /// The main entrypoint.
 ///
 /// This function is the main entrypoint of the program.
