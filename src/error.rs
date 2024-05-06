@@ -33,6 +33,12 @@ pub enum GourdError {
 
     /// Couldn't join the child in the runner
     ChildJoinError(JoinError),
+
+    /// Couldn't spawn the child
+    ChildSpawnError(std::io::Error),
+
+    /// Couldn't access an online resource
+    NetworkError(reqwest::Error),
 }
 
 impl Debug for GourdError {
@@ -53,6 +59,8 @@ impl Debug for GourdError {
             Self::IoError(io_err) => write!(f, "An IO error occurred: {}", io_err),
             Self::ElfParseError(err) => write!(f, "This is not a valid elf file: {}", err),
             Self::ChildJoinError(err) => write!(f, "Could not join child to main thread: {}", err),
+            Self::ChildSpawnError(err) => write!(f, "Could not spawn child: {}", err),
+            Self::NetworkError(err) => write!(f, "Couldn't access an online resource: {}", err),
         }
     }
 }

@@ -1,7 +1,7 @@
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let x: u128 = args[1].parse().expect("Invalid number (u64)");
-    println!("{}", fibonacci(x));
+    fibonacci(x);
 }
 fn fibonacci(x: u128) -> u128 {
     match x {

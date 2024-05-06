@@ -4,6 +4,7 @@ use std::process::Command;
 use tempdir::TempDir;
 
 mod config;
+mod resources;
 mod runner;
 mod wrapper;
 
