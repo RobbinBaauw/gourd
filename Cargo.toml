@@ -34,9 +34,3 @@ path = "src/main.rs"
 name = "gourd-wrapper"
 path = "src/wrapper_binary.rs"
 
-
-# Binaries for testing
-[[bin]]
-name = "fibonacci_example"
-path = "src/tests/examples/fibonacci.rs"
-

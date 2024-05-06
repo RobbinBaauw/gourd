@@ -18,8 +18,8 @@ use crate::measurement::Measurement;
 use crate::wrapper::wrap;
 use crate::wrapper::Program;
 
-#[cfg(test)]
 /// The tests validating the behaviour of `gourd`.
+#[cfg(test)]
 pub mod tests;
 
 /// The error type of `gourd`.
