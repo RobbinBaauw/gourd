@@ -5,8 +5,10 @@ use std::path::PathBuf;
 
 use elf::to_str::e_machine_to_human_str;
 use elf::ParseError;
+use tokio::task::JoinError;
 
 /// This error type is used by all gourd functions.
+#[allow(dead_code)]
 pub enum GourdError {
     /// The configuration file could not be read.
     ConfigLoadError(Option<std::io::Error>, String),
@@ -28,6 +30,9 @@ pub enum GourdError {
 
     /// This ELF file failed to parse
     ElfParseError(ParseError),
+
+    /// Couldn't join the child in the runner
+    ChildJoinError(JoinError),
 }
 
 impl Debug for GourdError {
@@ -45,8 +50,9 @@ impl Debug for GourdError {
             Self::FileError(file, io_err) => {
                 write!(f, "Could not access file {:?}: {}", file, io_err)
             }
-            Self::IoError(io_err) => write!(f, "A IO error occured: {}", io_err),
+            Self::IoError(io_err) => write!(f, "An IO error occurred: {}", io_err),
             Self::ElfParseError(err) => write!(f, "This is not a valid elf file: {}", err),
+            Self::ChildJoinError(err) => write!(f, "Could not join child to main thread: {}", err),
         }
     }
 }

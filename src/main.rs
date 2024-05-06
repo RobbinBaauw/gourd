@@ -18,9 +18,9 @@ use crate::measurement::Measurement;
 use crate::wrapper::wrap;
 use crate::wrapper::Program;
 
-#[cfg(test)]
 /// The tests validating the behaviour of `gourd`.
-mod tests;
+#[cfg(test)]
+pub mod tests;
 
 /// The error type of `gourd`.
 pub mod error;
@@ -34,6 +34,9 @@ pub mod wrapper;
 
 /// Constant values.
 pub mod constants;
+
+/// The local runner module: `gourd run local`.
+pub mod local;
 
 /// Code shared between the wrapper and `gourd`.
 pub mod measurement;

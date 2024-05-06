@@ -1,54 +1,22 @@
 use std::fs;
 use std::process::Command;
 
-use tempdir::TempDir;
-
 use crate::config::Config;
 use crate::constants::WRAPPER;
 use crate::constants::X86_64_E_MACHINE;
 #[cfg(target_os = "linux")]
 use crate::error::GourdError;
+use crate::tests::get_compiled_example;
 use crate::wrapper::wrap;
 use crate::wrapper::Program;
 
-const X86_64_PREPROGRAMED_BINARY: &str = r#"
-use std::io;
+const X86_64_PRE_PROGRAMMED_BINARY: &str = include_str!("resources/x86_64_pre_programmed.rs");
+const ARM_PRE_PROGRAMMED_BINARY: &str = include_str!("resources/arm_pre_programmed.rs");
 
-fn main() {
-  let mut inpt = String::new();
-  io::stdin()
-      .read_line(&mut inpt)
-      .expect("Failed to read line");
-
-  let num: i32 = inpt.trim().parse().unwrap();
-
-  println!("{}", num);
-}
-"#;
-
+/// This test will generate an ARM binary and check if [crate::wrapper::wrap] rightfully rejects it.
 #[cfg(target_os = "linux")]
-const ARM_PREPROGRAMED_BINARY: &str = r#"
-#![no_main]
-#![no_std]
-
-use core::panic::PanicInfo;
-
-#[panic_handler]
-fn panic(_panic: &PanicInfo<'_>) -> ! {
-    loop {}
-}
-"#;
-
-/// This test will generate a ARM binary and check if [crate::wrapper::wrap] rightfully rejects it.
 #[test]
-#[cfg(target_os = "linux")]
-fn unmatching_arch() {
-    let tmp = TempDir::new("unmatch").unwrap();
-
-    let source = tmp.path().join("prog.rs");
-    let out = tmp.path().join("prog");
-    fs::write(&source, ARM_PREPROGRAMED_BINARY).unwrap();
-
+fn non_matching_arch() {
     Command::new("rustup")
         .arg("target")
         .arg("add")
@@ -58,20 +26,14 @@ fn unmatching_arch() {
         .wait()
         .unwrap();
 
-    Command::new("rustc")
-        .arg("--target")
-        .arg("thumbv7em-none-eabihf")
-        .arg(source.canonicalize().unwrap())
-        .arg("-o")
-        .arg(out)
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap();
+    let (out, _tmp) = get_compiled_example(
+        ARM_PRE_PROGRAMMED_BINARY,
+        Some(vec!["--target=thumbv7em-none-eabihf"]),
+    );
 
     match wrap(
         vec![Program {
-            binary: tmp.path().join("prog"),
+            binary: out,
             arguments: vec![],
         }],
         vec![],
@@ -85,7 +47,7 @@ fn unmatching_arch() {
 
         e => {
             panic!(
-                "Did not return the correct architechure mismatch, was: {:?}",
+                "Did not return the correct architecture mismatch, was: {:?}",
                 e
             );
         }
@@ -96,24 +58,10 @@ fn unmatching_arch() {
 /// accepts it and generates correct commands.
 #[test]
 fn matching_arch() {
-    let tmp = TempDir::new("match").unwrap();
-
-    let source = tmp.path().join("prog.rs");
-    let out = tmp.path().join("prog");
-
+    let (out, tmp) = get_compiled_example(X86_64_PRE_PROGRAMMED_BINARY, None);
     let input = tmp.path().join("test1");
 
-    fs::write(&source, X86_64_PREPROGRAMED_BINARY).unwrap();
     fs::write(&input, "4").unwrap();
-
-    Command::new("rustc")
-        .arg(source.canonicalize().unwrap())
-        .arg("-o")
-        .arg(out)
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap();
 
     let conf = Config {
         output_path: tmp.path().to_path_buf(),
@@ -122,7 +70,7 @@ fn matching_arch() {
 
     let cmds = wrap(
         vec![Program {
-            binary: tmp.path().join("prog"),
+            binary: out,
             arguments: vec![],
         }],
         vec![input.clone()],
@@ -132,7 +80,6 @@ fn matching_arch() {
     .unwrap();
 
     assert_eq!(1, cmds.len());
-
     assert_eq!(
         format!("{:?}", cmds[0]),
         format!(
