@@ -1,10 +1,10 @@
 extern crate tempdir;
 
 use std::fs::File;
-#[cfg(target_os = "unix")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::fs::Permissions;
 use std::io::Write;
-#[cfg(target_os = "unix")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
@@ -13,10 +13,10 @@ use tempdir::TempDir;
 use crate::config::Config;
 use crate::error::GourdError;
 
-#[test]
 /// This test will fail if the semantics of the config struct are changed.
 /// If this is the case, update the documentation and make sure that the
 /// rest of the application reflects these changes.
+#[test]
 fn breaking_changes_config_struct() {
     #[allow(clippy::unnecessary_operation)]
     Config {
@@ -25,10 +25,10 @@ fn breaking_changes_config_struct() {
     };
 }
 
-#[test]
 /// This test will fail if the semantics of the config file are changed.
 /// See above. Is this a valid reason for the user to update their old files?
 /// If you add something to the struct, add it here too.
+#[test]
 fn breaking_changes_config_file_all_values() {
     let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
     let file_pathbuf = dir.path().join("file.toml");
@@ -52,9 +52,9 @@ fn breaking_changes_config_file_all_values() {
     dir.close().unwrap();
 }
 
-#[test]
 /// This test will fail if the semantics of all REQUIRED values in the config file are changed.
 /// See above. If you add something to the struct, add it here too.
+#[test]
 fn breaking_changes_config_file_required_values() {
     let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
     let file_pathbuf = dir.path().join("file.toml");
@@ -91,10 +91,10 @@ fn config_nonexistent_file() {
     dir.close().unwrap();
 }
 
-#[test]
 // Tests on a file without read permissions.
 // The test does not run on Windows because we access Unix-style permissions here.
-#[cfg(target_os = "unix")]
+#[test]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 fn config_unreadable_file() {
     let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
     let file_pathbuf = dir.path().join("file.toml");
