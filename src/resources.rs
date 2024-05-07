@@ -7,7 +7,7 @@ use reqwest;
 
 use crate::error::GourdError;
 
-/// gets the files given the filepaths
+/// Gets the files given the filepaths.
 #[allow(unused)]
 pub fn get_resources(filepaths: Vec<&PathBuf>) -> Result<Vec<File>, GourdError> {
     let mut files: Vec<File> = vec![];
@@ -19,7 +19,7 @@ pub fn get_resources(filepaths: Vec<&PathBuf>) -> Result<Vec<File>, GourdError> 
     Ok(files)
 }
 
-/// downloads a file given a url
+/// Downloads a file given a url.
 #[allow(unused)]
 pub fn download_from_url(
     url: &str,
@@ -37,7 +37,7 @@ pub fn download_from_url(
     Ok(())
 }
 
-/// runs a shell script
+/// Runs a shell script.
 #[allow(unused)]
 pub fn run_script(arguments: Vec<&str>) -> Result<ExitStatus, GourdError> {
     let mut command = Command::new("sh");

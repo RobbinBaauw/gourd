@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -8,6 +9,26 @@ use serde::Serialize;
 
 use crate::error::GourdError;
 
+/// A pair of a path to a binary and cli arguments.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Program {
+    /// The path to the executable.
+    pub binary: PathBuf,
+
+    /// The cli arguments for the executable.
+    pub arguments: Vec<String>,
+}
+
+/// A pair of a path to an input and additional cli arguments.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Run {
+    /// The path to the input.
+    pub input: PathBuf,
+
+    /// The additonal cli arguments for the executable.
+    pub arguments: Vec<String>,
+}
+
 /// A config struct used throughout the `gourd` application.
 //
 // changing the config struct? see notes in ./tests/config.rs
@@ -17,11 +38,27 @@ use crate::error::GourdError;
 // 4. update the user documentation
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Config {
+    //
+    // Basic settings.
+    //
     /// The path to an existing folder where the experiment output will be stored.
     pub output_path: PathBuf,
 
     /// The path to an existing folder where the metrics output will be stored.
     pub metrics_path: PathBuf,
+
+    /// The list of tested algorithms.
+    pub programs: BTreeMap<String, Program>,
+
+    /// The list of inputs for each of them.
+    pub runs: BTreeMap<String, Run>,
+
+    //
+    // Advanced settings.
+    //
+    /// The command to execute to get to the wrapper.
+    #[serde(default)]
+    pub wrapper: String,
 }
 
 // An implementation that provides a default value of `Config`,
@@ -31,6 +68,9 @@ impl Default for Config {
         Config {
             output_path: PathBuf::from("run-output"),
             metrics_path: PathBuf::from("run-metrics"),
+            wrapper: "gourd-wrapper".to_string(),
+            programs: BTreeMap::new(),
+            runs: BTreeMap::new(),
         }
     }
 }

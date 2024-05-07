@@ -1,5 +1,6 @@
 extern crate tempdir;
 
+use std::collections::BTreeMap;
 use std::fs::File;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::fs::Permissions;
@@ -22,6 +23,9 @@ fn breaking_changes_config_struct() {
     Config {
         output_path: PathBuf::from(""),
         metrics_path: PathBuf::from(""),
+        wrapper: "".to_string(),
+        runs: BTreeMap::new(),
+        programs: BTreeMap::new(),
     };
 }
 
@@ -37,6 +41,9 @@ fn breaking_changes_config_file_all_values() {
             output_path = "./ginger_root"
             metrics_path = "./vulfpeck/"
 
+            [runs]
+
+            [programs]
         "#;
     let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
     file.write_all(config_contents.as_bytes())
@@ -45,7 +52,10 @@ fn breaking_changes_config_file_all_values() {
     assert_eq!(
         Config {
             output_path: PathBuf::from("./ginger_root/"),
-            metrics_path: PathBuf::from("./vulfpeck")
+            metrics_path: PathBuf::from("./vulfpeck"),
+            wrapper: "".to_string(),
+            runs: BTreeMap::new(),
+            programs: BTreeMap::new(),
         },
         Config::from_file(file_pathbuf.as_path()).expect("Unexpected config read error.")
     );
@@ -62,6 +72,10 @@ fn breaking_changes_config_file_required_values() {
     let config_contents = r#"
             output_path = "./ginger_root"
             metrics_path = "./vulfpeck/"
+
+            [runs]
+
+            [programs]
         "#;
     let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
     file.write_all(config_contents.as_bytes())
@@ -70,7 +84,10 @@ fn breaking_changes_config_file_required_values() {
     assert_eq!(
         Config {
             output_path: PathBuf::from("./ginger_root/"),
-            metrics_path: PathBuf::from("./vulfpeck")
+            metrics_path: PathBuf::from("./vulfpeck"),
+            wrapper: "".to_string(),
+            runs: BTreeMap::new(),
+            programs: BTreeMap::new(),
         },
         Config::from_file(file_pathbuf.as_path()).expect("Unexpected config read error.")
     );

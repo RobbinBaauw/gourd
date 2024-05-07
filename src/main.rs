@@ -1,21 +1,11 @@
+//! Gourd allows
+
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_copy_implementations)]
 #![allow(clippy::redundant_static_lifetimes)]
 // for tarpaulin cfg
 #![allow(unexpected_cfgs)]
-
-//! Gourd allows
-
-use std::fs;
-use std::path::Path;
-use std::path::PathBuf;
-use std::process::ExitStatus;
-
-use crate::constants::X86_64_E_MACHINE;
-use crate::measurement::Measurement;
-use crate::wrapper::wrap;
-use crate::wrapper::Program;
 
 /// The tests validating the behaviour of `gourd`.
 #[cfg(test)]
@@ -52,37 +42,4 @@ pub mod cli;
 #[cfg(not(tarpaulin_include))]
 fn main() {
     cli::parse_command();
-    println!("Hello, world!");
-    let config_path = String::from("gourd.toml");
-
-    println!("Loading configuration file at '{}'", config_path);
-    let config = config::Config::from_file(Path::new(&config_path)).unwrap();
-    // Prints contents of the configuration file. Remove.
-    println!("{:?}", config);
-
-    let path = "./bin".parse::<PathBuf>().unwrap();
-
-    let _: Vec<ExitStatus> = wrap(
-        vec![Program {
-            binary: path,
-            arguments: vec![],
-        }],
-        vec!["./test1".parse().unwrap()],
-        X86_64_E_MACHINE,
-        &config,
-    )
-    .unwrap()
-    .iter_mut()
-    .map(|x| {
-        println!("{:?}", x);
-        x.spawn().unwrap().wait().unwrap()
-    })
-    .collect();
-
-    let results: Measurement = toml::from_str(
-        &String::from_utf8(fs::read("/tmp/gourd/algo_0/0_result").unwrap()).unwrap(),
-    )
-    .unwrap();
-
-    println!("{:?}", results);
 }
