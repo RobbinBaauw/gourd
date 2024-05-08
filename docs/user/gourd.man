@@ -1,0 +1,62 @@
+.TH GOURD 1 "5 MAY 2024"
+
+.SH NAME
+gourd \- A tool for scheduling parallel runs for algorithm comparisons.
+
+.SH SYNOPSIS
+.SY gourd
+.OP -h
+.OP -s
+.YS
+
+.SH DESCRIPTION
+.B gourd
+is a tool that schedules parallel runs for algorithm comparisons.
+Given the parameters of the experiment, a number of test datasets,
+and algorithm implementations to compare,
+.B gourd
+runs the experiment in parallel and provides many options for
+processing its results. While originally envisioned for the DelftBlue
+supercomputer at Delft University of Technology,
+.B gourd
+can replicate the experiment on any cluster computer with the
+.B Slurm
+scheduler, on any UNIX-like system, and on Microsoft Windows.
+
+.SS Options
+.TP
+.B -h
+Get some help.
+.TP
+.B -s
+Run without interactive prompts (for scripting).
+.SH FILES
+.TP
+\fC./test_0\fR
+A text file containing one test case for the algorithm.
+.SH "SEE ALSO"
+man(1)
+.SH "AUTHORS"
+.P
+.MT l@chla.cz
+Lukáš Chládek
+.ME
+.P
+.MT r.giedryte@student.tudelft.nl
+Rūta Giedrytė
+.ME
+.P
+.MT a.tsatsanis@student.tudelft.nl
+Andreas Tsatsanis
+.ME
+.P
+.MT m.j.gazeel@student.tudelft.nl
+Mikołaj Gazeel
+.ME
+.P
+.MT j.p.piotrowski@student.tudelft.nl
+Jan Piotrowski
+.ME
+
+.SH "KNOWN ISSUES"
+The functionality of this software is not yet implemented.

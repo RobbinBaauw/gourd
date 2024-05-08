@@ -22,6 +22,7 @@ stages:
   - build
   - lint
   - test
+  - docs
 
 check:
   <<: *rust_container_stable
@@ -98,3 +99,16 @@ tests:
       - results.xml
     reports:
       junit: results.xml
+
+documentation:
+  image: registry.gitlab.com/islandoftex/images/texlive:latest
+  stage: docs
+  allow_failure: true
+  needs: []
+  script: cd docs/maintainer && ./compile.sh
+  artifacts:
+    when: on_success
+    name: Maintainer Documentation
+    expose_as: Maintainer Documentation
+    paths:
+    - gourd-maintainer-documentation.pdf

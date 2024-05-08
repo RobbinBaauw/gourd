@@ -7,3 +7,5 @@
 *.iml
 Cargo.lock
 .zed
+/docs/**/out/*
+/*.pdf
