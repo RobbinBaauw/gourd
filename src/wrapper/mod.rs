@@ -9,8 +9,8 @@ use elf::endian::AnyEndian;
 use elf::ElfBytes;
 
 use crate::config::Config;
+use crate::config::Input;
 use crate::config::Program;
-use crate::config::Run;
 use crate::error::GourdError;
 use crate::error::GourdError::*;
 
@@ -21,7 +21,7 @@ type MachineType = u16;
 /// The results and outputs will be located in `config.output_dir`.
 pub fn wrap(
     programs: &BTreeMap<String, Program>,
-    runs: &BTreeMap<String, Run>,
+    runs: &BTreeMap<String, Input>,
     #[allow(unused_variables)] arch: MachineType,
     conf: &Config,
 ) -> Result<Vec<Command>, GourdError> {

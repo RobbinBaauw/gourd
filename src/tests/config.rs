@@ -53,7 +53,7 @@ fn breaking_changes_config_file_all_values() {
         Config {
             output_path: PathBuf::from("./ginger_root/"),
             metrics_path: PathBuf::from("./vulfpeck"),
-            wrapper: "".to_string(),
+            wrapper: "gourd-wrapper".to_string(),
             runs: BTreeMap::new(),
             programs: BTreeMap::new(),
         },
@@ -85,7 +85,7 @@ fn breaking_changes_config_file_required_values() {
         Config {
             output_path: PathBuf::from("./ginger_root/"),
             metrics_path: PathBuf::from("./vulfpeck"),
-            wrapper: "".to_string(),
+            wrapper: "gourd-wrapper".to_string(),
             runs: BTreeMap::new(),
             programs: BTreeMap::new(),
         },

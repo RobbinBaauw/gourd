@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::constants::WRAPPER_DEFAULT;
 use crate::error::GourdError;
 
 /// A pair of a path to a binary and cli arguments.
@@ -21,7 +22,7 @@ pub struct Program {
 
 /// A pair of a path to an input and additional cli arguments.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct Run {
+pub struct Input {
     /// The path to the input.
     pub input: PathBuf,
 
@@ -51,13 +52,13 @@ pub struct Config {
     pub programs: BTreeMap<String, Program>,
 
     /// The list of inputs for each of them.
-    pub runs: BTreeMap<String, Run>,
+    pub runs: BTreeMap<String, Input>,
 
     //
     // Advanced settings.
     //
     /// The command to execute to get to the wrapper.
-    #[serde(default)]
+    #[serde(default = "WRAPPER_DEFAULT")]
     pub wrapper: String,
 }
 
@@ -68,7 +69,7 @@ impl Default for Config {
         Config {
             output_path: PathBuf::from("run-output"),
             metrics_path: PathBuf::from("run-metrics"),
-            wrapper: "gourd-wrapper".to_string(),
+            wrapper: WRAPPER_DEFAULT(),
             programs: BTreeMap::new(),
             runs: BTreeMap::new(),
         }

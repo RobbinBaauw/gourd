@@ -3,21 +3,25 @@ use std::fs;
 use std::process::Command;
 
 use crate::config::Config;
+use crate::config::Input;
 use crate::config::Program;
-use crate::config::Run;
-use crate::constants::X86_64_E_MACHINE;
+use crate::constants::E_MACHINE_MAPPING;
 #[cfg(target_os = "linux")]
-use crate::error::GourdError;
 use crate::tests::get_compiled_example;
 use crate::wrapper::wrap;
 
 const X86_64_PRE_PROGRAMMED_BINARY: &str = include_str!("resources/x86_64_pre_programmed.rs");
-const ARM_PRE_PROGRAMMED_BINARY: &str = include_str!("resources/arm_pre_programmed.rs");
 
 /// This test will generate an ARM binary and check if [crate::wrapper::wrap] rightfully rejects it.
 #[cfg(target_os = "linux")]
 #[test]
 fn non_matching_arch() {
+    use elf::abi;
+
+    use crate::error::GourdError;
+
+    const ARM_PRE_PROGRAMMED_BINARY: &str = include_str!("resources/arm_pre_programmed.rs");
+
     Command::new("rustup")
         .arg("target")
         .arg("add")
@@ -45,11 +49,11 @@ fn non_matching_arch() {
     match wrap(
         &first,
         &BTreeMap::new(),
-        X86_64_E_MACHINE,
+        E_MACHINE_MAPPING("x86_64"),
         &Config::default(),
     ) {
         Err(GourdError::ArchitectureMismatch {
-            expected: X86_64_E_MACHINE,
+            expected: abi::EM_X86_64,
             binary: 40,
         }) => {}
 
@@ -91,13 +95,13 @@ fn matching_arch() {
 
     second.insert(
         "test1".to_string(),
-        Run {
+        Input {
             input: input.clone(),
             arguments: vec![],
         },
     );
 
-    let cmds = wrap(&first, &second, X86_64_E_MACHINE, &conf).unwrap();
+    let cmds = wrap(&first, &second, E_MACHINE_MAPPING("x86_64"), &conf).unwrap();
 
     assert_eq!(1, cmds.len());
     assert_eq!(

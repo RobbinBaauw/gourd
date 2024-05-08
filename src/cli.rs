@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::process::exit;
 
 use clap::crate_authors;
 use clap::crate_name;
@@ -18,7 +19,7 @@ use crate::local::run_local;
 
 /// Structure of the main command (gourd).
 #[derive(Parser, Debug)]
-#[command(styles=get_styles(), about = "Gourd, a emipirical evaluator", disable_help_subcommand = true)]
+#[command(styles=get_styles(), about = "Gourd, an emipirical evaluator", disable_help_subcommand = true)]
 pub struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -129,6 +130,8 @@ pub fn parse_command() {
             .error(ErrorKind::Format, format!("{}", e))
             .print()
             .unwrap();
+
+        exit(1);
     }
 }
 
