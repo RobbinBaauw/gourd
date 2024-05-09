@@ -1,22 +1,27 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::process::Command;
 
 use crate::config::Config;
-use crate::constants::WRAPPER;
-use crate::constants::X86_64_E_MACHINE;
+use crate::config::Input;
+use crate::config::Program;
+use crate::constants::E_MACHINE_MAPPING;
 #[cfg(target_os = "linux")]
-use crate::error::GourdError;
 use crate::tests::get_compiled_example;
 use crate::wrapper::wrap;
-use crate::wrapper::Program;
 
 const X86_64_PRE_PROGRAMMED_BINARY: &str = include_str!("resources/x86_64_pre_programmed.rs");
-const ARM_PRE_PROGRAMMED_BINARY: &str = include_str!("resources/arm_pre_programmed.rs");
 
 /// This test will generate an ARM binary and check if [crate::wrapper::wrap] rightfully rejects it.
 #[cfg(target_os = "linux")]
 #[test]
 fn non_matching_arch() {
+    use elf::abi;
+
+    use crate::error::GourdError;
+
+    const ARM_PRE_PROGRAMMED_BINARY: &str = include_str!("resources/arm_pre_programmed.rs");
+
     Command::new("rustup")
         .arg("target")
         .arg("add")
@@ -31,17 +36,24 @@ fn non_matching_arch() {
         Some(vec!["--target=thumbv7em-none-eabihf"]),
     );
 
-    match wrap(
-        vec![Program {
+    let mut first = BTreeMap::new();
+
+    first.insert(
+        "any".to_string(),
+        Program {
             binary: out,
             arguments: vec![],
-        }],
-        vec![],
-        X86_64_E_MACHINE,
+        },
+    );
+
+    match wrap(
+        &first,
+        &BTreeMap::new(),
+        E_MACHINE_MAPPING("x86_64"),
         &Config::default(),
     ) {
         Err(GourdError::ArchitectureMismatch {
-            expected: X86_64_E_MACHINE,
+            expected: abi::EM_X86_64,
             binary: 40,
         }) => {}
 
@@ -66,29 +78,41 @@ fn matching_arch() {
     let conf = Config {
         output_path: tmp.path().to_path_buf(),
         metrics_path: tmp.path().to_path_buf(),
+        ..Default::default()
     };
 
-    let cmds = wrap(
-        vec![Program {
-            binary: out,
+    let mut first = BTreeMap::new();
+
+    first.insert(
+        "any".to_string(),
+        Program {
+            binary: out.clone(),
             arguments: vec![],
-        }],
-        vec![input.clone()],
-        X86_64_E_MACHINE,
-        &conf,
-    )
-    .unwrap();
+        },
+    );
+
+    let mut second = BTreeMap::new();
+
+    second.insert(
+        "test1".to_string(),
+        Input {
+            input: input.clone(),
+            arguments: vec![],
+        },
+    );
+
+    let cmds = wrap(&first, &second, E_MACHINE_MAPPING("x86_64"), &conf).unwrap();
 
     assert_eq!(1, cmds.len());
     assert_eq!(
         format!("{:?}", cmds[0]),
         format!(
             "{:?}",
-            Command::new(WRAPPER)
+            Command::new(&conf.wrapper)
                 .arg(tmp.path().join("prog").canonicalize().unwrap())
                 .arg(input.canonicalize().unwrap())
-                .arg(conf.output_path.join("algo_0/0_output"))
-                .arg(conf.metrics_path.join("algo_0/0_metrics"))
+                .arg(conf.output_path.join("algo_any/test1_output"))
+                .arg(conf.metrics_path.join("algo_any/test1_metrics"))
         )
     );
 }

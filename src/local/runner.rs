@@ -26,6 +26,7 @@ pub fn run_locally(tasks: Vec<Command>) -> Result<Vec<ExitStatus>, GourdError> {
                 })
             })
             .collect();
+
         // Run all commands concurrently and collect their results
         let results = join_all(task_futures).await;
         let mut output = vec![];

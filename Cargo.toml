@@ -6,7 +6,7 @@ default-run = "gourd"
 authors = [
   "Mikołaj Gazeel <m.j.gazeel@student.tudelft.nl>",
   "Lukáš Chládek <l@chla.cz>",
-  "Andreas Tsatsanis <a.tsatsanis@student.tudelft.nl>",
+  "Ανδρέας Τσατσάνης <a.tsatsanis@student.tudelft.nl>",
   "Jan Piotrowski <j.p.piotrowski@student.tudelft.nl>",
   "Rūta Giedrytė <r.giedryte@student.tudelft.nl>"
 ]
@@ -23,6 +23,9 @@ serde = { version = "1.0", features = ["derive"] }
 toml = "0.8.12"
 
 reqwest = { version = "0.12.4", features = ["blocking", "json"] }
+
+clap = { version = "4.5.4", features = ["derive", "cargo"] }
+anstyle = "1.0.7"
 
 [dev-dependencies]
 easybench = "1.1.1"

@@ -1,6 +1,6 @@
 #![cfg(not(tarpaulin_include))]
 
-use std::fmt::Debug;
+use std::fmt::Display;
 use std::path::PathBuf;
 
 use elf::to_str::e_machine_to_human_str;
@@ -9,6 +9,7 @@ use tokio::task::JoinError;
 
 /// This error type is used by all gourd functions.
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum GourdError {
     /// The configuration file could not be read.
     ConfigLoadError(Option<std::io::Error>, String),
@@ -41,7 +42,7 @@ pub enum GourdError {
     NetworkError(reqwest::Error),
 }
 
-impl Debug for GourdError {
+impl Display for GourdError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ConfigLoadError(_err, reason) => {

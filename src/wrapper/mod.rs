@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -8,52 +9,46 @@ use elf::endian::AnyEndian;
 use elf::ElfBytes;
 
 use crate::config::Config;
-use crate::constants::WRAPPER;
+use crate::config::Input;
+use crate::config::Program;
 use crate::error::GourdError;
 use crate::error::GourdError::*;
 
 type MachineType = u16;
 
-/// A pair of a path to a binary and cli arguments.
-#[derive(Debug, Clone)]
-pub struct Program {
-    /// The path to the executable.
-    pub binary: PathBuf,
-
-    /// The cli arguments for the executable.
-    pub arguments: Vec<String>,
-}
-
 /// This function returns the commands to be run for an n x m matching of the runs to tests.
 ///
 /// The results and outputs will be located in `config.output_dir`.
 pub fn wrap(
-    runs: Vec<Program>,
-    tests: Vec<PathBuf>,
+    programs: &BTreeMap<String, Program>,
+    runs: &BTreeMap<String, Input>,
     #[allow(unused_variables)] arch: MachineType,
     conf: &Config,
 ) -> Result<Vec<Command>, GourdError> {
     let mut result = Vec::new();
 
-    for (run_id, run) in runs.iter().enumerate() {
+    for (prog_name, program) in programs {
         #[cfg(target_os = "linux")]
-        verify_arch(&run.binary, arch)?;
+        verify_arch(&program.binary, arch)?;
 
-        for (test_id, test) in tests.iter().enumerate() {
-            let mut cmd = Command::new(WRAPPER);
-            cmd.arg(fs::canonicalize(&run.binary).map_err(|x| FileError(run.binary.clone(), x))?)
-                .arg(fs::canonicalize(test).map_err(|x| FileError(test.clone(), x))?)
-                .arg(
-                    &conf
-                        .output_path
-                        .join(format!("algo_{}/{}_output", run_id, test_id)),
-                )
-                .arg(
-                    &conf
-                        .metrics_path
-                        .join(format!("algo_{}/{}_metrics", run_id, test_id)),
-                )
-                .args(&run.arguments);
+        for (run_name, run) in runs {
+            let mut cmd = Command::new(&conf.wrapper);
+            cmd.arg(
+                fs::canonicalize(&program.binary)
+                    .map_err(|x| FileError(program.binary.clone(), x))?,
+            )
+            .arg(fs::canonicalize(&run.input).map_err(|x| FileError(run.input.clone(), x))?)
+            .arg(
+                &conf
+                    .output_path
+                    .join(format!("algo_{}/{}_output", prog_name, run_name)),
+            )
+            .arg(
+                &conf
+                    .metrics_path
+                    .join(format!("algo_{}/{}_metrics", prog_name, run_name)),
+            )
+            .args(&run.arguments);
 
             result.push(cmd);
         }
