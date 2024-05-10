@@ -1,19 +1,26 @@
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::Path;
 use std::process::Command;
 use std::process::ExitStatus;
 
+use anyhow::Context;
+use anyhow::Result;
 use reqwest;
 
-use crate::error::GourdError;
+use crate::error::ctx;
+use crate::error::Ctx;
+use crate::file_system::write_bytes_truncate;
 
 /// Gets the files given the filepaths.
 #[allow(unused)]
-pub fn get_resources(filepaths: Vec<&PathBuf>) -> Result<Vec<File>, GourdError> {
+pub fn get_resources(filepaths: Vec<&Path>) -> Result<Vec<File>> {
     let mut files: Vec<File> = vec![];
 
     for path in filepaths {
-        files.push(File::open(path).map_err(|x| GourdError::FileError(path.clone(), x))?);
+        files.push(File::open(path).with_context(ctx!(
+          "Could not open resource file {path:?}", ;
+          "Ensure that the file exists",
+        ))?);
     }
 
     Ok(files)
@@ -21,32 +28,32 @@ pub fn get_resources(filepaths: Vec<&PathBuf>) -> Result<Vec<File>, GourdError> 
 
 /// Downloads a file given a url.
 #[allow(unused)]
-pub fn download_from_url(
-    url: &str,
-    output_dir: &PathBuf,
-    output_name: &str,
-) -> Result<(), GourdError> {
-    let response = reqwest::blocking::get(url).map_err(GourdError::NetworkError)?;
-    let body = response.bytes().map_err(GourdError::NetworkError)?;
+pub fn download_from_url(url: &str, output_dir: &Path, output_name: &str) -> Result<()> {
+    let response = reqwest::blocking::get(url).with_context(ctx!(
+      "Could not access the resource at {url}", ;
+      "Check that the url is correct",
+    ))?;
 
-    std::fs::create_dir_all(output_dir)
-        .map_err(|x| GourdError::FileError(output_dir.clone(), x))?;
-    std::fs::write(output_dir.join(output_name), &body)
-        .map_err(|x| GourdError::FileError(output_dir.clone(), x))?;
+    let body = response.bytes().with_context(ctx!(
+        "Could not parse the resource at {url}", ;
+        "Check that the url is not misspelled",
+    ))?;
+
+    write_bytes_truncate(&output_dir.join(output_name), &body);
 
     Ok(())
 }
 
 /// Runs a shell script.
 #[allow(unused)]
-pub fn run_script(arguments: Vec<&str>) -> Result<ExitStatus, GourdError> {
+pub fn run_script(arguments: Vec<&str>) -> Result<ExitStatus> {
     let mut command = Command::new("sh");
 
-    command.args(arguments);
+    command.args(&arguments);
 
     command
         .spawn()
-        .map_err(GourdError::ChildSpawnError)?
+        .with_context(ctx!("Could not spawn child sh {arguments:?}", ; "",))?
         .wait()
-        .map_err(GourdError::ChildSpawnError)
+        .with_context(ctx!("Could not wait for script sh {arguments:?}", ; "",))
 }

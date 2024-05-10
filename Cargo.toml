@@ -1,6 +1,6 @@
 [package]
 name = "gourd"
-version = "0.1.0-alpha"
+version = "0.1.5-alpha"
 edition = "2021"
 default-run = "gourd"
 authors = [
@@ -26,6 +26,12 @@ reqwest = { version = "0.12.4", features = ["blocking", "json"] }
 
 clap = { version = "4.5.4", features = ["derive", "cargo"] }
 anstyle = "1.0.7"
+
+chrono = { version = "0.4", features = ["serde"]}
+
+anyhow = "1"
+
+thiserror = "1"
 
 [dev-dependencies]
 easybench = "1.1.1"

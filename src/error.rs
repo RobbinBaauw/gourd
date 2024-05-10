@@ -1,79 +1,34 @@
 #![cfg(not(tarpaulin_include))]
 
 use std::fmt::Display;
-use std::path::PathBuf;
 
-use elf::to_str::e_machine_to_human_str;
-use elf::ParseError;
-use tokio::task::JoinError;
+use crate::constants::ERROR_STYLE;
+use crate::constants::HELP_STYLE;
 
-/// This error type is used by all gourd functions.
-#[allow(dead_code)]
+/// The error context structure, provides an explanation and help.
 #[derive(Debug)]
-pub enum GourdError {
-    /// The configuration file could not be read.
-    ConfigLoadError(Option<std::io::Error>, String),
+pub struct Ctx<A, B>(pub A, pub B)
+where
+    A: Display,
+    B: Display;
 
-    /// The architecture does not match the one we want to run on.
-    ArchitectureMismatch {
-        /// The expected architecture in `e_machine` format.
-        expected: u16,
-
-        /// The architecture of the binary in `e_machine` format.
-        binary: u16,
-    },
-
-    /// A filesystem error occured.
-    FileError(PathBuf, std::io::Error),
-
-    /// A file unrelated filesystem error occured.
-    IoError(std::io::Error),
-
-    /// This ELF file failed to parse
-    ElfParseError(ParseError),
-
-    /// Couldn't join the child in the runner
-    ChildJoinError(JoinError),
-
-    /// Couldn't spawn the child
-    ChildSpawnError(std::io::Error),
-
-    /// Couldn't access an online resource
-    NetworkError(reqwest::Error),
-}
-
-impl Display for GourdError {
+impl<A: Display, B: Display> Display for Ctx<A, B> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::ConfigLoadError(_err, reason) => {
-                write!(f, "The configuration file could not be read: {}", reason)
-            }
-            Self::ArchitectureMismatch { expected, binary } => write!(
-                f,
-                "The {:?} architecture does not match {:?}, the runners architecture",
-                e_machine_to_human_str(*binary),
-                e_machine_to_human_str(*expected)
-            ),
-            Self::FileError(file, io_err) => {
-                write!(f, "Could not access file {:?}: {}", file, io_err)
-            }
-            Self::IoError(io_err) => write!(f, "An IO error occurred: {}", io_err),
-            Self::ElfParseError(err) => write!(f, "This is not a valid elf file: {}", err),
-            Self::ChildJoinError(err) => write!(f, "Could not join child to main thread: {}", err),
-            Self::ChildSpawnError(err) => write!(f, "Could not spawn child: {}", err),
-            Self::NetworkError(err) => write!(f, "Couldn't access an online resource: {}", err),
+        writeln!(f, "{}caused by:{:#} {}", ERROR_STYLE, ERROR_STYLE, self.0)?;
+
+        if !format!("{}", self.1).is_empty() {
+            writeln!(f, "\n{}help:{:#} {}", HELP_STYLE, HELP_STYLE, self.1)?;
         }
+
+        Ok(())
     }
 }
 
-impl From<std::io::Error> for GourdError {
-    fn from(value: std::io::Error) -> Self {
-        GourdError::IoError(value)
-    }
+/// This is a shorthand for returning the context of a error.
+macro_rules! ctx {
+    {$cause: expr,  $($arg_cause: expr)*; $help: expr, $($arg_help: tt)*} => {
+      || Ctx(format!($cause, $($arg_cause)*), format!($help, $($arg_help)*))
+    };
 }
 
-impl From<ParseError> for GourdError {
-    fn from(value: ParseError) -> Self {
-        GourdError::ElfParseError(value)
-    }
-}
+pub(crate) use ctx;
