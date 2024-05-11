@@ -30,6 +30,9 @@ pub mod file_system;
 /// The local runner module: `gourd run local`.
 pub mod local;
 
+/// The SLURM runner module: `gourd run slurm`.
+mod slurm;
+
 /// Code shared between the wrapper and `gourd`.
 pub mod measurement;
 

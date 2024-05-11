@@ -6,7 +6,6 @@ use crate::config::Input;
 use crate::config::Program;
 use crate::constants::E_MACHINE_MAPPING;
 use crate::tests::create_sample_experiment;
-#[cfg(target_os = "linux")]
 use crate::tests::get_compiled_example;
 use crate::wrapper::wrap;
 

@@ -22,6 +22,7 @@ use crate::constants::UNIVERSITY_STYLE;
 use crate::experiment::Environment;
 use crate::experiment::Experiment;
 use crate::local::run_local;
+use crate::slurm::s_main;
 use crate::status::display_statuses;
 use crate::status::get_statuses;
 
@@ -164,7 +165,7 @@ fn process_command(cmd: &Cli) -> Result<()> {
                 experiment.save(&config.experiments_folder)?;
             }
             RunSubcommand::Slurm { .. } => {
-                todo!()
+                s_main()?;
             }
         },
         Command::Status(_) => {
