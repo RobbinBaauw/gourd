@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 mod info;
 /// Currently used implementation of interacting with SLURM through the CLI
 pub mod interactor;
