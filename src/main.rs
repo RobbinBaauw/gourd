@@ -31,7 +31,7 @@ pub mod file_system;
 pub mod local;
 
 /// The SLURM runner module: `gourd run slurm`.
-mod slurm;
+pub mod slurm;
 
 /// Code shared between the wrapper and `gourd`.
 pub mod measurement;
@@ -53,5 +53,5 @@ pub mod experiment;
 /// This function is the main entrypoint of the program.
 #[cfg(not(tarpaulin_include))]
 fn main() {
-    cli::parse_command();
+    cli::process::parse_command();
 }

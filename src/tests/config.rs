@@ -26,6 +26,7 @@ fn breaking_changes_config_struct() {
         wrapper: "".to_string(),
         inputs: BTreeMap::new(),
         programs: BTreeMap::new(),
+        slurm_config: None,
     };
 }
 
@@ -58,6 +59,7 @@ fn breaking_changes_config_file_all_values() {
             wrapper: "gourd_wrapper".to_string(),
             inputs: BTreeMap::new(),
             programs: BTreeMap::new(),
+            slurm_config: None,
         },
         Config::from_file(file_pathbuf.as_path()).expect("Unexpected config read error.")
     );
@@ -92,6 +94,7 @@ fn breaking_changes_config_file_required_values() {
             wrapper: "gourd_wrapper".to_string(),
             inputs: BTreeMap::new(),
             programs: BTreeMap::new(),
+            slurm_config: None,
         },
         Config::from_file(file_pathbuf.as_path()).expect("Unexpected config read error.")
     );

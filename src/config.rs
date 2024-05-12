@@ -12,6 +12,7 @@ use crate::constants::WRAPPER_DEFAULT;
 use crate::error::ctx;
 use crate::error::Ctx;
 use crate::file_system::read_utf8;
+use crate::slurm::SlurmConfig;
 
 /// A pair of a path to a binary and cli arguments.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -29,7 +30,7 @@ pub struct Input {
     /// The path to the input.
     pub input: PathBuf,
 
-    /// The additonal cli arguments for the executable.
+    /// The additional cli arguments for the executable.
     pub arguments: Vec<String>,
 }
 
@@ -60,6 +61,9 @@ pub struct Config {
     /// The list of inputs for each of them.
     pub inputs: BTreeMap<String, Input>,
 
+    /// If running on a SLURM cluster, the job configurations
+    pub slurm_config: Option<SlurmConfig>,
+
     //
     // Advanced settings.
     //
@@ -79,6 +83,7 @@ impl Default for Config {
             wrapper: WRAPPER_DEFAULT(),
             programs: BTreeMap::new(),
             inputs: BTreeMap::new(),
+            slurm_config: None,
         }
     }
 }
