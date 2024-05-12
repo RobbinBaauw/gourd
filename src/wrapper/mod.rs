@@ -2,7 +2,6 @@ use std::process::Command;
 
 use anyhow::Context;
 use anyhow::Result;
-use thiserror::Error;
 
 use crate::config::Config;
 use crate::error::ctx;
@@ -47,22 +46,12 @@ pub fn wrap(
     Ok(result)
 }
 
-/// The architecture does not match the one we want to run on.
-#[derive(Debug, Error, Clone, Copy)]
-#[error("The program architecture {binary} does not match the expected architecture {expected}")]
-pub struct ArchitectureMismatch {
-    /// The expected architecture in `e_machine` format.
-    pub expected: u16,
-
-    /// The architecture of the binary in `e_machine` format.
-    pub binary: u16,
-}
-
 /// Verify if the architecture of a `binary` matched the `expected` architecture.
 #[cfg(target_os = "linux")]
 use std::path::PathBuf;
 #[cfg(target_os = "linux")]
 fn verify_arch(binary: &PathBuf, expected: MachineType) -> Result<()> {
+    use anyhow::anyhow;
     use elf::endian::AnyEndian;
     use elf::ElfBytes;
 
@@ -76,10 +65,11 @@ fn verify_arch(binary: &PathBuf, expected: MachineType) -> Result<()> {
     ))?;
 
     if elf.ehdr.e_machine != expected {
-        Err(ArchitectureMismatch {
-            binary: elf.ehdr.e_machine,
-            expected,
-        })
+        Err(anyhow!(
+            "The program architecture {} does not match the expected architecture {}",
+            elf.ehdr.e_machine,
+            expected
+        ))
         .with_context(ctx!(
           "The architecture does not match for program {binary:?}", ;
           "Ensure that the program is compiled for the correct target",
