@@ -19,8 +19,8 @@ pub const E_MACHINE_MAPPING: for<'a> fn(&'a str) -> u16 = |machine| match machin
     _ => 0,
 };
 
-/// The default path to the wrapper, that is, we assume `gourd-wrapper` is in $PATH.
-pub const WRAPPER_DEFAULT: fn() -> String = || "gourd-wrapper".to_string();
+/// The default path to the wrapper, that is, we assume `gourd_wrapper` is in $PATH.
+pub const WRAPPER_DEFAULT: fn() -> String = || "gourd_wrapper".to_string();
 
 /// Create a style with a defined foreground color.
 pub const fn style_from_fg(color: AnsiColor) -> Style {

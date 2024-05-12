@@ -1,10 +1,12 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+use anyhow::Context;
 use anyhow::Result;
 use thiserror::Error;
 
 use crate::config::Config;
+use crate::error::ctx;
 use crate::error::Ctx;
 use crate::experiment::Experiment;
 
@@ -28,8 +30,12 @@ pub fn wrap(
         verify_arch(&program.binary, arch)?;
 
         let mut cmd = Command::new(&conf.wrapper);
-        cmd.arg(&program.binary.canonicalize()?)
-            .arg(&input.input.canonicalize()?)
+        cmd.arg(&program.binary.canonicalize().with_context(ctx!(
+              "The executable for {:?} could not be found", program.binary;
+              "Please ensure that all executables exist", ))?)
+            .arg(&input.input.canonicalize().with_context(ctx!(
+              "The input file {:?} could not be found", input.input;
+              "Please ensure that all input files exist", ))?)
             .arg(run.output_path.clone())
             .arg(run.metrics_path.clone())
             .arg(run.err_path.clone())
@@ -56,11 +62,9 @@ pub struct ArchitectureMismatch {
 /// Verify if the architecture of a `binary` matched the `expected` architecture.
 #[cfg(target_os = "linux")]
 fn verify_arch(binary: &PathBuf, expected: MachineType) -> Result<()> {
-    use anyhow::Context;
     use elf::endian::AnyEndian;
     use elf::ElfBytes;
 
-    use crate::error::ctx;
     use crate::file_system::read_bytes;
 
     let elf = read_bytes(binary)?;

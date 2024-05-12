@@ -50,8 +50,8 @@ pub struct Experiment {
     /// The run location of this experiment.
     pub env: Environment,
 
-    /// The time of the experiment.
-    pub time: DateTime<Local>,
+    /// The time of creation of the experiment.
+    pub creation_time: DateTime<Local>,
 
     /// The ID of this experiment.
     pub seq: usize,
@@ -97,7 +97,7 @@ impl Experiment {
         Ok(Self {
             runs,
             env,
-            time,
+            creation_time: time,
             seq,
         })
     }

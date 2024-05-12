@@ -42,5 +42,11 @@ name = "gourd"
 path = "src/main.rs"
 
 [[bin]]
-name = "gourd-wrapper"
+name = "gourd_wrapper"
 path = "src/wrapper_binary.rs"
+
+# This target can be enabled to check the doctests
+# See here: https://github.com/rust-lang/rust/issues/50784
+# [lib]
+# name = "doctest"
+# path = "src/main.rs"
