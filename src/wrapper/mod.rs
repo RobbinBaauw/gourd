@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+use anyhow::Context;
 use anyhow::Result;
-use thiserror::Error;
 
 use crate::config::Config;
+use crate::error::ctx;
 use crate::error::Ctx;
 use crate::experiment::Experiment;
 
@@ -28,8 +29,12 @@ pub fn wrap(
         verify_arch(&program.binary, arch)?;
 
         let mut cmd = Command::new(&conf.wrapper);
-        cmd.arg(&program.binary.canonicalize()?)
-            .arg(&input.input.canonicalize()?)
+        cmd.arg(&program.binary.canonicalize().with_context(ctx!(
+              "The executable for {:?} could not be found", program.binary;
+              "Please ensure that all executables exist", ))?)
+            .arg(&input.input.canonicalize().with_context(ctx!(
+              "The input file {:?} could not be found", input.input;
+              "Please ensure that all input files exist", ))?)
             .arg(run.output_path.clone())
             .arg(run.metrics_path.clone())
             .arg(run.err_path.clone())
@@ -42,25 +47,13 @@ pub fn wrap(
     Ok(result)
 }
 
-/// The architecture does not match the one we want to run on.
-#[derive(Debug, Error, Clone, Copy)]
-#[error("The program architecture {binary} does not match the expected architecture {expected}")]
-pub struct ArchitectureMismatch {
-    /// The expected architecture in `e_machine` format.
-    pub expected: u16,
-
-    /// The architecture of the binary in `e_machine` format.
-    pub binary: u16,
-}
-
 /// Verify if the architecture of a `binary` matched the `expected` architecture.
 #[cfg(target_os = "linux")]
 fn verify_arch(binary: &PathBuf, expected: MachineType) -> Result<()> {
-    use anyhow::Context;
+    use anyhow::anyhow;
     use elf::endian::AnyEndian;
     use elf::ElfBytes;
 
-    use crate::error::ctx;
     use crate::file_system::read_bytes;
 
     let elf = read_bytes(binary)?;
@@ -71,10 +64,11 @@ fn verify_arch(binary: &PathBuf, expected: MachineType) -> Result<()> {
     ))?;
 
     if elf.ehdr.e_machine != expected {
-        Err(ArchitectureMismatch {
-            binary: elf.ehdr.e_machine,
-            expected,
-        })
+        Err(anyhow!(
+            "The program architecture {} does not match the expected architecture {}",
+            elf.ehdr.e_machine,
+            expected
+        ))
         .with_context(ctx!(
           "The architecture does not match for program {binary:?}", ;
           "Ensure that the program is compiled for the correct target",
