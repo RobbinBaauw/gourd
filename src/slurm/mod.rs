@@ -26,7 +26,11 @@ pub struct SlurmConfig {
     /// Maximum time allowed _for each_ job.
     pub time_limit: String, // this is a string because slurm jobs can be longer than 24h, which is the largest value in toml time. format needs to be either "days-hours:minutes:seconds" or "minutes"
 
-                            ///////////////// TODOOOO theres a lot lot more parameters we need to add here
+    /// CPUs to use per job
+    pub cpus: usize,
+
+    /// Memory in MB to allocate per CPU per job
+    pub mem_per_cpu: usize,
 }
 
 /// The interface for interacting with a SLURM cluster.

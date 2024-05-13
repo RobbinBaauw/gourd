@@ -30,16 +30,8 @@ pub mod file_system;
 /// The local runner module: `gourd run local`.
 pub mod local;
 
-/// The SLURM runner module: `gourd run slurm`.
-<<<<<<< HEAD
-<<<<<<< HEAD
+/// The SLURM runner module: `gourd run slurm`.pub mod slurm;
 pub mod slurm;
-=======
-mod slurm;
->>>>>>> ca5a4f5 (some testing on delftblue)
-=======
-pub mod slurm;
->>>>>>> 4fd854c (skeleton of interacting with the slurm cli)
 
 /// Code shared between the wrapper and `gourd`.
 pub mod measurement;
