@@ -9,7 +9,7 @@ use crate::slurm::SlurmConfig;
 use crate::slurm::SlurmInteractor;
 
 /// Check the config that it has the necessary fields
-pub fn check_config(config: &Config) -> anyhow::Result<&SlurmConfig> {
+pub fn get_slurm_options_from_config(config: &Config) -> anyhow::Result<&SlurmConfig> {
     config.slurm.as_ref()
         .ok_or_else(|| anyhow!("No SLURM configuration found"))
         .with_context(ctx!(
@@ -61,8 +61,8 @@ where
         Ok(())
     } else {
         Err(anyhow!("Invalid partition provided")).with_context(ctx!(
-          "Partition `{:?}` is not available on this cluster. ", partition;
-          "Present partitions are:\n{:?}", format_table(partitions),
+          "Partition `{}` is not available on this cluster. ", partition;
+          "Present partitions are:\n{}", format_table(partitions),
         ))
     }
 }

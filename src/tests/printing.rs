@@ -65,7 +65,7 @@ fn versioning_un_test() {
         }
 
         fn get_supported_versions(&self) -> String {
-            "your mom".to_string()
+            "your dad".to_string()
         }
     }
     assert!(crate::slurm::handler::check_version(&X {}).is_err());

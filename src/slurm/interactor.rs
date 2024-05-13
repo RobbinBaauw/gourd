@@ -8,7 +8,7 @@ use crate::config::Config;
 use crate::error::ctx;
 use crate::error::Ctx;
 use crate::experiment::Experiment;
-use crate::slurm::handler::check_config;
+use crate::slurm::handler::get_slurm_options_from_config;
 use crate::slurm::SlurmInteractor;
 
 /// An implementation of the SlurmInteractor trait for interacting with SLURM via the CLI.
@@ -62,7 +62,7 @@ impl SlurmInteractor for SlurmCLI {
     ///
     /// input: a (parsed) configuration and the experiments to run
     fn run_jobs(&self, config: &Config, experiment: &mut Experiment) -> anyhow::Result<()> {
-        let slurm_config = check_config(config)?;
+        let slurm_config = get_slurm_options_from_config(config)?;
 
         let temp = TempDir::new("gourd-slurm")?;
         let batch_script = temp.path().join("batch.sh");
