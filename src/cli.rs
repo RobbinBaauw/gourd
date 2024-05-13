@@ -1,21 +1,29 @@
+use std::env;
 use std::path::PathBuf;
 use std::process::exit;
 
+use anstyle::AnsiColor;
+use anyhow::Result;
+use chrono::Local;
 use clap::crate_authors;
 use clap::crate_name;
 use clap::crate_version;
-use clap::error::ErrorKind;
 use clap::Args;
-use clap::CommandFactory;
 use clap::Parser;
 use clap::Subcommand;
 
 use crate::config::Config;
+use crate::constants::style_from_fg;
+use crate::constants::ERROR_STYLE;
+use crate::constants::HELP_STYLE;
 use crate::constants::PRIMARY_STYLE;
 use crate::constants::SECONDARY_STYLE;
-use crate::constants::UNDERLINE_STYLE;
-use crate::error::GourdError;
+use crate::constants::UNIVERSITY_STYLE;
+use crate::experiment::Environment;
+use crate::experiment::Experiment;
 use crate::local::run_local;
+use crate::status::display_statuses;
+use crate::status::get_statuses;
 
 /// Structure of the main command (gourd).
 #[derive(Parser, Debug)]
@@ -123,30 +131,51 @@ pub enum Command {
 ///
 pub fn parse_command() {
     let command = Cli::parse();
-    let mut stdio = Cli::command();
 
-    if let Err(e) = process_command(&command) {
-        stdio
-            .error(ErrorKind::Format, format!("{}", e))
-            .print()
-            .unwrap();
+    // https://github.com/rust-lang/rust/blob/master/library/std/src/backtrace.rs
+    let backtace_enabled = match env::var("RUST_LIB_BACKTRACE") {
+        Ok(s) => s != "0",
+        Err(_) => match env::var("RUST_BACKTRACE") {
+            Ok(s) => s != "0",
+            Err(_) => false,
+        },
+    };
 
+    if backtace_enabled {
+        eprintln!("{:?}", process_command(&command));
+    } else if let Err(e) = process_command(&command) {
+        eprintln!("{}error:{:#} {}", ERROR_STYLE, ERROR_STYLE, e.root_cause());
+        eprint!("{}", e);
         exit(1);
     }
 }
 
-fn process_command(cmd: &Cli) -> Result<(), GourdError> {
+fn process_command(cmd: &Cli) -> Result<()> {
     match cmd.command {
         Command::Run(args) => match args.sub_command {
             RunSubcommand::Local { .. } => {
                 let config = Config::from_file(&cmd.config)?;
-                run_local(&config)?;
+
+                let experiment =
+                    Experiment::from_config(&config, Environment::Local, Local::now())?;
+
+                run_local(&config, &experiment)?;
+
+                experiment.save(&config.experiments_folder)?;
             }
             RunSubcommand::Slurm { .. } => {
-                panic!("Running on Slurm has not been implemented yet")
+                todo!()
             }
         },
-        Command::Status(_) => panic!("Checking status has not been implemented yet"),
+        Command::Status(_) => {
+            let config = Config::from_file(&cmd.config)?;
+
+            let experiment = Experiment::latest_experiment_from_folder(&config.experiments_folder)?;
+
+            let statuses = get_statuses(&experiment)?;
+
+            display_statuses(&experiment, &statuses);
+        }
         Command::Init(_) => panic!("Gourd Init has not been implemented yet"),
         Command::Anal(_) => panic!("Analyze has not been implemented yet"),
         Command::Version => print_version(),
@@ -157,40 +186,13 @@ fn process_command(cmd: &Cli) -> Result<(), GourdError> {
 
 fn get_styles() -> clap::builder::Styles {
     clap::builder::Styles::styled()
-        .usage(
-            anstyle::Style::new()
-                .bold()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Yellow))),
-        )
-        .header(
-            anstyle::Style::new()
-                .bold()
-                .underline()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
-        )
-        .literal(
-            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Cyan))),
-        )
-        .invalid(
-            anstyle::Style::new()
-                .bold()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Blue))),
-        )
-        .error(
-            anstyle::Style::new()
-                .bold()
-                .blink()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Red))),
-        )
-        .valid(
-            anstyle::Style::new()
-                .bold()
-                .underline()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
-        )
-        .placeholder(
-            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::White))),
-        )
+        .usage(style_from_fg(AnsiColor::Yellow).bold())
+        .header(style_from_fg(AnsiColor::Green).bold().underline())
+        .literal(style_from_fg(AnsiColor::Cyan).bold())
+        .invalid(style_from_fg(AnsiColor::Blue).bold())
+        .error(ERROR_STYLE)
+        .valid(HELP_STYLE)
+        .placeholder(style_from_fg(AnsiColor::White))
 }
 
 fn print_version() {
@@ -206,7 +208,7 @@ fn print_version() {
 
     println!(
         "{}Technische Universiteit Delft 2024{:#}\n",
-        UNDERLINE_STYLE, UNDERLINE_STYLE,
+        UNIVERSITY_STYLE, UNIVERSITY_STYLE,
     );
 
     println!("Authored by:\n{}", crate_authors!("\n"));

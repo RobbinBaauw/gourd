@@ -1,3 +1,5 @@
+use anstyle::AnsiColor;
+use anstyle::Color;
 use anstyle::Style;
 use elf::abi;
 
@@ -17,17 +19,25 @@ pub const E_MACHINE_MAPPING: for<'a> fn(&'a str) -> u16 = |machine| match machin
     _ => 0,
 };
 
-/// The default path to the wrapper, that is, we assume `gourd-wrapper` is in $PATH.
-pub const WRAPPER_DEFAULT: fn() -> String = || "gourd-wrapper".to_string();
+/// The default path to the wrapper, that is, we assume `gourd_wrapper` is in $PATH.
+pub const WRAPPER_DEFAULT: fn() -> String = || "gourd_wrapper".to_string();
+
+/// Create a style with a defined foreground color.
+pub const fn style_from_fg(color: AnsiColor) -> Style {
+    Style::new().fg_color(Some(Color::Ansi(color)))
+}
 
 /// The styling for the program name.
-pub const PRIMARY_STYLE: Style = anstyle::Style::new()
-    .bold()
-    .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green)));
+pub const PRIMARY_STYLE: Style = style_from_fg(AnsiColor::Green).bold();
 
 /// The styling for the secondary text.
-pub const SECONDARY_STYLE: Style =
-    anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::BrightGreen)));
+pub const SECONDARY_STYLE: Style = style_from_fg(AnsiColor::BrightGreen);
 
 /// The styling for the university name.
-pub const UNDERLINE_STYLE: Style = anstyle::Style::new().bold();
+pub const UNIVERSITY_STYLE: Style = Style::new().bold();
+
+/// The styling for error messages.
+pub const ERROR_STYLE: Style = style_from_fg(AnsiColor::Red).bold().blink();
+
+/// The styling for help messages.
+pub const HELP_STYLE: Style = style_from_fg(AnsiColor::Green).bold().underline();

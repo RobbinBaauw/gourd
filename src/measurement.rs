@@ -11,6 +11,18 @@ use libc::WEXITSTATUS;
 use libc::WIFEXITED;
 use serde::Deserialize;
 use serde::Serialize;
+use thiserror::Error;
+
+/// The metrics of running a program.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[serde(tag = "type")]
+pub enum Metrics {
+    /// The metrics have not been calucalted yet.
+    Pending,
+
+    /// The measurement has been finished.
+    Done(Measurement),
+}
 
 /// This structure contains the measurements for one run of the binary.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
@@ -62,12 +74,14 @@ pub struct RUsage {
 }
 
 /// Error type for `getrusage` failures.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Error)]
 #[allow(dead_code)]
 pub enum Error {
     /// The process exists, but its resource usage statistics are unavailable.
+    #[error("The rusage report was unavailable")]
     Unavailable,
     /// This platform is not supported. There is only support for linux.
+    #[error("This platform is not supported with RUsage")]
     UnsupportedPlatform,
 }
 

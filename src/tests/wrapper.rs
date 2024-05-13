@@ -2,10 +2,10 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::process::Command;
 
-use crate::config::Config;
 use crate::config::Input;
 use crate::config::Program;
 use crate::constants::E_MACHINE_MAPPING;
+use crate::tests::create_sample_experiment;
 #[cfg(target_os = "linux")]
 use crate::tests::get_compiled_example;
 use crate::wrapper::wrap;
@@ -16,9 +16,7 @@ const X86_64_PRE_PROGRAMMED_BINARY: &str = include_str!("resources/x86_64_pre_pr
 #[cfg(target_os = "linux")]
 #[test]
 fn non_matching_arch() {
-    use elf::abi;
-
-    use crate::error::GourdError;
+    use crate::tests::create_sample_experiment;
 
     const ARM_PRE_PROGRAMMED_BINARY: &str = include_str!("resources/arm_pre_programmed.rs");
 
@@ -31,10 +29,14 @@ fn non_matching_arch() {
         .wait()
         .unwrap();
 
-    let (out, _tmp) = get_compiled_example(
+    let (out, tmp) = get_compiled_example(
         ARM_PRE_PROGRAMMED_BINARY,
         Some(vec!["--target=thumbv7em-none-eabihf"]),
     );
+
+    let input = tmp.path().join("test1");
+
+    fs::write(&input, "4").unwrap();
 
     let mut first = BTreeMap::new();
 
@@ -46,16 +48,25 @@ fn non_matching_arch() {
         },
     );
 
-    match wrap(
-        &first,
-        &BTreeMap::new(),
-        E_MACHINE_MAPPING("x86_64"),
-        &Config::default(),
-    ) {
-        Err(GourdError::ArchitectureMismatch {
-            expected: abi::EM_X86_64,
-            binary: 40,
-        }) => {}
+    let mut second = BTreeMap::new();
+
+    second.insert(
+        "test1".to_string(),
+        Input {
+            input: input.clone(),
+            arguments: vec![],
+        },
+    );
+
+    let (experiment, conf) = create_sample_experiment(first, second);
+
+    match wrap(&experiment, E_MACHINE_MAPPING("x86_64"), &conf) {
+        Err(err) => {
+            assert_eq!(
+                "The program architecture 40 does not match the expected architecture 62",
+                format!("{}", err.root_cause())
+            )
+        }
 
         e => {
             panic!(
@@ -74,12 +85,6 @@ fn matching_arch() {
     let input = tmp.path().join("test1");
 
     fs::write(&input, "4").unwrap();
-
-    let conf = Config {
-        output_path: tmp.path().to_path_buf(),
-        metrics_path: tmp.path().to_path_buf(),
-        ..Default::default()
-    };
 
     let mut first = BTreeMap::new();
 
@@ -101,7 +106,9 @@ fn matching_arch() {
         },
     );
 
-    let cmds = wrap(&first, &second, E_MACHINE_MAPPING("x86_64"), &conf).unwrap();
+    let (experiment, conf) = create_sample_experiment(first, second);
+
+    let cmds = wrap(&experiment, E_MACHINE_MAPPING("x86_64"), &conf).unwrap();
 
     assert_eq!(1, cmds.len());
     assert_eq!(
@@ -111,8 +118,9 @@ fn matching_arch() {
             Command::new(&conf.wrapper)
                 .arg(tmp.path().join("prog").canonicalize().unwrap())
                 .arg(input.canonicalize().unwrap())
-                .arg(conf.output_path.join("algo_any/test1_output"))
-                .arg(conf.metrics_path.join("algo_any/test1_metrics"))
+                .arg(conf.output_path.join("1/algo_any/test1_output"))
+                .arg(conf.metrics_path.join("1/algo_any/test1_metrics"))
+                .arg(conf.output_path.join("1/algo_any/test1_error"))
         )
     );
 }

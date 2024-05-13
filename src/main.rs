@@ -24,6 +24,9 @@ pub mod wrapper;
 /// Constant values.
 pub mod constants;
 
+/// Common file operations
+pub mod file_system;
+
 /// The local runner module: `gourd run local`.
 pub mod local;
 
@@ -35,6 +38,12 @@ pub mod resources;
 
 /// The command line interface and relevant structures.
 pub mod cli;
+
+/// The status of the jobs running or finished.
+pub mod status;
+
+/// The setup of an experiment.
+pub mod experiment;
 
 /// The main entrypoint.
 ///

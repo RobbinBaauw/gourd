@@ -1,18 +1,13 @@
-use std::collections::BTreeMap;
-use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
-#[cfg(target_os = "linux")]
-use elf::endian::AnyEndian;
-#[cfg(target_os = "linux")]
-use elf::ElfBytes;
+use anyhow::Context;
+use anyhow::Result;
 
 use crate::config::Config;
-use crate::config::Input;
-use crate::config::Program;
-use crate::error::GourdError;
-use crate::error::GourdError::*;
+use crate::error::ctx;
+use crate::error::Ctx;
+use crate::experiment::Experiment;
 
 type MachineType = u16;
 
@@ -20,54 +15,64 @@ type MachineType = u16;
 ///
 /// The results and outputs will be located in `config.output_dir`.
 pub fn wrap(
-    programs: &BTreeMap<String, Program>,
-    runs: &BTreeMap<String, Input>,
+    experiment: &Experiment,
     #[allow(unused_variables)] arch: MachineType,
     conf: &Config,
-) -> Result<Vec<Command>, GourdError> {
+) -> Result<Vec<Command>> {
     let mut result = Vec::new();
 
-    for (prog_name, program) in programs {
+    for run in &experiment.runs {
+        let program = &conf.programs[&run.program_name];
+        let input = &conf.inputs[&run.input_name];
+
         #[cfg(target_os = "linux")]
         verify_arch(&program.binary, arch)?;
 
-        for (run_name, run) in runs {
-            let mut cmd = Command::new(&conf.wrapper);
-            cmd.arg(
-                fs::canonicalize(&program.binary)
-                    .map_err(|x| FileError(program.binary.clone(), x))?,
-            )
-            .arg(fs::canonicalize(&run.input).map_err(|x| FileError(run.input.clone(), x))?)
-            .arg(
-                &conf
-                    .output_path
-                    .join(format!("algo_{}/{}_output", prog_name, run_name)),
-            )
-            .arg(
-                &conf
-                    .metrics_path
-                    .join(format!("algo_{}/{}_metrics", prog_name, run_name)),
-            )
-            .args(&run.arguments);
+        let mut cmd = Command::new(&conf.wrapper);
+        cmd.arg(&program.binary.canonicalize().with_context(ctx!(
+              "The executable for {:?} could not be found", program.binary;
+              "Please ensure that all executables exist", ))?)
+            .arg(&input.input.canonicalize().with_context(ctx!(
+              "The input file {:?} could not be found", input.input;
+              "Please ensure that all input files exist", ))?)
+            .arg(run.output_path.clone())
+            .arg(run.metrics_path.clone())
+            .arg(run.err_path.clone())
+            .args(&program.arguments)
+            .args(&input.arguments);
 
-            result.push(cmd);
-        }
+        result.push(cmd);
     }
 
     Ok(result)
 }
 
+/// Verify if the architecture of a `binary` matched the `expected` architecture.
 #[cfg(target_os = "linux")]
-fn verify_arch(binary: &PathBuf, expected: MachineType) -> Result<(), GourdError> {
-    let elf = fs::read(binary).map_err(|x| FileError(binary.clone(), x))?;
+fn verify_arch(binary: &PathBuf, expected: MachineType) -> Result<()> {
+    use anyhow::anyhow;
+    use elf::endian::AnyEndian;
+    use elf::ElfBytes;
 
-    let elf = ElfBytes::<AnyEndian>::minimal_parse(elf.as_slice())?;
+    use crate::file_system::read_bytes;
+
+    let elf = read_bytes(binary)?;
+
+    let elf = ElfBytes::<AnyEndian>::minimal_parse(elf.as_slice()).with_context(ctx!(
+      "Could not parse the file as ELF {binary:?}", ;
+      "Are you sure this file is executable and you are using linux?",
+    ))?;
 
     if elf.ehdr.e_machine != expected {
-        Err(ArchitectureMismatch {
-            expected,
-            binary: elf.ehdr.e_machine,
-        })
+        Err(anyhow!(
+            "The program architecture {} does not match the expected architecture {}",
+            elf.ehdr.e_machine,
+            expected
+        ))
+        .with_context(ctx!(
+          "The architecture does not match for program {binary:?}", ;
+          "Ensure that the program is compiled for the correct target",
+        ))
     } else {
         Ok(())
     }

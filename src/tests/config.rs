@@ -12,7 +12,6 @@ use std::path::PathBuf;
 use tempdir::TempDir;
 
 use crate::config::Config;
-use crate::error::GourdError;
 
 /// This test will fail if the semantics of the config struct are changed.
 /// If this is the case, update the documentation and make sure that the
@@ -23,8 +22,9 @@ fn breaking_changes_config_struct() {
     Config {
         output_path: PathBuf::from(""),
         metrics_path: PathBuf::from(""),
+        experiments_folder: PathBuf::from(""),
         wrapper: "".to_string(),
-        runs: BTreeMap::new(),
+        inputs: BTreeMap::new(),
         programs: BTreeMap::new(),
     };
 }
@@ -40,10 +40,11 @@ fn breaking_changes_config_file_all_values() {
     let config_contents = r#"
             output_path = "./ginger_root"
             metrics_path = "./vulfpeck/"
-
-            [runs]
+            experiments_folder = "./parcels/"
 
             [programs]
+
+            [inputs]
         "#;
     let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
     file.write_all(config_contents.as_bytes())
@@ -53,8 +54,9 @@ fn breaking_changes_config_file_all_values() {
         Config {
             output_path: PathBuf::from("./ginger_root/"),
             metrics_path: PathBuf::from("./vulfpeck"),
-            wrapper: "gourd-wrapper".to_string(),
-            runs: BTreeMap::new(),
+            experiments_folder: PathBuf::from("./parcels/"),
+            wrapper: "gourd_wrapper".to_string(),
+            inputs: BTreeMap::new(),
             programs: BTreeMap::new(),
         },
         Config::from_file(file_pathbuf.as_path()).expect("Unexpected config read error.")
@@ -72,8 +74,9 @@ fn breaking_changes_config_file_required_values() {
     let config_contents = r#"
             output_path = "./ginger_root"
             metrics_path = "./vulfpeck/"
+            experiments_folder = ""
 
-            [runs]
+            [inputs]
 
             [programs]
         "#;
@@ -85,8 +88,9 @@ fn breaking_changes_config_file_required_values() {
         Config {
             output_path: PathBuf::from("./ginger_root/"),
             metrics_path: PathBuf::from("./vulfpeck"),
-            wrapper: "gourd-wrapper".to_string(),
-            runs: BTreeMap::new(),
+            experiments_folder: PathBuf::from(""),
+            wrapper: "gourd_wrapper".to_string(),
+            inputs: BTreeMap::new(),
             programs: BTreeMap::new(),
         },
         Config::from_file(file_pathbuf.as_path()).expect("Unexpected config read error.")
@@ -99,10 +103,8 @@ fn config_nonexistent_file() {
     let dir = TempDir::new("config_folder").unwrap();
     let file_pathbuf = dir.path().join("file.toml");
 
-    match Config::from_file(file_pathbuf.as_path()) {
-        Ok(_) => panic!("Error expected."),
-        Err(GourdError::ConfigLoadError(_, _)) => (),
-        Err(_) => panic!("Incorrect error type."),
+    if Config::from_file(file_pathbuf.as_path()).is_ok() {
+        panic!("Error expected.")
     }
 
     dir.close().unwrap();
@@ -119,10 +121,8 @@ fn config_unreadable_file() {
     file.set_permissions(Permissions::from_mode(0o000))
         .expect("Could not set permissions of 'unreadable' test file to 000.");
 
-    match Config::from_file(file_pathbuf.as_path()) {
-        Ok(_) => panic!("Error expected."),
-        Err(GourdError::ConfigLoadError(_, _)) => (),
-        Err(_) => panic!("Incorrect error type."),
+    if Config::from_file(file_pathbuf.as_path()).is_ok() {
+        panic!("Error expected.")
     }
     dir.close().unwrap();
 }
@@ -134,10 +134,8 @@ fn config_unparseable_file() {
 
     File::create(file_pathbuf.as_path()).expect("A file folder could not be created.");
 
-    match Config::from_file(file_pathbuf.as_path()) {
-        Ok(_) => panic!("Error expected."),
-        Err(GourdError::ConfigLoadError(_, _)) => (),
-        Err(_) => panic!("Incorrect error type."),
+    if Config::from_file(file_pathbuf.as_path()).is_ok() {
+        panic!("Error expected.")
     }
     dir.close().unwrap();
 }
