@@ -28,8 +28,25 @@ impl SlurmInteractor for SlurmCLI {
     /// Check if the SLURM version is supported.
     fn check_version(&self) -> anyhow::Result<()> {
         match get_version() {
-            Ok(version) => if !self.versions.contains(&version) { Err(anyhow!("SLURM Version assertion failed")).with_context(ctx!("Unsupported SLURM version: {:?}", version.iter().map(u64::to_string).collect::<Vec<String>>().join("."); "Supported versions are: {:?}", SLURM_VERSIONS.map(|x| x.iter().map(u64::to_string).collect::<Vec<String>>().join(".")).to_vec())) } else { Ok(()) },
-            Err(e) => Err(anyhow!("SLURM versioning failed")).with_context(ctx!("Failed to get SLURM version: {:?}", e; "Please make sure that SLURM is installed and available in the PATH",)),
+            Ok(version) => {
+                if !self.versions.contains(&version) {
+                    Err(anyhow!("SLURM Version assertion failed")).with_context(
+                        ctx!("Unsupported SLURM version: {:?}",
+                          version.iter().map(u64::to_string).collect::<Vec<String>>().join(".");
+                          "Supported versions are: {:?}",
+                          SLURM_VERSIONS.map(|x| x.iter().map(u64::to_string)
+                            .collect::<Vec<String>>().join(".")).to_vec()
+                        ),
+                    )
+                } else {
+                    Ok(())
+                }
+            }
+
+            Err(e) => Err(anyhow!("SLURM versioning failed")).with_context(ctx!(
+              "Failed to get SLURM version: {:?}", e;
+              "Please make sure that SLURM is installed and available in the PATH",
+            )),
         }
     }
 
@@ -39,7 +56,10 @@ impl SlurmInteractor for SlurmCLI {
         if partitions.iter().flatten().any(|x| x == partition) {
             Ok(())
         } else {
-            Err(anyhow!("Invalid partition provided")).with_context(ctx!("Partition `{:?}` is not available on this cluster. ",partition; "Present partitions are:\n{:?}", format_table(partitions)))
+            Err(anyhow!("Invalid partition provided")).with_context(ctx!(
+              "Partition `{:?}` is not available on this cluster. ", partition;
+              "Present partitions are:\n{:?}", format_table(partitions)
+            ))
         }
     }
 
@@ -47,12 +67,19 @@ impl SlurmInteractor for SlurmCLI {
     ///
     /// input: a (parsed) configuration and the experiments to run
     fn run_job(&self, config: &Config, _experiment: &mut Experiment) -> anyhow::Result<()> {
-        let slurm_config = config.slurm_config.as_ref().ok_or_else(|| anyhow!("No SLURM configuration found")).with_context(ctx!("Tried to execute on Slurm but the configuration field for the Slurm options in gourd.toml was empty",;"Make sure that your gourd.toml includes the required fields under [slurm]",))?;
+        let slurm_config = config.slurm_config.as_ref()
+            .ok_or_else(|| anyhow!("No SLURM configuration found"))
+            .with_context(ctx!(
+              "Tried to execute on Slurm but the configuration field for the Slurm options in gourd.toml was empty", ;
+              "Make sure that your gourd.toml includes the required fields under [slurm]",
+            ))?;
+
         self.check_version()?;
         self.check_partition(&slurm_config.partition)?;
 
         let temp = TempDir::new("gourd-slurm")?;
         let batch_script = temp.path().join("batch.sh");
+
         let contents = format!(
             "
 #!/bin/bash
@@ -67,12 +94,16 @@ impl SlurmInteractor for SlurmCLI {
             slurm_config.time_limit,
             config.wrapper,
         );
+
         std::fs::write(&batch_script, contents)?;
 
         let _ = Command::new("sbatch")
             .arg(batch_script)
             .output()
-            .with_context(ctx!("Failed to submit batch job to SLURM",;"Ensure that you have permissions to submit jobs to the cluster",))?;
+            .with_context(ctx!(
+              "Failed to submit batch job to SLURM", ;
+              "Ensure that you have permissions to submit jobs to the cluster",
+            ))?;
 
         Ok(())
     }
