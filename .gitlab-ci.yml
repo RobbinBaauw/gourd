@@ -36,13 +36,14 @@ build:
   needs:
   - check
   script:
-  - cargo build --verbose --release
+  - cargo build --verbose --release && mv target/release/gourd gourd && mv target/release/gourd-wrapper gourd-wrapper
   artifacts:
     when: on_success
-    name: binary (musl-x86_64)
-    expose_as: binary
+    name: binaries (musl-x86_64)
+    expose_as: binaries
     paths:
-      - target/release/gourd
+      - gourd
+      - gourd-wrapper
 
 fmt:
   <<: *rust_container_night
@@ -100,7 +101,7 @@ tests:
     reports:
       junit: results.xml
 
-documentation:
+maintainer_docs:
   image: registry.gitlab.com/islandoftex/images/texlive:latest
   stage: docs
   allow_failure: true
@@ -108,7 +109,41 @@ documentation:
   script: cd docs/maintainer && ./compile.sh
   artifacts:
     when: on_success
-    name: Maintainer Documentation
-    expose_as: Maintainer Documentation
+    name: maintainer documentation
+    expose_as: maintainer documentation
     paths:
     - gourd-maintainer-documentation.pdf
+
+rustdoc:
+  <<: *rust_container_stable
+  stage: docs
+  needs: [build]
+  script: cargo rustdoc
+  allow_failure: true
+  artifacts:
+    when: on_success
+    access: all
+    name: rustdoc
+    expose_as: rustdoc
+    paths:
+      - target/doc/
+
+user_docs:
+  image: alpine
+  stage: docs
+  needs: []
+  script:
+    - apk add groff
+    - cd docs/user/
+    - pwd
+    - ls -la
+    - ./compile-html.sh
+  allow_failure: true
+  artifacts:
+    when: on_success
+    access: all
+    name: user documentation (man)
+    expose_as: user documentation
+    paths:
+      - docs/user/gourd-manpage.html
+      - docs/user/gourd.conf-manpage.html

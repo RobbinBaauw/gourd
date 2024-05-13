@@ -35,7 +35,7 @@ Run without interactive prompts (for scripting).
 \fC./test_0\fR
 A text file containing one test case for the algorithm.
 .SH "SEE ALSO"
-man(1)
+gourd.conf(5)
 .SH "AUTHORS"
 .P
 .MT l@chla.cz

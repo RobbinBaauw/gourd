@@ -23,9 +23,10 @@ A full list of requirements will be added.
 
 ### For UNIX-like systems:
 
-The user guide is a man page. Install it to a `MANPATH`, a list of which you can find by typing `echo $MANPATH`, using the following command:
+The user guide is a man page. Install it to a `MANPATH`, a list of which you can find by typing `echo $MANPATH`, using the following commands:
 
 `cp docs/user/gourd.man <manpath>/man1/gourd.1`
+`cp docs/user/gourd.conf.man <manpath>/man5/gourd.conf.5`
 
 The user guide is then accessible using `man gourd`.
 

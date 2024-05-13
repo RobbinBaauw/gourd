@@ -1,0 +1,36 @@
+.TH GOURD.CONF 5 "5 MAY 2024"
+
+.SH NAME
+gourd.toml \- Configuration file for
+.B gourd(5)
+
+.SH DESCRIPTION
+.B gourd.toml
+contains the configuration from which
+.B gourd
+creates new algorithmics experiments.
+
+.SH "SEE ALSO"
+gourd(1)
+
+.SH "AUTHORS"
+.P
+.MT l@chla.cz
+Lukáš Chládek
+.ME
+.P
+.MT r.giedryte@student.tudelft.nl
+R\[u016B]ta Giedryt\[u0117]
+.ME
+.P
+.MT a.tsatsanis@student.tudelft.nl
+Andreas Tsatsanis
+.ME
+.P
+.MT m.j.gazeel@student.tudelft.nl
+Mikołaj Gazeel
+.ME
+.P
+.MT j.p.piotrowski@student.tudelft.nl
+Jan Piotrowski
+.ME
