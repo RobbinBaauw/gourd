@@ -1,0 +1,79 @@
+\documentclass[a4paper,english]{article}
+\usepackage{a4wide}
+\usepackage{babel}
+\usepackage{verbatim}
+
+%% do we have the `hyperref package?
+\IfFileExists{hyperref.sty}{
+   \usepackage[bookmarksopen,bookmarksnumbered]{hyperref}
+}{}
+
+%% do we have the `fancyhdr' package?
+\IfFileExists{fancyhdr.sty}{
+\usepackage[fancyhdr]{latex2man}
+}{
+%% do we have the `fancyheadings' package?
+\IfFileExists{fancyheadings.sty}{
+\usepackage[fancy]{latex2man}
+}{
+\usepackage[nofancy]{latex2man}
+\message{no fancyhdr or fancyheadings package present, discard it}
+}}
+
+%% do we have the `rcsinfo' package?
+\IfFileExists{rcsinfo.sty}{
+\usepackage[nofancy]{rcsinfo}
+\rcsInfo $Id: latex2man.tex,v 1.203 2018/11/25 13:05:37 vollmer Exp $
+\setDate{\rcsInfoLongDate}
+}{
+\setDate{2018/11/25}    %%%% must be manually set, if rcsinfo is not present
+\message{package rcsinfo not present, discard it}
+}
+
+\setVersionWord{Version:}  %%% that's the default, no need to set it.
+\setVersion{1.29}
+
+\begin{document}
+
+  \begin{Name}{1}{gourd}{Test}{DelftBlue Tools}{Gourd - Pumpkin}
+
+    \Prog{gourd} allows
+  \end{Name}
+
+  \section{Synopsis}
+
+  \Prog{gourd} \Opt{-h}
+
+  \begin{Description}\setlength{\itemsep}{0cm}
+  \item[\File{latex2man.tex}] The \LaTeX\ file containing this Man-page.
+  \item[\File{latex2man.inc}] A file read with \verb+\input{..}+ .
+  \item[\File{latex2man.sty}] The \LaTeX\ package defining the environments and
+       commands.
+  \item[\File{latex2man.cfg}] The configuration file for \Prog{Latex2man}
+       \LaTeX-package.
+  \item[\File{latex2man.css}] File containing example CSS definitions.
+  \item[\File{latex2man.trans}] File containing example translations of user
+       defined \LaTeX\ macros.
+  \item[\File{fancyheadings.sty}] A \LaTeX\ package used to typeset head- and
+       foot lines.
+  \item[\File{fancyhdr.sty}] A \LaTeX\ package used to typeset head- and foot
+       lines.
+  \item[\File{rcsinfo.sty}] A \LaTeX\ package used to extract and use RCS version
+       control information in \LaTeX\ documents.
+
+  \item[\URL{latex2man.pdf}] The PDF version of this document.
+  \end{Description}
+
+  \section{Authors}
+
+  Lukáš Chládek
+
+  Rūta Giedrytė
+
+  Andreas Tsatsanis
+
+  Mikołaj Gazeel
+
+  Jan Piotrowski
+
+\end{document}
