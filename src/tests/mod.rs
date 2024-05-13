@@ -12,6 +12,7 @@ use crate::experiment::Environment;
 use crate::experiment::Experiment;
 
 mod config;
+mod printing;
 mod resources;
 mod runner;
 mod wrapper;

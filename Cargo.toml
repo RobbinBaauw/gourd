@@ -12,30 +12,41 @@ authors = [
 ]
 
 [dependencies]
+# the wrapper is compiled on the local architecture, but since the binary is provided by the user,
+# it could be for a different architecture. In order for the wrapper to not `segfault`, we have to
+# check that the binary is for the correct arch
 elf = "0.7.4"
 
+# Both used for the local threading module
 tokio = { version = "1", features = ["full"] }
 futures = "0.3.30"
 
+# Used as an intermediate for the syscalls for getting usage metrics.
 libc = "0.2"
 
+# parsing gourd.toml
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8.12"
 
+# loading datasets and executables from the internet
 reqwest = { version = "0.12.4", features = ["blocking", "json"] }
 
+# CLI stuff
 clap = { version = "4.5.4", features = ["derive", "cargo"] }
 anstyle = "1.0.7"
 
+# Saving datetimes
 chrono = { version = "0.4", features = ["serde"]}
 
+# Error handling & error propagation
 anyhow = "1"
-
 thiserror = "1"
 
+# Temporary directories for the shell scripts on DelftBlue, such that they are deleted after use.
 tempdir = "0.3.7"
 
 [dev-dependencies]
+# benching on stable rust
 easybench = "1.1.1"
 
 [[bin]]

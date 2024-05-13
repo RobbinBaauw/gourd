@@ -14,6 +14,9 @@ use crate::constants::SLURM_VERSIONS;
 use crate::experiment::Environment;
 use crate::experiment::Experiment;
 use crate::local::run_local;
+use crate::slurm::handler::check_config;
+use crate::slurm::handler::check_partition;
+use crate::slurm::handler::check_version;
 use crate::slurm::interactor::SlurmCLI;
 use crate::slurm::SlurmInteractor;
 use crate::status::display_statuses;
@@ -63,7 +66,9 @@ pub fn process_command(cmd: &Cli) -> anyhow::Result<()> {
                     let s = SlurmCLI {
                         versions: SLURM_VERSIONS.to_vec(),
                     };
-                    s.run_job(&config, &mut experiment)?;
+                    check_version(&s)?;
+                    check_partition(&s, &check_config(&config)?.partition)?;
+                    s.run_jobs(&config, &mut experiment)?;
                 }
             }
             experiment.save(&config.experiments_folder)?;

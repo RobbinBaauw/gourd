@@ -4,14 +4,11 @@ use anyhow::anyhow;
 use anyhow::Context;
 use tempdir::TempDir;
 
-use crate::cli::printing::format_table;
 use crate::config::Config;
-use crate::constants::SLURM_VERSIONS;
 use crate::error::ctx;
 use crate::error::Ctx;
 use crate::experiment::Experiment;
-use crate::slurm::info::get_partitions;
-use crate::slurm::info::get_version;
+use crate::slurm::handler::check_config;
 use crate::slurm::SlurmInteractor;
 
 /// An implementation of the SlurmInteractor trait for interacting with SLURM via the CLI.
@@ -25,56 +22,47 @@ pub struct SlurmCLI {
 ///
 /// we don't know if other versions are supported.
 impl SlurmInteractor for SlurmCLI {
-    /// Check if the SLURM version is supported.
-    fn check_version(&self) -> anyhow::Result<()> {
-        match get_version() {
-            Ok(version) => {
-                if !self.versions.contains(&version) {
-                    Err(anyhow!("SLURM Version assertion failed")).with_context(
-                        ctx!("Unsupported SLURM version: {:?}",
-                          version.iter().map(u64::to_string).collect::<Vec<String>>().join(".");
-                          "Supported versions are: {:?}",
-                          SLURM_VERSIONS.map(|x| x.iter().map(u64::to_string)
-                            .collect::<Vec<String>>().join(".")).to_vec()
-                        ),
-                    )
-                } else {
-                    Ok(())
-                }
-            }
-
-            Err(e) => Err(anyhow!("SLURM versioning failed")).with_context(ctx!(
-              "Failed to get SLURM version: {}", e;
-              "Please make sure that SLURM is installed and available in the PATH",
-            )),
-        }
+    /// Get the SLURM version from CLI output.
+    fn get_version(&self) -> anyhow::Result<[u64; 2]> {
+        let s_info_out = Command::new("sinfo").arg("--version").output()?;
+        let version = String::from_utf8_lossy(&s_info_out.stdout)
+            .to_string()
+            .split_whitespace()
+            .collect::<Vec<&str>>()[1]
+            .split(|c: char| !c.is_numeric())
+            .collect::<Vec<&str>>()
+            .iter()
+            .map(|x| x.parse::<u64>().unwrap())
+            .collect::<Vec<u64>>();
+        let mut buf = [0; 2];
+        buf[0] = *version.first().ok_or(anyhow!("Invalid version received"))?;
+        buf[1] = *version.get(1).ok_or(anyhow!("Invalid version received"))?;
+        Ok(buf)
     }
 
-    /// Check if the provided partition is valid.
-    fn check_partition(&self, partition: &str) -> anyhow::Result<()> {
-        let partitions = get_partitions()?;
-        if partitions.iter().flatten().any(|x| x == partition) {
-            Ok(())
-        } else {
-            Err(anyhow!("Invalid partition provided")).with_context(ctx!(
-              "Partition `{:?}` is not available on this cluster. ", partition;
-              "Present partitions are:\n{:?}", format_table(partitions)
-            ))
-        }
+    /// Get available partitions on the cluster.
+    /// returns a (space and newline delimited) table of partition name and availability.
+    fn get_partitions(&self) -> anyhow::Result<Vec<Vec<String>>> {
+        let s_info_out = Command::new("sinfo").arg("-o").arg("%P %a").output()?;
+        let partitions = String::from_utf8_lossy(&s_info_out.stdout)
+            .split('\n')
+            .map(|x| x.to_string())
+            .map(|y| {
+                y.split_whitespace()
+                    .collect::<Vec<&str>>()
+                    .iter()
+                    .map(|z| z.to_string())
+                    .collect::<Vec<String>>()
+            })
+            .collect::<Vec<Vec<String>>>();
+        Ok(partitions)
     }
 
     /// Run an experiment on a SLURM cluster.
     ///
     /// input: a (parsed) configuration and the experiments to run
-    fn run_job(&self, config: &Config, experiment: &mut Experiment) -> anyhow::Result<()> {
-        let slurm_config = config.slurm.as_ref()
-            .ok_or_else(|| anyhow!("No SLURM configuration found"))
-            .with_context(ctx!(
-              "Tried to execute on Slurm but the configuration field for the Slurm options in gourd.toml was empty", ;
-              "Make sure that your gourd.toml includes the required fields under [slurm]",
-            ))?;
-        self.check_version()?;
-        self.check_partition(&slurm_config.partition)?;
+    fn run_jobs(&self, config: &Config, experiment: &mut Experiment) -> anyhow::Result<()> {
+        let slurm_config = check_config(config)?;
 
         let temp = TempDir::new("gourd-slurm")?;
         let batch_script = temp.path().join("batch.sh");
@@ -117,5 +105,19 @@ impl SlurmInteractor for SlurmCLI {
               "Ensure that you have permissions to submit jobs to the cluster",
             ))?;
         Ok(())
+    }
+
+    /// Get the supported SLURM versions for this CLI interactor.
+    fn is_version_supported(&self, v: [u64; 2]) -> bool {
+        self.versions.contains(&v)
+    }
+
+    /// Get the supported SLURM versions for this CLI interactor.
+    fn get_supported_versions(&self) -> String {
+        self.versions
+            .iter()
+            .map(|x| format!("{}.{}", x[0], x[1]))
+            .collect::<Vec<String>>()
+            .join(", ")
     }
 }

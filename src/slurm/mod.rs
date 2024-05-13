@@ -1,4 +1,4 @@
-mod info;
+pub(crate) mod handler;
 /// Currently used implementation of interacting with SLURM through the CLI
 pub mod interactor;
 
@@ -43,10 +43,16 @@ pub struct SlurmConfig {
 pub trait SlurmInteractor {
     /// Check the version of slurm on the current environment.
     /// returns an error if the version is not supported, or if slurm is not present.
-    fn check_version(&self) -> Result<()>;
+    fn get_version(&self) -> Result<[u64; 2]>;
     /// Check if the provided partition is valid.
-    fn check_partition(&self, partition: &str) -> Result<()>;
+    fn get_partitions(&self) -> Result<Vec<Vec<String>>>;
 
     /// actually running batch jobs. still not completely decided what this will do, more documentation soon™
-    fn run_job(&self, config: &Config, experiment: &mut Experiment) -> Result<()>;
+    fn run_jobs(&self, config: &Config, experiment: &mut Experiment) -> Result<()>;
+
+    /// Check if a version of SLURM is supported by this interactor.
+    fn is_version_supported(&self, v: [u64; 2]) -> bool;
+
+    /// Get the supported versions of SLURM for this interactor.
+    fn get_supported_versions(&self) -> String;
 }

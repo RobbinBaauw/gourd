@@ -117,9 +117,24 @@ fn matching_arch() {
             Command::new(&conf.wrapper)
                 .arg(tmp.path().join("prog").canonicalize().unwrap())
                 .arg(input.canonicalize().unwrap())
-                .arg(conf.output_path.join("1/algo_any/test1_output"))
-                .arg(conf.metrics_path.join("1/algo_any/test1_metrics"))
-                .arg(conf.output_path.join("1/algo_any/test1_error"))
+                .arg(
+                    conf.output_path
+                        .join("1/algo_any/test1_output")
+                        .canonicalize()
+                        .unwrap()
+                )
+                .arg(
+                    conf.metrics_path
+                        .join("1/algo_any/test1_metrics")
+                        .canonicalize()
+                        .unwrap()
+                )
+                .arg(
+                    conf.output_path
+                        .join("1/algo_any/test1_error")
+                        .canonicalize()
+                        .unwrap()
+                )
         )
     );
 }
