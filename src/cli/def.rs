@@ -88,7 +88,7 @@ pub struct AnalStruct {}
 #[derive(Subcommand, Debug)]
 pub enum Command {
     /// Subcommand for scheduling a run.
-    #[command(about = "Schedule a run")]
+    #[command(about = "Create an experiment and run it")]
     Run(RunStruct),
 
     /// Subcommand for checking status of a run.

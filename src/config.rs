@@ -62,7 +62,7 @@ pub struct Config {
     pub inputs: BTreeMap<String, Input>,
 
     /// If running on a SLURM cluster, the job configurations
-    pub slurm_config: Option<SlurmConfig>,
+    pub slurm: Option<SlurmConfig>,
 
     //
     // Advanced settings.
@@ -83,7 +83,7 @@ impl Default for Config {
             wrapper: WRAPPER_DEFAULT(),
             programs: BTreeMap::new(),
             inputs: BTreeMap::new(),
-            slurm_config: None,
+            slurm: None,
         }
     }
 }

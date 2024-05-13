@@ -44,7 +44,7 @@ impl SlurmInteractor for SlurmCLI {
             }
 
             Err(e) => Err(anyhow!("SLURM versioning failed")).with_context(ctx!(
-              "Failed to get SLURM version: {:?}", e;
+              "Failed to get SLURM version: {}", e;
               "Please make sure that SLURM is installed and available in the PATH",
             )),
         }
@@ -67,7 +67,7 @@ impl SlurmInteractor for SlurmCLI {
     ///
     /// input: a (parsed) configuration and the experiments to run
     fn run_job(&self, config: &Config, experiment: &mut Experiment) -> anyhow::Result<()> {
-        let slurm_config = config.slurm_config.as_ref()
+        let slurm_config = config.slurm.as_ref()
             .ok_or_else(|| anyhow!("No SLURM configuration found"))
             .with_context(ctx!(
               "Tried to execute on Slurm but the configuration field for the Slurm options in gourd.toml was empty", ;
@@ -80,8 +80,7 @@ impl SlurmInteractor for SlurmCLI {
         let batch_script = temp.path().join("batch.sh");
 
         let contents = format!(
-            "
-#!/bin/bash
+            "#!/bin/bash
 #SBATCH --job-name={}
 #SBATCH --array=0-{}
 #SBATCH --ntasks=1
@@ -89,8 +88,9 @@ impl SlurmInteractor for SlurmCLI {
 #SBATCH --time={}
 #SBATCH --cpus-per-task={}
 #SBATCH --mem-per-cpu={}
+#SBATCH --output={}
 
-./{} --id=$SLURM_ARRAY_TASK_ID
+{} --id=$SLURM_ARRAY_TASK_ID
 ",
             slurm_config.experiment_name,
             experiment.runs.len() - 1,
@@ -98,6 +98,12 @@ impl SlurmInteractor for SlurmCLI {
             slurm_config.time_limit,
             slurm_config.cpus,
             slurm_config.mem_per_cpu,
+            slurm_config
+                .out
+                .as_ref()
+                .unwrap_or(&config.output_path)
+                .join("slurm-%A_%a.out")
+                .to_string_lossy(),
             config.wrapper,
         );
 

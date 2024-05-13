@@ -69,5 +69,5 @@ pub fn format_table(data: Vec<Vec<String>>) -> String {
         }
         result.push_str(&formatted_row.join(" | "));
     }
-    result
+    result.trim().to_string()
 }

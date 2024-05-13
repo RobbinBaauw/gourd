@@ -25,15 +25,9 @@ pub fn get_version() -> anyhow::Result<[u64; 2]> {
 /// Get available partitions on the cluster.
 /// returns a (space and newline delimited) table of partition name and availability.
 pub fn get_partitions() -> anyhow::Result<Vec<Vec<String>>> {
-    let s_info_out = Command::new("sinfo")
-        .arg("-o")
-        .arg("\"%P")
-        .arg("%a\"")
-        .output()?;
+    let s_info_out = Command::new("sinfo").arg("-o").arg("%P %a").output()?;
     let partitions = String::from_utf8_lossy(&s_info_out.stdout)
         .split('\n')
-        .collect::<Vec<&str>>()
-        .iter()
         .map(|x| x.to_string())
         .map(|y| {
             y.split_whitespace()

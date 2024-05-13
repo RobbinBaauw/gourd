@@ -48,8 +48,15 @@ pub fn process_command(cmd: &Cli) -> anyhow::Result<()> {
     match cmd.command {
         Command::Run(args) => {
             let config = Config::from_file(&cmd.config)?;
-            let mut experiment =
-                Experiment::from_config(&config, Environment::Local, Local::now())?;
+            let mut experiment = match args.sub_command {
+                RunSubcommand::Local { .. } => {
+                    Experiment::from_config(&config, Environment::Local, Local::now())?
+                }
+                RunSubcommand::Slurm { .. } => {
+                    Experiment::from_config(&config, Environment::Slurm, Local::now())?
+                }
+            };
+
             match args.sub_command {
                 RunSubcommand::Local { .. } => run_local(&config, &experiment)?,
                 RunSubcommand::Slurm { .. } => {

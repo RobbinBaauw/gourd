@@ -2,6 +2,8 @@ mod info;
 /// Currently used implementation of interacting with SLURM through the CLI
 pub mod interactor;
 
+use std::path::PathBuf;
+
 use anyhow::Result;
 
 use crate::config::Config;
@@ -31,6 +33,9 @@ pub struct SlurmConfig {
 
     /// Memory in MB to allocate per CPU per job
     pub mem_per_cpu: usize,
+
+    /// Where slurm should put the stdout and stderr of the job.
+    pub out: Option<PathBuf>,
 }
 
 /// The interface for interacting with a SLURM cluster.
@@ -40,7 +45,7 @@ pub trait SlurmInteractor {
     /// returns an error if the version is not supported, or if slurm is not present.
     fn check_version(&self) -> Result<()>;
     /// Check if the provided partition is valid.
-    fn check_partition(&self, partition: &str) -> anyhow::Result<()>;
+    fn check_partition(&self, partition: &str) -> Result<()>;
 
     /// actually running batch jobs. still not completely decided what this will do, more documentation soon™
     fn run_job(&self, config: &Config, experiment: &mut Experiment) -> Result<()>;

@@ -48,7 +48,7 @@ pub fn create_sample_experiment(
         wrapper: "".to_string(),
         programs: prog,
         inputs,
-        slurm_config: None,
+        slurm: None,
     };
 
     (
