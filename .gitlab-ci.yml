@@ -129,21 +129,15 @@ rustdoc:
       - target/doc/
 
 user_docs:
-  image: alpine
+  image: registry.gitlab.com/islandoftex/images/texlive:latest
   stage: docs
-  needs: []
-  script:
-    - apk add groff
-    - cd docs/user/
-    - pwd
-    - ls -la
-    - ./compile-html.sh
   allow_failure: true
+  needs: []
+  script: cd docs/user && ./compile.sh
   artifacts:
     when: on_success
-    access: all
-    name: user documentation (man)
+    name: user documentation
     expose_as: user documentation
     paths:
-      - docs/user/gourd-manpage.html
-      - docs/user/gourd.conf-manpage.html
+    - gourd-user-documentation.pdf
+    - gourd.man
