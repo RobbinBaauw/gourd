@@ -41,14 +41,14 @@ build:
   script:
   - cargo build --verbose --release
   - mv target/x86_64-unknown-linux-musl/release/gourd gourd
-  - mv target/x86_64-unknown-linux-musl/release/gourd-wrapper gourd-wrapper
+  - mv target/x86_64-unknown-linux-musl/release/gourd_wrapper gourd_wrapper
   artifacts:
     when: on_success
     name: binaries (musl-x86_64)
     expose_as: binaries
     paths:
       - gourd
-      - gourd-wrapper
+      - gourd_wrapper
 
 fmt:
   <<: *rust_container_night
