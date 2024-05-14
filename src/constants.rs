@@ -41,3 +41,6 @@ pub const ERROR_STYLE: Style = style_from_fg(AnsiColor::Red).bold().blink();
 
 /// The styling for help messages.
 pub const HELP_STYLE: Style = style_from_fg(AnsiColor::Green).bold().underline();
+
+/// Supported SLURM versions.
+pub const SLURM_VERSIONS: [[u64; 2]; 1] = [[21, 8]];

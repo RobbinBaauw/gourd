@@ -39,6 +39,8 @@ pub struct Run {
     pub output_path: PathBuf,
     /// The path to the metrics file.
     pub metrics_path: PathBuf,
+    /// Slurm job id, if ran on slurm
+    pub job_id: Option<usize>,
 }
 
 /// Describes one experiment.
@@ -90,6 +92,7 @@ impl Experiment {
                             .output_path
                             .join(format!("{}/algo_{}/{}_output", seq, prog_name, input_name)),
                     )?,
+                    job_id: None,
                 });
             }
         }

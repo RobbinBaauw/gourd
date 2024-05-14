@@ -12,8 +12,10 @@ use crate::experiment::Environment;
 use crate::experiment::Experiment;
 
 mod config;
+mod printing;
 mod resources;
 mod runner;
+mod slurm;
 mod wrapper;
 
 pub fn get_compiled_example(
@@ -48,6 +50,7 @@ pub fn create_sample_experiment(
         wrapper: "".to_string(),
         programs: prog,
         inputs,
+        slurm: None,
     };
 
     (

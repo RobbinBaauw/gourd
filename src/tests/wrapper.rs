@@ -6,7 +6,6 @@ use crate::config::Input;
 use crate::config::Program;
 use crate::constants::E_MACHINE_MAPPING;
 use crate::tests::create_sample_experiment;
-#[cfg(target_os = "linux")]
 use crate::tests::get_compiled_example;
 use crate::wrapper::wrap;
 
@@ -118,9 +117,24 @@ fn matching_arch() {
             Command::new(&conf.wrapper)
                 .arg(tmp.path().join("prog").canonicalize().unwrap())
                 .arg(input.canonicalize().unwrap())
-                .arg(conf.output_path.join("1/algo_any/test1_output"))
-                .arg(conf.metrics_path.join("1/algo_any/test1_metrics"))
-                .arg(conf.output_path.join("1/algo_any/test1_error"))
+                .arg(
+                    conf.output_path
+                        .join("1/algo_any/test1_output")
+                        .canonicalize()
+                        .unwrap()
+                )
+                .arg(
+                    conf.metrics_path
+                        .join("1/algo_any/test1_metrics")
+                        .canonicalize()
+                        .unwrap()
+                )
+                .arg(
+                    conf.output_path
+                        .join("1/algo_any/test1_error")
+                        .canonicalize()
+                        .unwrap()
+                )
         )
     );
 }

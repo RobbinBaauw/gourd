@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::process::Command;
 
 use anyhow::Context;
@@ -48,6 +47,8 @@ pub fn wrap(
 }
 
 /// Verify if the architecture of a `binary` matched the `expected` architecture.
+#[cfg(target_os = "linux")]
+use std::path::PathBuf;
 #[cfg(target_os = "linux")]
 fn verify_arch(binary: &PathBuf, expected: MachineType) -> Result<()> {
     use anyhow::anyhow;
