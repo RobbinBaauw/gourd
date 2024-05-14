@@ -1,14 +1,14 @@
+use std::ops::Range;
 use std::process::Command;
 
 use anyhow::anyhow;
 use anyhow::Context;
 use tempdir::TempDir;
 
-use crate::config::Config;
+use crate::constants::SLURM_VERSIONS;
 use crate::error::ctx;
 use crate::error::Ctx;
-use crate::experiment::Experiment;
-use crate::slurm::handler::get_slurm_options_from_config;
+use crate::slurm::SlurmConfig;
 use crate::slurm::SlurmInteractor;
 
 /// An implementation of the SlurmInteractor trait for interacting with SLURM via the CLI.
@@ -16,6 +16,14 @@ use crate::slurm::SlurmInteractor;
 pub struct SlurmCLI {
     /// Supported versions by this instance of the CLI interactor
     pub versions: Vec<[u64; 2]>,
+}
+
+impl Default for SlurmCLI {
+    fn default() -> Self {
+        Self {
+            versions: SLURM_VERSIONS.to_vec(),
+        }
+    }
 }
 
 /// These are using functions specific to CLI version 21.8.x
@@ -58,41 +66,36 @@ impl SlurmInteractor for SlurmCLI {
         Ok(partitions)
     }
 
-    /// Run an experiment on a SLURM cluster.
-    ///
-    /// input: a (parsed) configuration and the experiments to run
-    fn run_jobs(&self, config: &Config, experiment: &mut Experiment) -> anyhow::Result<()> {
-        let slurm_config = get_slurm_options_from_config(config)?;
-
+    /// Schedule a new job array on the cluster.
+    fn schedule_array(
+        &self,
+        range: Range<usize>,
+        slurm_config: &SlurmConfig,
+        wrapper_path: &str,
+    ) -> anyhow::Result<()> {
         let temp = TempDir::new("gourd-slurm")?;
         let batch_script = temp.path().join("batch.sh");
 
         let contents = format!(
             "#!/bin/bash
 #SBATCH --job-name={}
-#SBATCH --array=0-{}
+#SBATCH --array={}-{}
 #SBATCH --ntasks=1
 #SBATCH --partition={}
 #SBATCH --time={}
 #SBATCH --cpus-per-task={}
 #SBATCH --mem-per-cpu={}
-#SBATCH --output={}
 
 {} --id=$SLURM_ARRAY_TASK_ID
 ",
             slurm_config.experiment_name,
-            experiment.runs.len() - 1,
+            range.start,
+            range.end,
             slurm_config.partition,
             slurm_config.time_limit,
             slurm_config.cpus,
             slurm_config.mem_per_cpu,
-            slurm_config
-                .out
-                .as_ref()
-                .unwrap_or(&config.output_path)
-                .join("slurm-%A_%a.out")
-                .to_string_lossy(),
-            config.wrapper,
+            wrapper_path,
         );
 
         std::fs::write(&batch_script, contents)?;

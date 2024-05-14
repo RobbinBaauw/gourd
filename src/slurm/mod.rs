@@ -1,13 +1,14 @@
-pub(crate) mod handler;
+/// Some checks when running on slurm to improve error handling
+pub mod checks;
+/// The core slurm functionality
+pub mod handler;
 /// Currently used implementation of interacting with SLURM through the CLI
 pub mod interactor;
 
+use std::ops::Range;
 use std::path::PathBuf;
 
 use anyhow::Result;
-
-use crate::config::Config;
-use crate::experiment::Experiment;
 
 /// The config options when running through Slurm
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -48,7 +49,12 @@ pub trait SlurmInteractor {
     fn get_partitions(&self) -> Result<Vec<Vec<String>>>;
 
     /// actually running batch jobs. still not completely decided what this will do, more documentation soon™
-    fn run_jobs(&self, config: &Config, experiment: &mut Experiment) -> Result<()>;
+    fn schedule_array(
+        &self,
+        range: Range<usize>,
+        slurm_config: &SlurmConfig,
+        wrapper_path: &str,
+    ) -> Result<()>;
 
     /// Check if a version of SLURM is supported by this interactor.
     fn is_version_supported(&self, v: [u64; 2]) -> bool;

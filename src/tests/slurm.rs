@@ -14,7 +14,7 @@ fn get_slurm_options_from_config_test() {
         }),
         ..Default::default()
     };
-    assert!(crate::slurm::handler::get_slurm_options_from_config(&config).is_ok());
+    assert!(crate::slurm::checks::get_slurm_options_from_config(&config).is_ok());
 }
 
 #[test]
@@ -23,5 +23,5 @@ fn get_slurm_options_from_config_un_test() {
         slurm: None,
         ..Default::default()
     };
-    assert!(crate::slurm::handler::get_slurm_options_from_config(&config).is_err());
+    assert!(crate::slurm::checks::get_slurm_options_from_config(&config).is_err());
 }

@@ -10,15 +10,12 @@ use crate::cli::def::RunSubcommand;
 use crate::cli::printing::print_version;
 use crate::config::Config;
 use crate::constants::ERROR_STYLE;
-use crate::constants::SLURM_VERSIONS;
 use crate::experiment::Environment;
 use crate::experiment::Experiment;
 use crate::local::run_local;
-use crate::slurm::handler::check_partition;
-use crate::slurm::handler::check_version;
-use crate::slurm::handler::get_slurm_options_from_config;
+use crate::slurm::checks::get_slurm_options_from_config;
+use crate::slurm::handler::SlurmHandler;
 use crate::slurm::interactor::SlurmCLI;
-use crate::slurm::SlurmInteractor;
 use crate::status::display_statuses;
 use crate::status::get_statuses;
 
@@ -63,12 +60,12 @@ pub fn process_command(cmd: &Cli) -> anyhow::Result<()> {
             match args.sub_command {
                 RunSubcommand::Local { .. } => run_local(&config, &experiment)?,
                 RunSubcommand::Slurm { .. } => {
-                    let s = SlurmCLI {
-                        versions: SLURM_VERSIONS.to_vec(),
-                    };
-                    check_version(&s)?;
-                    check_partition(&s, &get_slurm_options_from_config(&config)?.partition)?;
-                    s.run_jobs(&config, &mut experiment)?;
+                    let s: SlurmHandler<SlurmCLI> = SlurmHandler::default();
+                    s.check_version()?;
+                    s.check_partition(&get_slurm_options_from_config(&config)?.partition)?;
+                    #[allow(clippy::unnecessary_mut_passed)] // in the near future we will update
+                    // the experiment when running it, for example to include job ids in the runs
+                    s.run_experiment(&config, &mut experiment)?;
                 }
             }
             experiment.save(&config.experiments_folder)?;

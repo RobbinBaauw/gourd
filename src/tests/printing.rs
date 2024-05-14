@@ -1,5 +1,7 @@
-use crate::config::Config;
-use crate::experiment::Experiment;
+use std::ops::Range;
+
+use crate::slurm::handler::SlurmHandler;
+use crate::slurm::SlurmConfig;
 use crate::slurm::SlurmInteractor;
 
 #[test]
@@ -30,7 +32,12 @@ fn versioning_test() {
             Ok(vec![])
         }
 
-        fn run_jobs(&self, _config: &Config, _experiment: &mut Experiment) -> anyhow::Result<()> {
+        fn schedule_array(
+            &self,
+            _range: Range<usize>,
+            _slurm_config: &SlurmConfig,
+            _wrapper_path: &str,
+        ) -> anyhow::Result<()> {
             Ok(())
         }
 
@@ -42,7 +49,8 @@ fn versioning_test() {
             "groff".to_string()
         }
     }
-    assert!(crate::slurm::handler::check_version(&X {}).is_ok());
+    let y = SlurmHandler { internal: X {} };
+    assert!(y.check_version().is_ok());
 }
 
 #[test]
@@ -56,7 +64,12 @@ fn versioning_un_test() {
             Ok(vec![])
         }
 
-        fn run_jobs(&self, _config: &Config, _experiment: &mut Experiment) -> anyhow::Result<()> {
+        fn schedule_array(
+            &self,
+            _range: Range<usize>,
+            _slurm_config: &SlurmConfig,
+            _wrapper_path: &str,
+        ) -> anyhow::Result<()> {
             Ok(())
         }
 
@@ -68,5 +81,6 @@ fn versioning_un_test() {
             "your dad".to_string()
         }
     }
-    assert!(crate::slurm::handler::check_version(&X {}).is_err());
+    let y = SlurmHandler { internal: X {} };
+    assert!(y.check_version().is_err());
 }
