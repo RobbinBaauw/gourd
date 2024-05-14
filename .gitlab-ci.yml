@@ -5,18 +5,21 @@ variables:
   CARGO_HOME: $CI_PROJECT_DIR/.cargo
 
 .rust_container_template: &rust_container_stable
-  image: rust:1.77.2-buster
+  image: clux/muslrust:1.78.0-stable-2024-05-13
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
       - $CARGO_HOME
 
 .rust_container_template: &rust_container_night
-  image: rustlang/rust:nightly-buster
+  image: clux/muslrust:amd64-1.80.0-nightly-2024-05-14
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
       - $CARGO_HOME
+
+.latex_container_template: &texlive_full
+  image: ghcr.io/xu-cheng/texlive-full:20240315
 
 stages:
   - build
@@ -36,7 +39,9 @@ build:
   needs:
   - check
   script:
-  - cargo build --verbose --release && mv target/release/gourd gourd && mv target/release/gourd-wrapper gourd-wrapper
+  - cargo build --verbose --release
+  - mv target/x86_64-unknown-linux-musl/release/gourd gourd
+  - mv target/x86_64-unknown-linux-musl/release/gourd-wrapper gourd-wrapper
   artifacts:
     when: on_success
     name: binaries (musl-x86_64)
@@ -101,19 +106,6 @@ tests:
     reports:
       junit: results.xml
 
-maintainer_docs:
-  image: registry.gitlab.com/islandoftex/images/texlive:latest
-  stage: docs
-  allow_failure: true
-  needs: []
-  script: cd docs/maintainer && ./compile.sh
-  artifacts:
-    when: on_success
-    name: maintainer documentation
-    expose_as: maintainer documentation
-    paths:
-    - gourd-maintainer-documentation.pdf
-
 rustdoc:
   <<: *rust_container_stable
   stage: docs
@@ -128,8 +120,21 @@ rustdoc:
     paths:
       - target/doc/
 
+maintainer_docs:
+  <<: *texlive_full
+  stage: docs
+  allow_failure: true
+  needs: []
+  script: cd docs/maintainer && ./compile.sh
+  artifacts:
+    when: on_success
+    name: maintainer documentation
+    expose_as: maintainer documentation
+    paths:
+    - gourd-maintainer-documentation.pdf
+
 user_docs:
-  image: registry.gitlab.com/islandoftex/images/texlive:latest
+  <<: *texlive_full
   stage: docs
   allow_failure: true
   needs: []
