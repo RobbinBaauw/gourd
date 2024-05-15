@@ -4,6 +4,7 @@ use std::process::exit;
 use chrono::Local;
 use clap::Parser;
 
+use crate::afterscript;
 use crate::cli::def::Cli;
 use crate::cli::def::Command;
 use crate::cli::def::RunSubcommand;
@@ -76,6 +77,8 @@ pub fn process_command(cmd: &Cli) -> anyhow::Result<()> {
             let experiment = Experiment::latest_experiment_from_folder(&config.experiments_folder)?;
 
             let statuses = get_statuses(&experiment)?;
+
+            afterscript::run_afterscript(&statuses, &experiment)?;
 
             display_statuses(&experiment, &statuses);
         }

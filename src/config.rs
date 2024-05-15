@@ -7,6 +7,8 @@ use anyhow::Result;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::constants::AFTERSCRIPT_DEFAULT;
+use crate::constants::AFTERSCRIPT_OUTPUT_DEFAULT;
 use crate::constants::PRIMARY_STYLE;
 use crate::constants::WRAPPER_DEFAULT;
 use crate::error::ctx;
@@ -22,6 +24,20 @@ pub struct Program {
 
     /// The cli arguments for the executable.
     pub arguments: Vec<String>,
+
+    /// The configuration for the afterscript, if there is one.
+    pub afterscript: Option<AfterscriptConf>,
+}
+
+/// Configuration for an afterscript on a job
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct AfterscriptConf {
+    /// The path to afterscript output for basic postprocessing.
+    #[serde(default = "AFTERSCRIPT_OUTPUT_DEFAULT")]
+    pub out: PathBuf,
+    /// The path to afterscript for basic postprocessing.
+    #[serde(default = "AFTERSCRIPT_DEFAULT")]
+    pub src: PathBuf,
 }
 
 /// A pair of a path to an input and additional cli arguments.

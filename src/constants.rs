@@ -1,3 +1,6 @@
+use std::convert::Into;
+use std::path::PathBuf;
+
 use anstyle::AnsiColor;
 use anstyle::Color;
 use anstyle::Style;
@@ -21,6 +24,12 @@ pub const E_MACHINE_MAPPING: for<'a> fn(&'a str) -> u16 = |machine| match machin
 
 /// The default path to the wrapper, that is, we assume `gourd_wrapper` is in $PATH.
 pub const WRAPPER_DEFAULT: fn() -> String = || "gourd_wrapper".to_string();
+
+/// The default path to the afterscript.
+pub const AFTERSCRIPT_DEFAULT: fn() -> PathBuf = || "".into();
+
+/// The default path to the afterscript output.
+pub const AFTERSCRIPT_OUTPUT_DEFAULT: fn() -> PathBuf = || "after".into();
 
 /// Create a style with a defined foreground color.
 pub const fn style_from_fg(color: AnsiColor) -> Style {
