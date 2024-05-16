@@ -5,23 +5,27 @@ variables:
   CARGO_HOME: $CI_PROJECT_DIR/.cargo
 
 .rust_container_template: &rust_container_stable
-  image: rust:1.77.2-buster
+  image: clux/muslrust:1.78.0-stable-2024-05-13
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
       - $CARGO_HOME
 
 .rust_container_template: &rust_container_night
-  image: rustlang/rust:nightly-buster
+  image: clux/muslrust:amd64-1.80.0-nightly-2024-05-14
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
       - $CARGO_HOME
 
+.latex_container_template: &texlive_full
+  image: ghcr.io/xu-cheng/texlive-full:20240315
+
 stages:
   - build
   - lint
   - test
+  - docs
 
 check:
   <<: *rust_container_stable
@@ -36,12 +40,15 @@ build:
   - check
   script:
   - cargo build --verbose --release
+  - mv target/x86_64-unknown-linux-musl/release/gourd gourd
+  - mv target/x86_64-unknown-linux-musl/release/gourd_wrapper gourd_wrapper
   artifacts:
     when: on_success
-    name: binary (musl-x86_64)
-    expose_as: binary
+    name: binaries (musl-x86_64)
+    expose_as: binaries
     paths:
-      - target/release/gourd
+      - gourd
+      - gourd_wrapper
 
 fmt:
   <<: *rust_container_night
@@ -98,3 +105,44 @@ tests:
       - results.xml
     reports:
       junit: results.xml
+
+rustdoc:
+  <<: *rust_container_stable
+  stage: docs
+  needs: [build]
+  script: cargo rustdoc
+  allow_failure: true
+  artifacts:
+    when: on_success
+    access: all
+    name: rustdoc
+    expose_as: rustdoc
+    paths:
+      - target/doc/
+
+maintainer_docs:
+  <<: *texlive_full
+  stage: docs
+  allow_failure: true
+  needs: []
+  script: cd docs/maintainer && ./compile.sh
+  artifacts:
+    when: on_success
+    name: maintainer documentation
+    expose_as: maintainer documentation
+    paths:
+    - gourd-maintainer-documentation.pdf
+
+user_docs:
+  <<: *texlive_full
+  stage: docs
+  allow_failure: true
+  needs: []
+  script: cd docs/user && ./compile.sh
+  artifacts:
+    when: on_success
+    name: user documentation
+    expose_as: user documentation
+    paths:
+    - gourd-user-documentation.pdf
+    - gourd.man

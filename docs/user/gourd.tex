@@ -1,0 +1,133 @@
+\documentclass[a4paper,english]{article}
+\usepackage{a4wide}
+\usepackage{babel}
+\usepackage{verbatim}
+
+\usepackage{changepage}
+
+\usepackage[bookmarksopen,bookmarksnumbered]{hyperref}
+
+\usepackage[fancyhdr]{latex2man}
+
+\usepackage{fancyhdr}
+
+
+\newcommand{\thecmd}{gourd}
+\newcommand{\thecommand}{GOURD}
+\newcommand{\mansection}{1}
+\newcommand{\mansectionname}{DelftBlue Tools Manual}
+\newcommand{\mandate}{5 MAY 2024}
+\setDate{5 MAY 2024}
+\setVersionWord{Version:}
+\setVersion{1.29}
+
+
+\input{latex2man_styling.tex}
+
+\usepackage{mathspec}
+\setmainfont[Mapping=tex-text, FakeBold=1]{Linux Libertine O}
+\setmathfont(Digits,Greek,Latin)[Numbers=OldStyle, FakeBold=1]{Linux Libertine O}
+
+\begin{document}
+	\pagestyle{fancy}
+
+  \begin{Name}{1}{gourd}{Test}{DelftBlue Tools Manual}{Gourd - Pumpkin}
+%@% IF LATEX %@%
+    \begin{adjustwidth}{18pt}{0pt}
+%@% END-IF %@%
+      \Prog{gourd}, A tool for scheduling parallel runs for algorithm comparisons.
+%@% IF LATEX %@%
+    \end{adjustwidth}
+%@% END-IF %@%
+  \end{Name}
+
+%@% IF LATEX %@%
+  \section*{SYNOPSIS}
+    \begin{adjustwidth}{18pt}{0pt}
+%@% ELSE %@%
+  \section{SYNOPSIS}
+%@% END-IF %@%
+
+      \noindent \Prog{gourd} \oOpt{-h} \oOpt{-s}
+
+
+%@% IF LATEX %@%
+    \end{adjustwidth}
+%@% END-IF %@%
+
+%@% IF LATEX %@%
+  \section*{DESCRIPTION}
+    \begin{adjustwidth}{18pt}{0pt}
+%@% ELSE %@%
+  \section{DESCRIPTION}
+%@% END-IF %@%
+
+      \noindent \Prog{gourd} is a tool that schedules parallel runs for algorithm comparisons. Given the parameters of the experiment, a number of test datasets, and algorithm implementations to compare, \Prog{gourd} runs the experiment in parallel and provides many options for processing its results. While originally envisioned for the DelftBlue supercomputer at Delft University of Technology, \Prog{gourd} can replicate the experiment on any cluster computer with the \Prog{Slurm} scheduler, on any UNIX-like system, and on Microsoft Windows.
+
+%@% IF LATEX %@%
+      \subsection*{OPTIONS}
+%@% ELSE %@%
+      \subsection{OPTIONS}
+%@% END-IF %@%
+
+        \begin{Description}[Options]\setlength{\itemsep}{0cm}
+        \item[\Opt{-h}] Get some help.
+        \end{Description}
+
+%@% IF LATEX %@%
+    \end{adjustwidth}
+%@% END-IF %@%
+
+%@% IF LATEX %@%
+  \section*{FILES}
+    \begin{adjustwidth}{18pt}{0pt}
+%@% ELSE %@%
+  \section{FILES}
+%@% END-IF %@%
+
+    \begin{Description}[Files]\setlength{\itemsep}{0cm}
+        \item[\File{./text\_0}] A text file containing one test case for the algorithm.
+    \end{Description}
+
+%@% IF LATEX %@%
+    \end{adjustwidth}
+%@% END-IF %@%
+
+
+%@% IF LATEX %@%
+  \section*{SEE ALSO}
+    \begin{adjustwidth}{18pt}{0pt}
+%@% ELSE %@%
+  \section{SEE ALSO}
+%@% END-IF %@%
+      \Prog{man}(1)
+%@% IF LATEX %@%
+    \end{adjustwidth}
+%@% END-IF %@%
+
+%@% IF LATEX %@%
+  \section*{AUTHORS}
+    \begin{adjustwidth}{18pt}{0pt}
+%@% ELSE %@%
+  \section{AUTHORS}
+%@% END-IF %@%
+    Lukáš Chládek <\Email{l@chla.cz}>\\[0.1cm]\MANbr
+    Rūta Giedrytė <\Email{r.giedryte@student.tudelft.nl}>\\[0.1cm]\MANbr
+    Andreas Tsatsanis <\Email{a.tsatsanis@student.tudelft.nl}>\\[0.1cm]\MANbr
+    Mikołaj Gazeel <\Email{m.j.gazeel@student.tudelft.nl}>\\[0.1cm]\MANbr
+    Jan Piotrowski <\Email{j.p.piotrowski@student.tudelft.nl}>
+%@% IF LATEX %@%
+    \end{adjustwidth}
+%@% END-IF %@%
+
+%@% IF LATEX %@%
+  \section*{KNOWN ISSUES}
+    \begin{adjustwidth}{18pt}{0pt}
+%@% ELSE %@%
+  \section{KNOWN ISSUES}
+%@% END-IF %@%
+      The functionality of this software is not yet implemented.
+%@% IF LATEX %@%
+    \end{adjustwidth}
+%@% END-IF %@%
+\end{document}

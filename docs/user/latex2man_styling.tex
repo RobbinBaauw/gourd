@@ -1,0 +1,43 @@
+\fancyhead[L, R]{\textit{\thecommand}(\mansection)}
+\fancyhead[C]{\textsc{\mansectionname}}
+\fancyfoot[C]{\mandate}
+\fancyfoot[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\renewcommand{\Prog}[1]{\textbf{#1}}                      % Program name
+
+\renewenvironment{abstract}{\noindent\bfseries NAME\normalfont\vspace{0.2cm}}{}
+
+\renewenvironment{Name}[5]{
+\title{#5}
+\author{#3}
+\date{\@LM@Date\\{\small Version \@LM@Version}}
+\begin{abstract}
+}{
+\end{abstract}
+}
+
+\renewenvironment{Description}[1][]{
+\begin{list}{}{
+ \ifthenelse{\equal{#1}{}}{
+   % optional argument not given
+     \labelwidth\z@ \itemindent-\leftmargin
+     \let\makelabel\descriptionlabel
+     \renewcommand{\makelabel}[1]{\hspace\labelsep\normalfont\bfseries##1}
+  }{
+   % optional argument given
+   \settowidth{\labelwidth}{\normalfont\bfseries#1}
+   \setlength{\leftmargin}{\labelwidth}
+   \addtolength{\leftmargin}{\labelsep}
+   \renewcommand{\makelabel}[1]{\normalfont\bfseries##1\hfil}
+  }}
+}{
+\end{list}
+}
+
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\normalsize\bfseries}{\thesection}{1em}{}
+
+\titleformat{\subsection}
+  {\normalfont\normalsize\bfseries}{\thesubsection}{1em}{}
