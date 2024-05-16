@@ -3,10 +3,10 @@ use std::fs;
 use std::fs::File;
 use std::io::Read;
 
+use gourd_lib::afterscript::AfterscriptInfo;
 use tempdir::TempDir;
 
-use crate::afterscript;
-use crate::afterscript::run_afterscript_for_run;
+use crate::post::run_afterscript_for_run;
 use crate::status::Completion;
 use crate::status::FailureReason;
 use crate::status::PostprocessCompletion;
@@ -55,12 +55,12 @@ fn test_filter_runs_for_afterscript() {
         )),
     );
 
-    let res = afterscript::filter_runs_for_afterscript(&runs).unwrap();
+    let res = crate::post::filter_runs_for_afterscript(&runs).unwrap();
 
-    assert!(res.len() == 1);
+    assert_eq!(res.len(), 1);
 
     let paths = res[0];
-    assert!(*paths == 1);
+    assert_eq!(*paths, 1);
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn test_run_afterscript_for_run() {
 
     let output_path = tmp_dir.path().join("afterscript_output.toml");
 
-    let info = afterscript::AfterscriptInfo {
+    let info = AfterscriptInfo {
         afterscript_path: afterscript_path.clone(),
         afterscript_output_path: output_path.clone(),
     };

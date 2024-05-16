@@ -1,5 +1,6 @@
-use crate::config::Config;
-use crate::experiment::Experiment;
+use gourd_lib::config::Config;
+use gourd_lib::experiment::Experiment;
+
 use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::SlurmInteractor;
 

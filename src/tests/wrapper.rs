@@ -2,9 +2,10 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::process::Command;
 
-use crate::config::Input;
-use crate::config::Program;
-use crate::constants::E_MACHINE_MAPPING;
+use gourd_lib::config::Input;
+use gourd_lib::config::Program;
+use gourd_lib::constants::E_MACHINE_MAPPING;
+
 use crate::tests::create_sample_experiment;
 use crate::tests::get_compiled_example;
 use crate::wrapper::wrap;

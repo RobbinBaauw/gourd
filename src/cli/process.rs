@@ -3,17 +3,18 @@ use std::process::exit;
 
 use chrono::Local;
 use clap::Parser;
+use gourd_lib::config::Config;
+use gourd_lib::constants::ERROR_STYLE;
+use gourd_lib::experiment::Environment;
+use gourd_lib::experiment::Experiment;
 
-use crate::afterscript;
 use crate::cli::def::Cli;
 use crate::cli::def::Command;
 use crate::cli::def::RunSubcommand;
 use crate::cli::printing::print_version;
-use crate::config::Config;
-use crate::constants::ERROR_STYLE;
-use crate::experiment::Environment;
-use crate::experiment::Experiment;
+use crate::experiments::ExperimentExt;
 use crate::local::run_local;
+use crate::post::run_afterscript;
 use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::handler::SlurmHandler;
 use crate::slurm::interactor::SlurmCLI;
@@ -27,7 +28,7 @@ pub fn parse_command() {
     let command = Cli::parse();
 
     // https://github.com/rust-lang/rust/blob/master/library/std/src/backtrace.rs
-    let backtace_enabled = match env::var("RUST_LIB_BACKTRACE") {
+    let backtrace_enabled = match env::var("RUST_LIB_BACKTRACE") {
         Ok(s) => s != "0",
         Err(_) => match env::var("RUST_BACKTRACE") {
             Ok(s) => s != "0",
@@ -35,7 +36,7 @@ pub fn parse_command() {
         },
     };
 
-    if backtace_enabled {
+    if backtrace_enabled {
         eprintln!("{:?}", process_command(&command));
     } else if let Err(e) = process_command(&command) {
         eprintln!("{}error:{:#} {}", ERROR_STYLE, ERROR_STYLE, e.root_cause());
@@ -78,7 +79,7 @@ pub fn process_command(cmd: &Cli) -> anyhow::Result<()> {
 
             let statuses = get_statuses(&experiment)?;
 
-            afterscript::run_afterscript(&statuses, &experiment)?;
+            run_afterscript(&statuses, &experiment)?;
 
             display_statuses(&experiment, &statuses);
         }

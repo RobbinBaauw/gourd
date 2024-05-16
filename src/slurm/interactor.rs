@@ -3,12 +3,12 @@ use std::process::Command;
 
 use anyhow::anyhow;
 use anyhow::Context;
+use gourd_lib::config::SlurmConfig;
+use gourd_lib::constants::SLURM_VERSIONS;
+use gourd_lib::ctx;
+use gourd_lib::error::Ctx;
 use tempdir::TempDir;
 
-use crate::constants::SLURM_VERSIONS;
-use crate::error::ctx;
-use crate::error::Ctx;
-use crate::slurm::SlurmConfig;
 use crate::slurm::SlurmInteractor;
 
 /// An implementation of the SlurmInteractor trait for interacting with SLURM via the CLI.

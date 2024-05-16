@@ -16,7 +16,7 @@ use crate::constants::HELP_STYLE;
 /// You can use this for example with two [String]s.
 ///
 /// ```should_panic
-/// # use doctest::error::Ctx;
+/// # use gourd_lib::error::Ctx;
 /// # use anyhow::anyhow;
 /// # use anyhow::Result;
 /// # use anyhow::Context;
@@ -64,8 +64,9 @@ impl<A: Display, B: Display> Display for Ctx<A, B> {
 /// This can be done as follows:
 ///
 /// ```no_run
-/// # #[macro_use] extern crate doctest;
-/// # use doctest::error::Ctx;
+/// # #[macro_use]
+/// # use gourd_lib::error::Ctx;
+/// # use gourd_lib::ctx;
 /// # use std::path::PathBuf;
 /// # use anyhow::Context;
 /// # let path: PathBuf = "/".parse().unwrap();
@@ -78,8 +79,9 @@ impl<A: Display, B: Display> Display for Ctx<A, B> {
 /// If one does not want to print a help message this can be easily done by leaving it empty:
 ///
 /// ```no_run
-/// # #[macro_use] extern crate doctest;
-/// # use doctest::error::Ctx;
+/// # #[macro_use]
+/// # use gourd_lib::error::Ctx;
+/// # use gourd_lib::ctx;
 /// # use std::path::PathBuf;
 /// # use anyhow::Context;
 /// # let path: PathBuf = "/".parse().unwrap();

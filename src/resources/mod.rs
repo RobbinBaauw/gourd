@@ -5,10 +5,9 @@ use std::process::ExitStatus;
 
 use anyhow::Context;
 use anyhow::Result;
-
-use crate::error::ctx;
-use crate::error::Ctx;
-use crate::file_system::write_bytes_truncate;
+use gourd_lib::ctx;
+use gourd_lib::error::Ctx;
+use gourd_lib::file_system::write_bytes_truncate;
 
 /// Gets the files given the filepaths.
 #[allow(unused)]
@@ -44,7 +43,6 @@ pub fn download_from_url(url: &str, output_dir: &Path, output_name: &str) -> Res
 }
 
 /// Runs a shell script.
-#[allow(unused)]
 pub fn run_script(arguments: Vec<&str>) -> Result<ExitStatus> {
     let mut command = Command::new("sh");
 

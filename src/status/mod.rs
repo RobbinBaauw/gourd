@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
 use anyhow::Result;
+use gourd_lib::experiment::Experiment;
 
 use self::fs_based::FileBasedStatus;
-use crate::experiment::Experiment;
 
 /// File system based status information.
 pub mod fs_based;

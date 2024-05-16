@@ -1,11 +1,11 @@
 use std::env;
 
 use anyhow::Result;
+use gourd_lib::config::Config;
+use gourd_lib::constants::E_MACHINE_MAPPING;
+use gourd_lib::experiment::Experiment;
 
 use self::runner::run_locally;
-use crate::config::Config;
-use crate::constants::E_MACHINE_MAPPING;
-use crate::experiment::Experiment;
 use crate::wrapper::wrap;
 
 /// The (first iteration) thread pool implementation

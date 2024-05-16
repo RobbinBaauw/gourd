@@ -3,13 +3,14 @@ use std::fs;
 use std::process::Command;
 
 use chrono::Local;
+use gourd_lib::config::Config;
+use gourd_lib::config::Input;
+use gourd_lib::config::Program;
+use gourd_lib::experiment::Environment;
+use gourd_lib::experiment::Experiment;
 use tempdir::TempDir;
 
-use crate::config::Config;
-use crate::config::Input;
-use crate::config::Program;
-use crate::experiment::Environment;
-use crate::experiment::Experiment;
+use crate::experiments::ExperimentExt;
 
 mod afterscript;
 mod config;

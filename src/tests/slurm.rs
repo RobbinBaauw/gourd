@@ -1,5 +1,5 @@
-use crate::config::Config;
-use crate::slurm::SlurmConfig;
+use gourd_lib::config::Config;
+use gourd_lib::config::SlurmConfig;
 
 #[test]
 fn get_slurm_options_from_config_test() {

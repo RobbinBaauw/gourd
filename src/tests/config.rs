@@ -9,9 +9,8 @@ use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
+use gourd_lib::config::Config;
 use tempdir::TempDir;
-
-use crate::config::Config;
 
 /// This test will fail if the semantics of the config struct are changed.
 /// If this is the case, update the documentation and make sure that the

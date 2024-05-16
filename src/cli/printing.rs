@@ -2,13 +2,12 @@ use anstyle::AnsiColor;
 use clap::crate_authors;
 use clap::crate_name;
 use clap::crate_version;
-
-use crate::constants::style_from_fg;
-use crate::constants::ERROR_STYLE;
-use crate::constants::HELP_STYLE;
-use crate::constants::PRIMARY_STYLE;
-use crate::constants::SECONDARY_STYLE;
-use crate::constants::UNIVERSITY_STYLE;
+use gourd_lib::constants::style_from_fg;
+use gourd_lib::constants::ERROR_STYLE;
+use gourd_lib::constants::HELP_STYLE;
+use gourd_lib::constants::PRIMARY_STYLE;
+use gourd_lib::constants::SECONDARY_STYLE;
+use gourd_lib::constants::UNIVERSITY_STYLE;
 
 /// Util function for getting the style for the CLI
 pub fn get_styles() -> clap::builder::Styles {

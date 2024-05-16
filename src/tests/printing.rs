@@ -1,7 +1,8 @@
 use std::ops::Range;
 
+use gourd_lib::config::SlurmConfig;
+
 use crate::slurm::handler::SlurmHandler;
-use crate::slurm::SlurmConfig;
 use crate::slurm::SlurmInteractor;
 
 #[test]

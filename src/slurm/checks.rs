@@ -1,10 +1,10 @@
 use anyhow::anyhow;
 use anyhow::Context;
+use gourd_lib::config::Config;
+use gourd_lib::ctx;
+use gourd_lib::error::Ctx;
 
 use crate::cli::printing::format_table;
-use crate::config::Config;
-use crate::ctx;
-use crate::error::Ctx;
 use crate::slurm::handler::SlurmHandler;
 use crate::slurm::SlurmConfig;
 use crate::slurm::SlurmInteractor;

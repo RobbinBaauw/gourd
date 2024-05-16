@@ -2,11 +2,8 @@ use std::process::Command;
 
 use anyhow::Context;
 use anyhow::Result;
-
-use crate::config::Config;
-use crate::error::ctx;
-use crate::error::Ctx;
-use crate::experiment::Experiment;
+use gourd_lib::ctx;
+use gourd_lib::error::Ctx;
 
 type MachineType = u16;
 
@@ -49,13 +46,16 @@ pub fn wrap(
 /// Verify if the architecture of a `binary` matched the `expected` architecture.
 #[cfg(target_os = "linux")]
 use std::path::PathBuf;
+
+use gourd_lib::config::Config;
+use gourd_lib::experiment::Experiment;
+
 #[cfg(target_os = "linux")]
 fn verify_arch(binary: &PathBuf, expected: MachineType) -> Result<()> {
     use anyhow::anyhow;
     use elf::endian::AnyEndian;
     use elf::ElfBytes;
-
-    use crate::file_system::read_bytes;
+    use gourd_lib::file_system::read_bytes;
 
     let elf = read_bytes(binary)?;
 
