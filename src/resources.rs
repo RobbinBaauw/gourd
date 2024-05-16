@@ -5,7 +5,6 @@ use std::process::ExitStatus;
 
 use anyhow::Context;
 use anyhow::Result;
-use reqwest;
 
 use crate::error::ctx;
 use crate::error::Ctx;

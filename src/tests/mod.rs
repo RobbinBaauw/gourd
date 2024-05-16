@@ -11,6 +11,7 @@ use crate::config::Program;
 use crate::experiment::Environment;
 use crate::experiment::Experiment;
 
+mod afterscript;
 mod config;
 mod printing;
 mod resources;

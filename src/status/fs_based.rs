@@ -1,10 +1,17 @@
 use std::collections::BTreeMap;
 
+use anyhow::anyhow;
+use anyhow::Context;
+
 use super::Completion;
 use super::ExperimentStatus;
 use super::FailureReason;
+use super::PostprocessCompletion;
+use super::PostprocessOutput;
 use super::Status;
 use super::StatusProvider;
+use crate::error::ctx;
+use crate::error::Ctx;
 use crate::experiment::Experiment;
 use crate::file_system::try_read_toml;
 use crate::measurement::Metrics;
@@ -15,7 +22,7 @@ pub struct FileBasedStatus {}
 
 impl StatusProvider<()> for FileBasedStatus {
     fn get_statuses(_: (), experiment: &Experiment) -> anyhow::Result<ExperimentStatus> {
-        let mut map = BTreeMap::new();
+        let mut statuses = BTreeMap::new();
 
         for (run_id, run) in experiment.runs.iter().enumerate() {
             let metrics = match try_read_toml::<Metrics>(&run.metrics_path) {
@@ -23,7 +30,7 @@ impl StatusProvider<()> for FileBasedStatus {
                 Err(_) => None,
             };
 
-            let condition = match metrics {
+            let completion_condition = match metrics {
                 Some(inner) => match inner {
                     Metrics::Done(metrics) => match metrics.rusage.exit_status {
                         0 => Completion::Success,
@@ -34,10 +41,43 @@ impl StatusProvider<()> for FileBasedStatus {
                 None => Completion::Dormant,
             };
 
-            // For now there is *no* postprocessing step.
-            map.insert(run_id, Some(Status::NoPostprocessing(condition)));
+            if run.afterscript_info.is_some() {
+                let afterpath = run
+                    .afterscript_info
+                    .clone()
+                    .ok_or(anyhow!("Could not get the afterscript information"))
+                    .with_context(ctx!(
+                        "Could not get the afterscript information", ;
+                        "",
+                    ))?;
+
+                let mut postprocess_completion = PostprocessCompletion::Pending;
+
+                let is_empty = afterpath
+                    .afterscript_output_path
+                    .read_dir()?
+                    .next()
+                    .is_none();
+
+                if !is_empty {
+                    postprocess_completion = PostprocessCompletion::Success(PostprocessOutput {
+                        short_output: String::from("gg"),
+                        long_output: String::from("gg"),
+                    });
+                }
+
+                statuses.insert(
+                    run_id,
+                    Some(Status::AfterScript(
+                        completion_condition,
+                        postprocess_completion,
+                    )),
+                );
+            } else {
+                statuses.insert(run_id, Some(Status::NoPostprocessing(completion_condition)));
+            }
         }
 
-        Ok(map)
+        Ok(statuses)
     }
 }

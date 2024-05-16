@@ -30,7 +30,7 @@ pub mod file_system;
 /// The local runner module: `gourd run local`.
 pub mod local;
 
-/// The SLURM runner module: `gourd run slurm`.pub mod slurm;
+/// The SLURM runner module: `gourd run slurm`.
 pub mod slurm;
 
 /// Code shared between the wrapper and `gourd`.
@@ -47,6 +47,9 @@ pub mod status;
 
 /// The setup of an experiment.
 pub mod experiment;
+
+/// Running an afterscript.
+pub mod afterscript;
 
 /// The main entrypoint.
 ///

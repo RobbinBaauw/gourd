@@ -10,6 +10,7 @@ use chrono::Local;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::afterscript::AfterscriptInfo;
 use crate::config::Config;
 use crate::error::ctx;
 use crate::error::Ctx;
@@ -27,24 +28,32 @@ pub enum Environment {
 }
 
 /// Describes a matching between an algorithm and an input.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Run {
     /// The unique name of the program to run.
     pub program_name: String,
+
     /// The unique name of the input to run with.
     pub input_name: String,
+
     /// The path to the stderr output.
     pub err_path: PathBuf,
+
     /// The path to the stdout output.
     pub output_path: PathBuf,
+
     /// The path to the metrics file.
     pub metrics_path: PathBuf,
+
     /// Slurm job id, if ran on slurm
     pub job_id: Option<usize>,
+
+    /// The paths to afterscript output, optionally.
+    pub afterscript_info: Option<AfterscriptInfo>,
 }
 
 /// Describes one experiment.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Experiment {
     /// The pairings of program-input for this experiment.
     pub runs: Vec<Run>,
@@ -92,6 +101,7 @@ impl Experiment {
                             .output_path
                             .join(format!("{}/algo_{}/{}_output", seq, prog_name, input_name)),
                     )?,
+                    afterscript_info: get_afterscript_info(conf, &seq, prog_name, input_name)?,
                     job_id: None,
                 });
             }
@@ -160,5 +170,31 @@ impl Experiment {
         ))?;
 
         Ok(())
+    }
+}
+
+/// Constructs an afterscript info struct based on values in the config.
+pub fn get_afterscript_info(
+    config: &Config,
+    seq: &usize,
+    prog_name: &String,
+    input_name: &String,
+) -> Result<Option<AfterscriptInfo>> {
+    let afterscript = &config.programs[prog_name].afterscript;
+
+    if let Some(afs) = afterscript {
+        let afterscript_path = truncate_and_canonicalize(&afs.src.clone())?;
+
+        let afterscript_output_path = truncate_and_canonicalize(&afs.out.clone().join(format!(
+            "{}/algo_{}/{}_afterscript",
+            seq, prog_name, input_name
+        )))?;
+
+        Ok(Some(AfterscriptInfo {
+            afterscript_path,
+            afterscript_output_path,
+        }))
+    } else {
+        Ok(None)
     }
 }

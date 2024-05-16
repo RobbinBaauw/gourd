@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::path::PathBuf;
 
 use anyhow::Result;
 
@@ -27,25 +26,54 @@ pub enum FailureReason {
 pub enum Completion {
     /// The job has not yet started.
     Dormant,
+
     /// The job is still running.
     Pending,
-    /// The job succeded.
+
+    /// The job succeeded.
     Success,
+
     /// The job failed with the following exit status.
     Fail(FailureReason),
 }
 
-/// All possible statuses of a job.
+/// This possible outcomes of a postprocessing.
+#[derive(Debug, Clone)]
+pub enum PostprocessCompletion {
+    /// The postprocessing job has not yet started.
+    Dormant,
+
+    /// The postprocessing job is still running.
+    Pending,
+
+    /// The postprocessing job succeded.
+    Success(PostprocessOutput),
+
+    /// The postprocessing job failed with the following exit status.
+    Fail(FailureReason),
+}
+
+/// The results of a postprocessing.
+#[derive(Debug, Clone)]
+pub struct PostprocessOutput {
+    /// The shortened version of postprocessing output.
+    pub short_output: String,
+
+    /// The full output of postprocessing.
+    pub long_output: String,
+}
+
+/// All possible postprocessing statuses of a job.
 #[derive(Debug, Clone)]
 pub enum Status {
     /// This job has no postprocessing.
     NoPostprocessing(Completion),
 
-    /// This job runs an after script and the output of it is stored at this path.
-    AfterScript(Completion, PathBuf),
+    /// This job runs an afterscript.
+    AfterScript(Completion, PostprocessCompletion),
 
-    /// This job has full postprocessing.
-    Postprocessed(Completion, Completion, PathBuf),
+    /// This job has a full postprocessing.
+    Postprocessed(Completion, PostprocessCompletion),
 }
 
 /// This type maps between `run_id` and the [Status] of the run.
