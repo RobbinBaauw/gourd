@@ -7,10 +7,6 @@
 // for tarpaulin cfg
 #![allow(unexpected_cfgs)]
 
-/// The tests validating the behaviour of `gourd`.
-#[cfg(test)]
-pub mod tests;
-
 /// The binary wrapper around run programs.
 pub mod wrapper;
 

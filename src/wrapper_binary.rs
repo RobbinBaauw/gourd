@@ -12,8 +12,6 @@
 //!   - The path where the metrics should be output
 //! As arguments, the wrapper will then perform the experiment.
 
-mod measurement;
-
 use std::env;
 use std::fs;
 use std::fs::File;
@@ -35,7 +33,10 @@ use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::try_read_toml;
 use gourd_lib::file_system::try_read_toml_string;
-use measurement::Metrics;
+use gourd_lib::measurement::GetRUsage;
+use gourd_lib::measurement::Measurement;
+use gourd_lib::measurement::Metrics;
+use gourd_lib::measurement::RUsage;
 use serde::Deserialize;
 use serde::Serialize;
 
