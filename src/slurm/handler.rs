@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use gourd_lib::config::Config;
 use gourd_lib::experiment::Experiment;
 
@@ -30,11 +32,20 @@ where
 {
     /// Run an experiment on delftblue.
     /// TODO: scheduling algorithm to support multiple memory and time configurations.
-    pub fn run_experiment(&self, config: &Config, experiment: &Experiment) -> anyhow::Result<()> {
+    pub fn run_experiment(
+        &self,
+        config: &Config,
+        experiment: &Experiment,
+        exp_path: PathBuf,
+    ) -> anyhow::Result<()> {
         let slurm_config = get_slurm_options_from_config(config)?;
 
-        self.internal
-            .schedule_array(0..experiment.runs.len(), slurm_config, &config.wrapper)?;
+        self.internal.schedule_array(
+            0..experiment.runs.len(),
+            slurm_config,
+            &config.wrapper,
+            exp_path,
+        )?;
         Ok(())
     }
 }

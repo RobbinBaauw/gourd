@@ -9,6 +9,8 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::afterscript::AfterscriptInfo;
+use crate::config::Input;
+use crate::config::Program;
 use crate::error::ctx;
 use crate::error::Ctx;
 use crate::file_system::truncate_and_canonicalize;
@@ -26,11 +28,11 @@ pub enum Environment {
 /// Describes a matching between an algorithm and an input.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Run {
-    /// The unique name of the program to run.
-    pub program_name: String,
+    /// The program to run.
+    pub program: Program,
 
     /// The unique name of the input to run with.
-    pub input_name: String,
+    pub input: Input,
 
     /// The path to the stderr output.
     pub err_path: PathBuf,
@@ -66,7 +68,7 @@ pub struct Experiment {
 
 impl Experiment {
     /// Save the experiment to a file with its timestamp.
-    pub fn save(&self, folder: &Path) -> anyhow::Result<()> {
+    pub fn save(&self, folder: &Path) -> anyhow::Result<PathBuf> {
         let saving_path = truncate_and_canonicalize(&folder.join(format!("{}.toml", self.seq)))?;
 
         fs::write(&saving_path, toml::to_string(&self)?).with_context(ctx!(
@@ -74,6 +76,18 @@ impl Experiment {
             "Enusre that you have suffcient permissions",
         ))?;
 
-        Ok(())
+        Ok(saving_path)
     }
 }
+
+// this stays here as an idea to eventually implement,
+// right now i realised that because SLURM_TASK_ID is an environment variable
+// i cant pass it into a serialized struct
+// /// serialize this and pass it to the wrapper as first argument
+// #[derive(Serialize, Deserialize, Debug)]
+// pub struct WrapperArgs {
+//     /// Path to the experiment toml
+//     pub experiment: PathBuf,
+//     ///
+//     pub run_id: usize,
+// }

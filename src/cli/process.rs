@@ -59,6 +59,8 @@ pub fn process_command(cmd: &Cli) -> anyhow::Result<()> {
                 }
             };
 
+            let exp_path = experiment.save(&config.experiments_folder)?;
+
             match args.sub_command {
                 RunSubcommand::Local { .. } => run_local(&config, &experiment)?,
                 RunSubcommand::Slurm { .. } => {
@@ -67,10 +69,9 @@ pub fn process_command(cmd: &Cli) -> anyhow::Result<()> {
                     s.check_partition(&get_slurm_options_from_config(&config)?.partition)?;
                     #[allow(clippy::unnecessary_mut_passed)] // in the near future we will update
                     // the experiment when running it, for example to include job ids in the runs
-                    s.run_experiment(&config, &mut experiment)?;
+                    s.run_experiment(&config, &mut experiment, exp_path)?;
                 }
             }
-            experiment.save(&config.experiments_folder)?;
         }
         Command::Status(_) => {
             let config = Config::from_file(&cmd.config)?;

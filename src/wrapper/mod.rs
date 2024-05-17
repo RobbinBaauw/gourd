@@ -18,8 +18,8 @@ pub fn wrap(
     let mut result = Vec::new();
 
     for run in &experiment.runs {
-        let program = &conf.programs[&run.program_name];
-        let input = &conf.inputs[&run.input_name];
+        let program = &run.program;
+        let input = &run.input;
 
         #[cfg(target_os = "linux")]
         verify_arch(&program.binary, arch)?;

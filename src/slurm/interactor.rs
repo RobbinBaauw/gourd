@@ -1,4 +1,5 @@
 use std::ops::Range;
+use std::path::PathBuf;
 use std::process::Command;
 
 use anyhow::anyhow;
@@ -72,6 +73,7 @@ impl SlurmInteractor for SlurmCLI {
         range: Range<usize>,
         slurm_config: &SlurmConfig,
         wrapper_path: &str,
+        exp_path: PathBuf,
     ) -> anyhow::Result<()> {
         let temp = TempDir::new("gourd-slurm")?;
         let batch_script = temp.path().join("batch.sh");
@@ -86,7 +88,7 @@ impl SlurmInteractor for SlurmCLI {
 #SBATCH --cpus-per-task={}
 #SBATCH --mem-per-cpu={}
 
-{} --id=$SLURM_ARRAY_TASK_ID
+{} {} $SLURM_ARRAY_TASK_ID
 ",
             slurm_config.experiment_name,
             range.start,
@@ -96,6 +98,7 @@ impl SlurmInteractor for SlurmCLI {
             slurm_config.cpus,
             slurm_config.mem_per_cpu,
             wrapper_path,
+            exp_path.display()
         );
 
         std::fs::write(&batch_script, contents)?;

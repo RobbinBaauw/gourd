@@ -16,8 +16,6 @@ const X86_64_PRE_PROGRAMMED_BINARY: &str = include_str!("resources/x86_64_pre_pr
 #[cfg(target_os = "linux")]
 #[test]
 fn non_matching_arch() {
-    use crate::tests::create_sample_experiment;
-
     const ARM_PRE_PROGRAMMED_BINARY: &str = include_str!("resources/arm_pre_programmed.rs");
 
     Command::new("rustup")

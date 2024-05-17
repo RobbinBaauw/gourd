@@ -17,6 +17,7 @@ mod measurement;
 use std::env;
 use std::fs;
 use std::fs::File;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
 use std::process::Child;
@@ -29,6 +30,11 @@ use anstyle::Color;
 use anstyle::Style;
 use anyhow::bail;
 use anyhow::Context;
+use gourd_lib::ctx;
+use gourd_lib::error::Ctx;
+use gourd_lib::experiment::Experiment;
+use gourd_lib::file_system::try_read_toml;
+use gourd_lib::file_system::try_read_toml_string;
 use measurement::Metrics;
 use serde::Deserialize;
 use serde::Serialize;
@@ -43,6 +49,15 @@ const ERROR_STYLE: Style = anstyle::Style::new()
 const HELP_STYLE: Style = anstyle::Style::new()
     .bold()
     .fg_color(Some(Color::Ansi(anstyle::AnsiColor::Green)));
+
+struct RunConf {
+    binary_path: PathBuf,
+    input_path: PathBuf,
+    output_path: PathBuf,
+    result_path: PathBuf,
+    err_path: PathBuf,
+    additional_args: Vec<String>,
+}
 
 fn main() {
     if let Err(err) = process() {
@@ -60,50 +75,43 @@ fn main() {
 
 fn process() -> Result<(), anyhow::Error> {
     let args: Vec<String> = env::args().collect();
-
-    if args.len() < 6 {
-        bail!("Wrapper needs at least 6 arguments");
-    }
-
-    let binary_path: &String = &args[1];
-    let input_path: PathBuf = args[2]
-        .parse()
-        .context(format!("The input file path is invalid: {}", args[2]))?;
-    let output_path: PathBuf = args[3]
-        .parse()
-        .context(format!("The output file path is invalid: {}", args[3]))?;
-    let result_path: PathBuf = args[4]
-        .parse()
-        .context(format!("The result file path is invalid: {}", args[4]))?;
-    let err_path: PathBuf = args[5]
-        .parse()
-        .context(format!("The error file path is invalid: {}", args[5]))?;
+    let rc = match args.len() {
+        0..=2 => bail!("Slurm wrapper needs an experiment file path and a job id"),
+        3 => process_slurm_args(&args).with_context(ctx!(
+            "Could not process arguments (assuming slurm environment) {:?}", args;
+            "",
+        ))?,
+        _ => process_local_args(&args).with_context(ctx!(
+            "Could not process arguments (assuming local environment) {:?}", args;
+            "",
+        ))?,
+    };
 
     fs::write(
-        &result_path,
+        &rc.result_path,
         toml::to_string(&Metrics::Pending)
             .context("Could not serialize the Pending metrics state")?,
     )
     .context(format!(
         "Could not write to the result file {:?}",
-        result_path
+        rc.result_path
     ))?;
 
     let clock = start_measuring();
 
-    let mut child = Command::new(binary_path)
-        .args(&args[6..])
-        .stdin(Stdio::from(File::open(input_path.clone()).context(
-            format!("Could not open the input {:?}", input_path),
+    let mut child = Command::new(&rc.binary_path)
+        .args(&rc.additional_args)
+        .stdin(Stdio::from(File::open(rc.input_path.clone()).context(
+            format!("Could not open the input {:?}", rc.input_path),
         )?))
-        .stdout(Stdio::from(File::create(output_path.clone()).context(
-            format!("Could not truncate the output {:?}", output_path),
+        .stdout(Stdio::from(File::create(rc.output_path.clone()).context(
+            format!("Could not truncate the output {:?}", rc.output_path),
         )?))
-        .stderr(Stdio::from(File::create(err_path.clone()).context(
-            format!("Could not truncate the error {:?}", err_path),
+        .stderr(Stdio::from(File::create(rc.err_path.clone()).context(
+            format!("Could not truncate the error {:?}", rc.err_path),
         )?))
         .spawn()
-        .context(format!("Could not start the binary {}", binary_path))?;
+        .context(format!("Could not start the binary {:?}", &rc.binary_path))?;
 
     let success = child
         .wait_for_rusage()
@@ -112,15 +120,51 @@ fn process() -> Result<(), anyhow::Error> {
     let meas = stop_measuring(clock, success);
 
     fs::write(
-        &result_path,
+        &rc.result_path,
         toml::to_string(&Metrics::Done(meas)).context("Could not serialize the measurement")?,
     )
     .context(format!(
         "Could not write to the result file {:?}",
-        result_path
+        rc.result_path
     ))?;
 
     Ok(())
+}
+
+fn process_slurm_args(args: &[String]) -> anyhow::Result<RunConf> {
+    let exp_path: PathBuf = args[1]
+        .parse()
+        .context(format!("The experiment file path is invalid: {}", args[1]))?;
+    let exp = try_read_toml::<Experiment>(exp_path.as_path())?;
+    let id: usize = args[2]
+        .parse()
+        .with_context(ctx!(
+            "Could not parse the run id from the arguments {:?}", args;
+            "Ensure that Slurm is configured correctly",
+        ))
+        .unwrap();
+    Ok(RunConf {
+        binary_path: exp.runs[id].program.binary.clone(),
+        input_path: exp.runs[id].input.input.clone(),
+        output_path: exp.runs[id].output_path.clone(),
+        result_path: exp.runs[id].metrics_path.clone(),
+        err_path: exp.runs[id].err_path.clone(),
+        additional_args: vec![],
+    })
+}
+
+fn process_local_args(args: &[String]) -> anyhow::Result<RunConf> {
+    if args.len() < 6 {
+        bail!("Wrapper needs at least 6 arguments");
+    }
+    Ok(RunConf {
+        binary_path: PathBuf::from(&args[1]),
+        input_path: PathBuf::from(&args[2]),
+        output_path: PathBuf::from(&args[3]),
+        result_path: PathBuf::from(&args[4]),
+        err_path: PathBuf::from(&args[5]),
+        additional_args: args[6..].to_vec(),
+    })
 }
 
 /// This is an extensible structure for measuring monotonic metrics.

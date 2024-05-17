@@ -1,4 +1,5 @@
 use std::ops::Range;
+use std::path::PathBuf;
 
 use gourd_lib::config::SlurmConfig;
 
@@ -38,6 +39,7 @@ fn versioning_test() {
             _range: Range<usize>,
             _slurm_config: &SlurmConfig,
             _wrapper_path: &str,
+            _exp_path: PathBuf,
         ) -> anyhow::Result<()> {
             Ok(())
         }
@@ -70,6 +72,7 @@ fn versioning_un_test() {
             _range: Range<usize>,
             _slurm_config: &SlurmConfig,
             _wrapper_path: &str,
+            _exp_path: PathBuf,
         ) -> anyhow::Result<()> {
             Ok(())
         }

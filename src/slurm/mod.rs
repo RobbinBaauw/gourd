@@ -1,4 +1,5 @@
 use std::ops::Range;
+use std::path::PathBuf;
 
 use anyhow::Result;
 use gourd_lib::config::SlurmConfig;
@@ -25,6 +26,7 @@ pub trait SlurmInteractor {
         range: Range<usize>,
         slurm_config: &SlurmConfig,
         wrapper_path: &str,
+        exp_path: PathBuf,
     ) -> Result<()>;
 
     /// Check if a version of SLURM is supported by this interactor.

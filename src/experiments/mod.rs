@@ -43,8 +43,8 @@ impl ExperimentExt for Experiment {
         for prog_name in conf.programs.keys() {
             for input_name in conf.inputs.keys() {
                 runs.push(Run {
-                    program_name: prog_name.clone(),
-                    input_name: input_name.clone(),
+                    program: conf.programs[prog_name].clone(),
+                    input: conf.inputs[input_name].clone(),
                     err_path: truncate_and_canonicalize(
                         &conf
                             .output_path

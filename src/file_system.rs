@@ -26,11 +26,19 @@ pub fn read_utf8(path: &Path) -> Result<String> {
     ))
 }
 
-/// Try to deserialize a toml file into a struture `T`.
+/// Try to deserialize a toml file into a structure `T`.
 pub fn try_read_toml<T: DeserializeOwned>(path: &Path) -> Result<T> {
     toml::from_str::<T>(&read_utf8(path)?).with_context(ctx!(
       "Could not deserialize toml file {path:?}", ;
       "Ensure that the file is valid toml",
+    ))
+}
+
+/// Try to deserialize a toml string into a structure `T`.
+pub fn try_read_toml_string<T: DeserializeOwned>(s: &String) -> Result<T> {
+    toml::from_str::<T>(s).with_context(ctx!(
+      "Could not deserialize toml `{s:?}`", ;
+      "Ensure that the text is valid toml",
     ))
 }
 
