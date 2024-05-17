@@ -12,14 +12,6 @@ use tempdir::TempDir;
 
 use crate::experiments::ExperimentExt;
 
-mod afterscript;
-mod config;
-mod printing;
-mod resources;
-mod runner;
-mod slurm;
-mod wrapper;
-
 pub fn get_compiled_example(
     contents: &str,
     extra_args: Option<Vec<&str>>,

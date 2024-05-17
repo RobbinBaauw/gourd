@@ -1,5 +1,3 @@
-#![cfg(not(tarpaulin_include))]
-
 use std::fmt::Display;
 
 use crate::constants::ERROR_STYLE;

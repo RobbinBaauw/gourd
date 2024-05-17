@@ -31,6 +31,9 @@ pub mod experiments;
 /// All post-processing: afterscripts, sequential jobs, collecting their statuses.
 pub mod post;
 
+#[cfg(test)]
+mod test_utils;
+
 /// The main entrypoint.
 ///
 /// This function is the main entrypoint of the program.
