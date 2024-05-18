@@ -1,27 +1,32 @@
+mod check_binary_linux;
+mod check_binary_macos;
+mod measurement;
+
+/// Verify if the architecture of a `binary` matched the `expected` architecture.
 use std::process::Command;
 
 use anyhow::Context;
 use anyhow::Result;
+use gourd_lib::config::Config;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
+use gourd_lib::experiment::Experiment;
 
-type MachineType = u16;
+#[cfg(target_os = "linux")]
+use crate::wrapper::check_binary_linux::verify_arch;
+#[cfg(target_os = "macos")]
+use crate::wrapper::check_binary_macos::verify_arch;
 
 /// This function returns the commands to be run for an n x m matching of the runs to tests.
 ///
 /// The results and outputs will be located in `config.output_dir`.
-pub fn wrap(
-    experiment: &Experiment,
-    #[allow(unused_variables)] arch: MachineType,
-    conf: &Config,
-) -> Result<Vec<Command>> {
+pub fn wrap(experiment: &Experiment, arch: &str, conf: &Config) -> Result<Vec<Command>> {
     let mut result = Vec::new();
 
     for run in &experiment.runs {
         let program = &run.program;
         let input = &run.input;
 
-        #[cfg(target_os = "linux")]
         verify_arch(&program.binary, arch)?;
 
         let mut cmd = Command::new(&conf.wrapper);
@@ -43,66 +48,26 @@ pub fn wrap(
     Ok(result)
 }
 
-/// Verify if the architecture of a `binary` matched the `expected` architecture.
-#[cfg(target_os = "linux")]
-use std::path::PathBuf;
-
-use gourd_lib::config::Config;
-use gourd_lib::experiment::Experiment;
-
-#[cfg(target_os = "linux")]
-fn verify_arch(binary: &PathBuf, expected: MachineType) -> Result<()> {
-    use anyhow::anyhow;
-    use elf::endian::AnyEndian;
-    use elf::ElfBytes;
-    use gourd_lib::file_system::read_bytes;
-
-    let elf = read_bytes(binary)?;
-
-    let elf = ElfBytes::<AnyEndian>::minimal_parse(elf.as_slice()).with_context(ctx!(
-      "Could not parse the file as ELF {binary:?}", ;
-      "Are you sure this file is executable and you are using linux?",
-    ))?;
-
-    if elf.ehdr.e_machine != expected {
-        Err(anyhow!(
-            "The program architecture {} does not match the expected architecture {}",
-            elf.ehdr.e_machine,
-            expected
-        ))
-        .with_context(ctx!(
-          "The architecture does not match for program {binary:?}", ;
-          "Ensure that the program is compiled for the correct target",
-        ))
-    } else {
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
+    use std::env;
     use std::fs;
 
     use gourd_lib::config::Input;
     use gourd_lib::config::Program;
-    use gourd_lib::constants::E_MACHINE_MAPPING;
 
     use super::*;
     use crate::test_utils::create_sample_experiment;
     use crate::test_utils::get_compiled_example;
 
-    const X86_64_PRE_PROGRAMMED_BINARY: &str =
-        include_str!("test_resources/x86_64_pre_programmed.rs");
-
     /// This test will generate an ARM binary and check if [crate::wrapper::wrap] rightfully rejects it.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     #[test]
     fn non_matching_arch() {
         use crate::test_utils::create_sample_experiment;
 
-        const ARM_PRE_PROGRAMMED_BINARY: &str =
-            include_str!("test_resources/arm_pre_programmed.rs");
+        const NO_STD_INFINITE_LOOP_RS: &str = include_str!("test_resources/panic_returner.rs");
 
         Command::new("rustup")
             .arg("target")
@@ -114,7 +79,7 @@ mod tests {
             .unwrap();
 
         let (out, tmp) = get_compiled_example(
-            ARM_PRE_PROGRAMMED_BINARY,
+            NO_STD_INFINITE_LOOP_RS,
             Some(vec!["--target=thumbv7em-none-eabihf"]),
         );
 
@@ -145,11 +110,10 @@ mod tests {
 
         let (experiment, conf) = create_sample_experiment(first, second);
 
-        match wrap(&experiment, E_MACHINE_MAPPING("x86_64"), &conf) {
+        match wrap(&experiment, "x86-64", &conf) {
             Err(err) => {
-                assert_eq!(
-                    "The program architecture 40 does not match the expected architecture 62",
-                    format!("{}", err.root_cause())
+                assert!(
+                    format!("{}", err.root_cause()).contains("not match the expected architecture")
                 )
             }
 
@@ -162,11 +126,13 @@ mod tests {
         }
     }
 
-    /// This test will generate a X86 binary and check if [crate::wrapper::wrap]
-    /// accepts it and generates correct commands.
+    /// This test will generate a binary and of the target architecture and check if
+    /// [crate::wrapper::wrap] accepts it and generates correct commands.
     #[test]
     fn matching_arch() {
-        let (out, tmp) = get_compiled_example(X86_64_PRE_PROGRAMMED_BINARY, None);
+        const NUM_RETURNER_RS: &str = include_str!("test_resources/num_returner.rs");
+
+        let (out, tmp) = get_compiled_example(NUM_RETURNER_RS, None);
         let input = tmp.path().join("test1");
 
         fs::write(&input, "4").unwrap();
@@ -194,7 +160,7 @@ mod tests {
 
         let (experiment, conf) = create_sample_experiment(first, second);
 
-        let cmds = wrap(&experiment, E_MACHINE_MAPPING("x86_64"), &conf).unwrap();
+        let cmds = wrap(&experiment, env::consts::ARCH, &conf).unwrap();
 
         assert_eq!(1, cmds.len());
         assert_eq!(

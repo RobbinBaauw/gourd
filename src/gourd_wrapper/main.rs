@@ -1,8 +1,6 @@
-#![warn(missing_docs)]
 // for tarpaulin cfg
 #![allow(unexpected_cfgs)]
 #![cfg(not(tarpaulin_include))]
-#![allow(unused_imports)]
 //! This wrapper runs the binary and measures metrics
 //!
 //! Run the wrapper with:
@@ -12,16 +10,16 @@
 //!   - The path where the metrics should be output
 //! As arguments, the wrapper will then perform the experiment.
 
+mod measurement_unix;
+
 use std::env;
 use std::fs;
 use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
-use std::process::Child;
 use std::process::Command;
 use std::process::Stdio;
-use std::time::Duration;
 use std::time::Instant;
 
 use anstyle::Color;
@@ -37,12 +35,6 @@ use gourd_lib::measurement::GetRUsage;
 use gourd_lib::measurement::Measurement;
 use gourd_lib::measurement::Metrics;
 use gourd_lib::measurement::RUsage;
-use serde::Deserialize;
-use serde::Serialize;
-
-use crate::measurement::GetRUsage;
-use crate::measurement::Measurement;
-use crate::measurement::RUsage;
 
 const ERROR_STYLE: Style = anstyle::Style::new()
     .blink()
@@ -114,11 +106,24 @@ fn process() -> Result<(), anyhow::Error> {
         .spawn()
         .context(format!("Could not start the binary {:?}", &rc.binary_path))?;
 
-    let success = child
-        .wait_for_rusage()
-        .context("Could not rusage the child")?;
+    #[cfg(not(unix))]
+    let (rusage_output, exit_code) = (
+        None,
+        child
+            .wait()?
+            .code()
+            .context("Failed to retrieve the exit code")?,
+    );
+    #[cfg(unix)]
+    let (rusage_output, exit_code) = {
+        use crate::measurement_unix::GetRUsage;
+        let r = child
+            .wait_for_rusage()
+            .context("Could not rusage the child")?;
+        (Some(r), r.exit_code)
+    };
 
-    let meas = stop_measuring(clock, success);
+    let meas = stop_measuring(clock, exit_code, rusage_output);
 
     fs::write(
         &rc.result_path,
@@ -181,9 +186,10 @@ fn start_measuring() -> Clock {
 }
 
 /// Stop a measurement, returns a new instance of a [Measurement]
-fn stop_measuring(clk: Clock, rusage: RUsage) -> Measurement {
+fn stop_measuring(clk: Clock, exit_code: i32, rusage: Option<RUsage>) -> Measurement {
     Measurement {
         wall_micros: clk.wall_time.elapsed(),
+        exit_code,
         rusage,
     }
 }

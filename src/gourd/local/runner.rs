@@ -11,7 +11,6 @@ use tokio::task::spawn_blocking;
 
 /// # Multithreaded _local_ runner for tasks
 /// (more documentation needed tbh)
-#[allow(dead_code, unused)]
 pub fn run_locally(tasks: Vec<Command>) -> Result<Vec<ExitStatus>> {
     let rt = runtime::Runtime::new()
         .with_context(ctx!("Could not start the multithreaded runtime", ; "",))?;

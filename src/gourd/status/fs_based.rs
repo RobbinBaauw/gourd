@@ -32,7 +32,7 @@ impl StatusProvider<()> for FileBasedStatus {
 
             let completion_condition = match metrics {
                 Some(inner) => match inner {
-                    Metrics::Done(metrics) => match metrics.rusage.exit_status {
+                    Metrics::Done(metrics) => match metrics.exit_code {
                         0 => Completion::Success,
                         x => Completion::Fail(FailureReason::ExitStatus(x)),
                     },
