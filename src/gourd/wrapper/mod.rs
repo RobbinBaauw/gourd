@@ -1,6 +1,5 @@
 mod check_binary_linux;
 mod check_binary_macos;
-mod measurement;
 
 /// Verify if the architecture of a `binary` matched the `expected` architecture.
 use std::process::Command;

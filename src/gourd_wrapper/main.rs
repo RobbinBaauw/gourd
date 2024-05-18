@@ -15,7 +15,6 @@ mod measurement_unix;
 use std::env;
 use std::fs;
 use std::fs::File;
-use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
 use std::process::Command;
@@ -30,8 +29,6 @@ use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::try_read_toml;
-use gourd_lib::file_system::try_read_toml_string;
-use gourd_lib::measurement::GetRUsage;
 use gourd_lib::measurement::Measurement;
 use gourd_lib::measurement::Metrics;
 use gourd_lib::measurement::RUsage;
@@ -92,7 +89,7 @@ fn process() -> Result<(), anyhow::Error> {
 
     let clock = start_measuring();
 
-    let mut child = Command::new(&rc.binary_path)
+    let child = Command::new(&rc.binary_path)
         .args(&rc.additional_args)
         .stdin(Stdio::from(File::open(rc.input_path.clone()).context(
             format!("Could not open the input {:?}", rc.input_path),

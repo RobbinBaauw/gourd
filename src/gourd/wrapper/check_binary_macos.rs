@@ -17,6 +17,11 @@ const OSX_ARCH_MAPPING: for<'a> fn(&'a str) -> &'static str = |machine| match ma
     _ => "unsupported",
 };
 
+/// Verifies that the file present at `binary` matches the CPU architecture provided,
+/// specifically for macOS systems. Uses the command-line utility `lipo` to determine
+/// what architecture(s) the binary runs on. If `lipo` cannot be called, such as on
+/// Macs running OS X/PowerPC that have not received software updates since 2005, the
+/// architecture verification is skipped.
 pub(crate) fn verify_arch(binary: &PathBuf, expected_arch: &str) -> anyhow::Result<()> {
     let _ = read_bytes(binary).context("Could not read the binary file.");
 
@@ -29,6 +34,7 @@ pub(crate) fn verify_arch(binary: &PathBuf, expected_arch: &str) -> anyhow::Resu
             let binary_archs = String::from_utf8(out.stdout.to_ascii_lowercase()).context(
                 "Could not get the output of 'lipo' when checking the binary's architecture.",
             )?;
+            // `lipo` can return multiple architectures (macOS Universal Binary)
             if !binary_archs.contains(OSX_ARCH_MAPPING(expected_arch)) {
                 return Err(anyhow!(
                     "The program architecture(s) {} do not match the expected architecture {}",
@@ -42,8 +48,6 @@ pub(crate) fn verify_arch(binary: &PathBuf, expected_arch: &str) -> anyhow::Resu
             }
             Ok(())
         }
-        // If 'lipo' is not present, such as on PowerPC-only OS X installations with no software
-        // updates since 2005, the architecture checking is skipped.
         Err(_) => Ok(()),
     }
 }

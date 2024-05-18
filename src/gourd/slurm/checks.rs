@@ -76,6 +76,7 @@ where
 #[cfg(test)]
 mod tests {
     use std::ops::Range;
+    use std::path::PathBuf;
 
     use super::*;
     #[test]
@@ -94,6 +95,7 @@ mod tests {
                 _range: Range<usize>,
                 _slurm_config: &SlurmConfig,
                 _wrapper_path: &str,
+                _exp_path: PathBuf,
             ) -> anyhow::Result<()> {
                 Ok(())
             }
@@ -126,6 +128,7 @@ mod tests {
                 _range: Range<usize>,
                 _slurm_config: &SlurmConfig,
                 _wrapper_path: &str,
+                _exp_path: PathBuf,
             ) -> anyhow::Result<()> {
                 Ok(())
             }
