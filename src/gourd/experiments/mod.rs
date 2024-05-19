@@ -13,19 +13,24 @@ use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::experiment::Run;
-use gourd_lib::file_system::truncate_and_canonicalize;
-use gourd_lib::file_system::try_read_toml;
+use gourd_lib::file_system::FileOperations;
 
 /// Extension trait for the shared `Experiment` struct.
 pub trait ExperimentExt {
     /// constructor from a `config`.
-    fn from_config(conf: &Config, env: Environment, time: DateTime<Local>) -> anyhow::Result<Self>
+    fn from_config(
+        conf: &Config,
+        env: Environment,
+        time: DateTime<Local>,
+        fs: &impl FileOperations,
+    ) -> Result<Self>
     where
         Self: Sized;
     /// find the most recent experiment in a folder
     fn latest_id_from_folder(folder: &Path) -> Result<Option<usize>>;
     /// when running gourd status without an argument it should fetch the most recent experiment
-    fn latest_experiment_from_folder(folder: &Path) -> Result<Experiment>;
+    fn latest_experiment_from_folder(folder: &Path, fs: &impl FileOperations)
+        -> Result<Experiment>;
 }
 
 impl ExperimentExt for Experiment {
@@ -33,7 +38,12 @@ impl ExperimentExt for Experiment {
     ///
     /// Creates a new experiment by matching all algorithms to all inputs.
     /// The experiment is created in the provided `env` and with `time` as the timestamp.
-    fn from_config(conf: &Config, env: Environment, time: DateTime<Local>) -> Result<Self> {
+    fn from_config(
+        conf: &Config,
+        env: Environment,
+        time: DateTime<Local>,
+        fs: &impl FileOperations,
+    ) -> Result<Self> {
         let mut runs = Vec::new();
 
         let seq = Self::latest_id_from_folder(&conf.experiments_folder)
@@ -46,22 +56,22 @@ impl ExperimentExt for Experiment {
                 runs.push(Run {
                     program: conf.programs[prog_name].clone(),
                     input: conf.inputs[input_name].clone(),
-                    err_path: truncate_and_canonicalize(
+                    err_path: fs.truncate_and_canonicalize(
                         &conf
                             .output_path
                             .join(format!("{}/algo_{}/{}_error", seq, prog_name, input_name)),
                     )?,
-                    metrics_path: truncate_and_canonicalize(
+                    metrics_path: fs.truncate_and_canonicalize(
                         &conf
                             .metrics_path
                             .join(format!("{}/algo_{}/{}_metrics", seq, prog_name, input_name)),
                     )?,
-                    output_path: truncate_and_canonicalize(
+                    output_path: fs.truncate_and_canonicalize(
                         &conf
                             .output_path
                             .join(format!("{}/algo_{}/{}_output", seq, prog_name, input_name)),
                     )?,
-                    afterscript_info: get_afterscript_info(conf, &seq, prog_name, input_name)?,
+                    afterscript_info: get_afterscript_info(conf, &seq, prog_name, input_name, fs)?,
                     job_id: None,
                 });
             }
@@ -112,9 +122,12 @@ impl ExperimentExt for Experiment {
     }
 
     /// Provided a folder gets the most recent experiment.
-    fn latest_experiment_from_folder(folder: &Path) -> Result<Experiment> {
+    fn latest_experiment_from_folder(
+        folder: &Path,
+        fs: &impl FileOperations,
+    ) -> Result<Experiment> {
         if let Some(id) = Self::latest_id_from_folder(folder)? {
-            try_read_toml(&folder.join(format!("{}.toml", id)))
+            fs.try_read_toml(&folder.join(format!("{}.toml", id)))
         } else {
             Err(anyhow!("There are no experiments, try running some first").context(""))
         }
@@ -127,16 +140,16 @@ pub fn get_afterscript_info(
     seq: &usize,
     prog_name: &String,
     input_name: &String,
+    fs: &impl FileOperations,
 ) -> Result<Option<AfterscriptInfo>> {
     let afterscript = &config.programs[prog_name].afterscript;
 
     if let Some(afs) = afterscript {
-        let afterscript_path = truncate_and_canonicalize(&afs.src.clone())?;
+        let afterscript_path = fs.truncate_and_canonicalize(&afs.src.clone())?;
 
-        let afterscript_output_path = truncate_and_canonicalize(&afs.out.clone().join(format!(
-            "{}/algo_{}/{}_afterscript",
-            seq, prog_name, input_name
-        )))?;
+        let afterscript_output_path = fs.truncate_and_canonicalize(&afs.out.clone().join(
+            format!("{}/algo_{}/{}_afterscript", seq, prog_name, input_name),
+        ))?;
 
         Ok(Some(AfterscriptInfo {
             afterscript_path,

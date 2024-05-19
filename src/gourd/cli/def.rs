@@ -1,15 +1,21 @@
 use std::path::PathBuf;
 
+use anstyle::AnsiColor;
+use clap::ArgAction;
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
+use colog::format::CologStyle;
+use gourd_lib::constants::style_from_fg;
+use log::Level;
 
 use crate::cli::printing::get_styles;
 
 /// Structure of the main command (gourd).
 #[allow(unused)]
 #[derive(Parser, Debug)]
-#[command(styles=get_styles(), about = "Gourd, an emipirical evaluator", disable_help_subcommand = true)]
+#[command(styles=get_styles(), about = "Gourd, an emipirical evaluator",
+  disable_help_subcommand = true)]
 pub struct Cli {
     #[command(subcommand)]
     pub(crate) command: Command,
@@ -31,8 +37,17 @@ pub struct Cli {
     )]
     pub(crate) config: PathBuf,
 
-    #[arg(short, long, help = "Verbose mode, displays debug info", global = true)]
-    verbose: bool,
+    #[arg(short, long, help = "Verbose mode, displays debug info. For even more try: -vv",
+      global = true, action = ArgAction::Count)]
+    pub(crate) verbose: u8,
+
+    #[arg(
+        short,
+        long,
+        help = "Dry run, run but don't actually affect anything",
+        global = true
+    )]
+    pub(crate) dry: bool,
 }
 
 /// Structure of Run subcommand.
@@ -106,4 +121,37 @@ pub enum Command {
     /// Subcommand for getting the version.
     #[command(about = "Display and about page with the program version")]
     Version,
+}
+
+/// Defines the logging tokens for `colog`.
+#[derive(Debug, Clone, Copy)]
+pub struct LogTokens;
+
+// It does not make sense to test this impl
+impl CologStyle for LogTokens {
+    fn level_token(&self, level: &Level) -> &str {
+        match *level {
+            Level::Error => "error",
+            Level::Warn => "warn",
+            Level::Info => "info",
+            Level::Debug => "debug",
+            Level::Trace => "trace",
+        }
+    }
+
+    fn prefix_token(&self, level: &Level) -> String {
+        format!("{}:", self.level_color(level, self.level_token(level)),)
+    }
+
+    fn level_color(&self, level: &log::Level, msg: &str) -> String {
+        let style = match level {
+            Level::Error => style_from_fg(AnsiColor::Red),
+            Level::Warn => style_from_fg(AnsiColor::Yellow),
+            Level::Info => style_from_fg(AnsiColor::Green),
+            Level::Debug => style_from_fg(AnsiColor::Blue),
+            Level::Trace => style_from_fg(AnsiColor::Magenta),
+        };
+
+        format!("{}{}{:#}", style, msg, style)
+    }
 }

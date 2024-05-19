@@ -1,4 +1,5 @@
 use super::*;
+
 #[test]
 fn tabling_test() {
     let data = vec![

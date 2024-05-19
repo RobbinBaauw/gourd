@@ -5,9 +5,10 @@ use std::process::Command;
 
 use anyhow::anyhow;
 use anyhow::Context;
+use anyhow::Result;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
-use gourd_lib::file_system::read_bytes;
+use gourd_lib::file_system::FileOperations;
 
 const OSX_ARCH_MAPPING: for<'a> fn(&'a str) -> &'static str = |machine| match machine {
     "x86" => "i386",
@@ -22,8 +23,14 @@ const OSX_ARCH_MAPPING: for<'a> fn(&'a str) -> &'static str = |machine| match ma
 /// what architecture(s) the binary runs on. If `lipo` cannot be called, such as on
 /// Macs running OS X/PowerPC that have not received software updates since 2005, the
 /// architecture verification is skipped.
-pub(crate) fn verify_arch(binary: &PathBuf, expected_arch: &str) -> anyhow::Result<()> {
-    let _ = read_bytes(binary).context("Could not read the binary file.");
+pub(crate) fn verify_arch(
+    binary: &PathBuf,
+    expected_arch: &str,
+    fs: &impl FileOperations,
+) -> Result<()> {
+    let _ = fs
+        .read_bytes(binary)
+        .context("Could not read the binary file.");
 
     match Command::new("lipo")
         .arg("-archs")

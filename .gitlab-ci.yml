@@ -81,7 +81,7 @@ coverage:
   before_script:
     - cargo install cargo-tarpaulin
   script:
-    - cargo tarpaulin --out Xml --root . --manifest-path Cargo.toml
+    - cargo tarpaulin --engine llvm --out Xml --root . --manifest-path Cargo.toml
   coverage: '/\d+.\d+\% coverage,.*lines covered/'
   artifacts:
     reports:
@@ -125,24 +125,35 @@ maintainer_docs:
   stage: docs
   allow_failure: true
   needs: []
-  script: cd docs/maintainer && ./compile.sh
+  script:
+    - cd docs/maintainer
+    - ./compile.sh
+    - mv out/maintainer.pdf ../../
   artifacts:
     when: on_success
     name: maintainer documentation
     expose_as: maintainer documentation
     paths:
-    - gourd-maintainer-documentation.pdf
+    - maintainer.pdf
 
 user_docs:
   <<: *texlive_full
   stage: docs
   allow_failure: true
   needs: []
-  script: cd docs/user && ./compile.sh
+  script:
+    - cd docs/user
+    - ./compile.sh
+    - mv out/gourd.pdf ../../
+    - mv out/gourd.toml.pdf ../../
+    - mv out/gourd.man ../../
+    - mv out/gourd.toml.man ../../
   artifacts:
     when: on_success
     name: user documentation
     expose_as: user documentation
     paths:
-    - gourd-user-documentation.pdf
+    - gourd.pdf
     - gourd.man
+    - gourd.toml.pdf
+    - gourd.toml.man

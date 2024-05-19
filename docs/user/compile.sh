@@ -2,11 +2,14 @@
 mkdir out
 
 compile_xelatex() {
-    xelatex -halt-on-error -shell-escape -interaction=nonstopmode -output-directory=./out gourd_pc.tex
+    xelatex -halt-on-error -shell-escape -interaction=nonstopmode -output-directory=./out ./out/$1.tex
 }
 
-latex2man -M gourd.tex ./../../gourd.man
-latex2man -L gourd.tex ./gourd_pc.tex
-compile_xelatex && compile_xelatex
-mv ./out/gourd_pc.pdf ../../gourd-user-documentation.pdf
-rm gourd_pc.tex
+compile_man_latex() {
+    latex2man -M $1.tex ./out/$1.man
+    latex2man -L $1.tex ./out/$1.tex
+    compile_xelatex $1 && compile_xelatex $1
+}
+
+compile_man_latex "gourd"
+compile_man_latex "gourd.toml"
