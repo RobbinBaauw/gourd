@@ -26,7 +26,7 @@ path = "src/gourd_wrapper/main.rs"
 # The Gourd library, which contains definitions and commons for both Gourd and its wrapper.
 [lib]
 name = "gourd_lib"
-path = "src/lib/lib.rs"
+path = "src/gourd_lib/lib.rs"
 
 # This target can be enabled to check the doctests
 # See here: https://github.com/rust-lang/rust/issues/50784
