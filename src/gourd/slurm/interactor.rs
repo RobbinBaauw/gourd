@@ -10,6 +10,7 @@ use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use tempdir::TempDir;
 
+use super::handler::parse_optional_args;
 use crate::slurm::SlurmInteractor;
 
 /// An implementation of the SlurmInteractor trait for interacting with SLURM via the CLI.
@@ -78,6 +79,8 @@ impl SlurmInteractor for SlurmCLI {
         let temp = TempDir::new("gourd-slurm")?;
         let batch_script = temp.path().join("batch.sh");
 
+        let optional_args = parse_optional_args(slurm_config);
+
         let contents = format!(
             "#!/bin/bash
 #SBATCH --job-name={}
@@ -87,6 +90,7 @@ impl SlurmInteractor for SlurmCLI {
 #SBATCH --time={}
 #SBATCH --cpus-per-task={}
 #SBATCH --mem-per-cpu={}
+{}
 
 {} {} $SLURM_ARRAY_TASK_ID
 ",
@@ -97,6 +101,7 @@ impl SlurmInteractor for SlurmCLI {
             slurm_config.time_limit,
             slurm_config.cpus,
             slurm_config.mem_per_cpu,
+            optional_args,
             wrapper_path,
             exp_path.display()
         );

@@ -42,3 +42,20 @@ pub const HELP_STYLE: Style = style_from_fg(AnsiColor::Green).bold().underline()
 
 /// Supported SLURM versions.
 pub const SLURM_VERSIONS: [[u64; 2]; 1] = [[21, 8]];
+
+/// Possible values for Mail Type in slurm configuration
+pub const MAIL_TYPE_VALID_OPTIONS: [&str; 13] = [
+    "NONE",
+    "BEGIN",
+    "END",
+    "FAIL",
+    "REQUEUE",
+    "ALL",
+    "INVALID_DEPEND",
+    "STAGE_OUT",
+    "TIME_LIMIT",
+    "TIME_LIMIT_90",
+    "TIME_LIMIT_80",
+    "TIME_LIMIT_50",
+    "ARRAY_TASKS",
+];

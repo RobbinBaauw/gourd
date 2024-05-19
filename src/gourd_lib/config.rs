@@ -142,6 +142,31 @@ pub struct SlurmConfig {
 
     /// Where slurm should put the stdout and stderr of the job.
     pub out: Option<PathBuf>,
+
+    /// Account to charge for this job
+    pub account: Option<String>,
+
+    /// Delay the run of the job
+    pub begin: Option<String>,
+
+    /// Option to set notifications for user by email when a certain event types occur.
+    pub mail_type: Option<String>,
+
+    /// User to be notified by the email (When not specified it's the user that scheduled the job)
+    pub mail_user: Option<String>,
+
+    /// Custom slurm arguments
+    pub additional_args: Option<BTreeMap<String, SBatchArg>>,
+}
+
+/// The structure for providing custom slurm arguments
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct SBatchArg {
+    /// Name of the sbatch argument
+    pub name: String,
+
+    /// Value of the sbatch argument
+    pub value: String,
 }
 
 // An implementation that provides a default value of `Config`,
