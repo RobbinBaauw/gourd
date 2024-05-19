@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use std::fs::File;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::fs::Permissions;
+use std::fs::{self};
 use std::io::Write;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::os::unix::fs::PermissionsExt;
@@ -11,7 +12,9 @@ use std::path::PathBuf;
 
 use tempdir::TempDir;
 
-use super::*;
+use crate::config::Config;
+use crate::config::Input;
+use crate::test_utils::REAL_FS;
 
 /// This test will fail if the semantics of the config struct are changed.
 /// If this is the case, update the documentation and make sure that the
@@ -42,6 +45,7 @@ fn breaking_changes_config_file_all_values() {
         output_path = "./ginger_root"
         metrics_path = "./vulfpeck/"
         experiments_folder = "./parcels/"
+        wrapper = "gourd_wrapper"
 
         [programs]
 
@@ -61,7 +65,7 @@ fn breaking_changes_config_file_all_values() {
             programs: BTreeMap::new(),
             slurm: None,
         },
-        Config::from_file(file_pathbuf.as_path()).expect("Unexpected config read error.")
+        Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );
     dir.close().unwrap();
 }
@@ -96,7 +100,7 @@ fn breaking_changes_config_file_required_values() {
             programs: BTreeMap::new(),
             slurm: None,
         },
-        Config::from_file(file_pathbuf.as_path()).expect("Unexpected config read error.")
+        Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );
     dir.close().unwrap();
 }
@@ -106,7 +110,7 @@ fn config_nonexistent_file() {
     let dir = TempDir::new("config_folder").unwrap();
     let file_pathbuf = dir.path().join("file.toml");
 
-    if Config::from_file(file_pathbuf.as_path()).is_ok() {
+    if Config::from_file(file_pathbuf.as_path(), &REAL_FS).is_ok() {
         panic!("Error expected.")
     }
 
@@ -124,7 +128,7 @@ fn config_unreadable_file() {
     file.set_permissions(Permissions::from_mode(0o000))
         .expect("Could not set permissions of 'unreadable' test file to 000.");
 
-    if Config::from_file(file_pathbuf.as_path()).is_ok() {
+    if Config::from_file(file_pathbuf.as_path(), &REAL_FS).is_ok() {
         panic!("Error expected.")
     }
     dir.close().unwrap();
@@ -137,7 +141,7 @@ fn config_unparseable_file() {
 
     File::create(file_pathbuf.as_path()).expect("A file folder could not be created.");
 
-    if Config::from_file(file_pathbuf.as_path()).is_ok() {
+    if Config::from_file(file_pathbuf.as_path(), &REAL_FS).is_ok() {
         panic!("Error expected.")
     }
     dir.close().unwrap();
@@ -158,7 +162,109 @@ fn config_ok_file() {
 
     assert_eq!(
         conf,
-        Config::from_file(file_pathbuf.as_path()).expect("Unexpected config read error.")
+        Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );
     dir.close().unwrap();
+}
+
+#[test]
+fn disallow_glob_names() {
+    let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
+    let file_pathbuf = dir.path().join("file.toml");
+
+    let config_contents = r#"
+            output_path = "./ginger_root"
+            metrics_path = "./vulfpeck/"
+            experiments_folder = ""
+
+            [inputs.test_glob_]
+            arguments = []
+
+            [programs]
+        "#;
+    let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
+    file.write_all(config_contents.as_bytes())
+        .expect("The test file could not be written.");
+
+    assert!(
+        format!("{:?}", Config::from_file(file_pathbuf.as_path(), &REAL_FS)).contains("_glob_")
+    );
+    dir.close().unwrap();
+}
+
+#[test]
+fn test_globs() {
+    let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
+    let file_pathbuf = dir.path().join("file.toml");
+
+    let in_pathbuf = dir.path().join("test.in");
+
+    fs::write(&in_pathbuf, "asd").unwrap();
+
+    let config_contents = format!(
+        r#"
+            output_path = "./ginger_root"
+            metrics_path = "./vulfpeck/"
+            experiments_folder = ""
+
+            [inputs.test_blob]
+            arguments = ["-f", "glob|{}/*.in"]
+
+            [programs]
+        "#,
+        dir.path().to_str().unwrap()
+    );
+
+    let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
+    file.write_all(config_contents.as_bytes())
+        .expect("The test file could not be written.");
+
+    let mut inputs = BTreeMap::new();
+
+    inputs.insert(
+        "test_blob_glob_0".to_string(),
+        Input {
+            input: None,
+            arguments: vec!["-f".to_string(), in_pathbuf.to_str().unwrap().to_string()],
+        },
+    );
+
+    assert_eq!(
+        Config {
+            output_path: PathBuf::from("./ginger_root/"),
+            metrics_path: PathBuf::from("./vulfpeck"),
+            experiments_folder: PathBuf::from(""),
+            wrapper: "gourd_wrapper".to_string(),
+            inputs,
+            programs: BTreeMap::new(),
+            slurm: None,
+        },
+        Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
+    );
+    dir.close().unwrap();
+}
+
+#[test]
+fn test_globs_invalid_pattern() {
+    let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
+    let file_pathbuf = dir.path().join("file.toml");
+
+    let config_contents = r#"
+            output_path = "./ginger_root"
+            metrics_path = "./vulfpeck/"
+            experiments_folder = ""
+
+            [inputs.test_blob]
+            arguments = ["-f", "glob|***"]
+
+            [programs]
+        "#;
+    let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
+    file.write_all(config_contents.as_bytes())
+        .expect("The test file could not be written.");
+
+    assert!(
+        format!("{:?}", Config::from_file(file_pathbuf.as_path(), &REAL_FS))
+            .contains("Failed to expand")
+    );
 }

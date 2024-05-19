@@ -14,6 +14,12 @@ pub const AFTERSCRIPT_DEFAULT: fn() -> PathBuf = || "".into();
 /// The default path to the afterscript output.
 pub const AFTERSCRIPT_OUTPUT_DEFAULT: fn() -> PathBuf = || "after".into();
 
+/// The default arguments for an input.
+pub const EMPTY_ARGS: fn() -> Vec<String> = Vec::new;
+
+/// The prefix which will cause an argument to be interpreted as a glob.
+pub const GLOB_ESCAPE: &str = "glob|";
+
 /// Create a style with a defined foreground color.
 pub const fn style_from_fg(color: AnsiColor) -> Style {
     Style::new().fg_color(Some(Color::Ansi(color)))

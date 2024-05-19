@@ -8,12 +8,15 @@ use gourd_lib::config::Program;
 use super::*;
 use crate::test_utils::create_sample_experiment;
 use crate::test_utils::get_compiled_example;
+use crate::test_utils::REAL_FS;
+use crate::wrapper::wrap;
 
 /// This test will generate an ARM binary and check if [crate::wrapper::wrap] rightfully rejects it.
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 #[test]
 fn non_matching_arch() {
     use crate::test_utils::create_sample_experiment;
+    use crate::test_utils::REAL_FS;
 
     const NO_STD_INFINITE_LOOP_RS: &str = include_str!("test_resources/panic_returner.rs");
 
@@ -51,14 +54,14 @@ fn non_matching_arch() {
     second.insert(
         "test1".to_string(),
         Input {
-            input: input.clone(),
+            input: Some(input.clone()),
             arguments: vec![],
         },
     );
 
     let (experiment, conf) = create_sample_experiment(first, second);
 
-    match wrap(&experiment, "x86_64", &conf) {
+    match wrap(&experiment, "x86_64", &conf, &REAL_FS) {
         Err(err) => {
             assert!(format!("{}", err.root_cause()).contains("not match the expected architecture"))
         }
@@ -99,14 +102,14 @@ fn matching_arch() {
     second.insert(
         "test1".to_string(),
         Input {
-            input: input.clone(),
+            input: Some(input.clone()),
             arguments: vec![],
         },
     );
 
     let (experiment, conf) = create_sample_experiment(first, second);
 
-    let cmds = wrap(&experiment, env::consts::ARCH, &conf).unwrap();
+    let cmds = wrap(&experiment, env::consts::ARCH, &conf, &REAL_FS).unwrap();
 
     assert_eq!(1, cmds.len());
     assert_eq!(

@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use anyhow::Result;
 use gourd_lib::experiment::Experiment;
+use gourd_lib::file_system::FileOperations;
 
 use self::fs_based::FileBasedStatus;
 
@@ -86,10 +87,10 @@ pub trait StatusProvider<T> {
 }
 
 /// Get the status of the provided experiment.
-pub fn get_statuses(experiment: &Experiment) -> Result<ExperimentStatus> {
+pub fn get_statuses(experiment: &Experiment, fs: impl FileOperations) -> Result<ExperimentStatus> {
     // for now we do not support slurm.
 
-    FileBasedStatus::get_statuses((), experiment)
+    FileBasedStatus::get_statuses(fs, experiment)
 }
 
 /// Display the status of an experiment in a human readable from.

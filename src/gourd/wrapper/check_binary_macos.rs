@@ -22,7 +22,11 @@ const OSX_ARCH_MAPPING: for<'a> fn(&'a str) -> &'static str = |machine| match ma
 /// what architecture(s) the binary runs on. If `lipo` cannot be called, such as on
 /// Macs running OS X/PowerPC that have not received software updates since 2005, the
 /// architecture verification is skipped.
-pub(crate) fn verify_arch(binary: &PathBuf, expected_arch: &str) -> anyhow::Result<()> {
+pub(crate) fn verify_arch(
+    binary: &PathBuf,
+    expected_arch: &str,
+    _: &impl FileOperations,
+) -> Result<()> {
     let _ = read_bytes(binary).context("Could not read the binary file.");
 
     match Command::new("lipo")

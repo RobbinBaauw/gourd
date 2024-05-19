@@ -25,10 +25,12 @@ use anstyle::Color;
 use anstyle::Style;
 use anyhow::bail;
 use anyhow::Context;
+use anyhow::Result;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
-use gourd_lib::file_system::try_read_toml;
+use gourd_lib::file_system::FileOperations;
+use gourd_lib::file_system::FileSystemInteractor;
 use gourd_lib::measurement::Measurement;
 use gourd_lib::measurement::Metrics;
 use gourd_lib::measurement::RUsage;
@@ -42,7 +44,7 @@ const HELP_STYLE: Style = anstyle::Style::new()
 
 struct RunConf {
     binary_path: PathBuf,
-    input_path: PathBuf,
+    input_path: Option<PathBuf>,
     output_path: PathBuf,
     result_path: PathBuf,
     err_path: PathBuf,
@@ -65,9 +67,12 @@ fn main() {
 
 fn process() -> Result<(), anyhow::Error> {
     let args: Vec<String> = env::args().collect();
+
+    let fs = FileSystemInteractor { dry_run: false };
+
     let rc = match args.len() {
         0..=2 => bail!("Slurm wrapper needs an experiment file path and a job id"),
-        3 => process_slurm_args(&args).with_context(ctx!(
+        3 => process_slurm_args(&args, &fs).with_context(ctx!(
             "Could not process arguments (assuming slurm environment) {:?}", args;
             "",
         ))?,
@@ -92,9 +97,14 @@ fn process() -> Result<(), anyhow::Error> {
     #[allow(unused_mut)]
     let mut child = Command::new(&rc.binary_path)
         .args(&rc.additional_args)
-        .stdin(Stdio::from(File::open(rc.input_path.clone()).context(
-            format!("Could not open the input {:?}", rc.input_path),
-        )?))
+        .stdin(if let Some(actual_input) = rc.input_path {
+            Stdio::from(
+                File::open(actual_input.clone())
+                    .context(format!("Could not open the input {:?}", actual_input))?,
+            )
+        } else {
+            Stdio::null()
+        })
         .stdout(Stdio::from(File::create(rc.output_path.clone()).context(
             format!("Could not truncate the output {:?}", rc.output_path),
         )?))
@@ -135,11 +145,11 @@ fn process() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn process_slurm_args(args: &[String]) -> anyhow::Result<RunConf> {
+fn process_slurm_args(args: &[String], fs: &impl FileOperations) -> Result<RunConf> {
     let exp_path: PathBuf = args[1]
         .parse()
         .context(format!("The experiment file path is invalid: {}", args[1]))?;
-    let exp = try_read_toml::<Experiment>(exp_path.as_path())?;
+    let exp = fs.try_read_toml::<Experiment>(exp_path.as_path())?;
     let id: usize = args[2]
         .parse()
         .with_context(ctx!(
@@ -147,6 +157,7 @@ fn process_slurm_args(args: &[String]) -> anyhow::Result<RunConf> {
             "Ensure that Slurm is configured correctly",
         ))
         .unwrap();
+
     Ok(RunConf {
         binary_path: exp.runs[id].program.binary.clone(),
         input_path: exp.runs[id].input.input.clone(),
@@ -163,7 +174,7 @@ fn process_local_args(args: &[String]) -> anyhow::Result<RunConf> {
     }
     Ok(RunConf {
         binary_path: PathBuf::from(&args[1]),
-        input_path: PathBuf::from(&args[2]),
+        input_path: Some(PathBuf::from(&args[2])),
         output_path: PathBuf::from(&args[3]),
         result_path: PathBuf::from(&args[4]),
         err_path: PathBuf::from(&args[5]),

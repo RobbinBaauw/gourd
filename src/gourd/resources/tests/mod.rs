@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use tempdir::TempDir;
 
 use super::*;
+use crate::test_utils::REAL_FS;
 
 const PREPROGRAMMED_SH_SCRIPT: &str = r#"
 #!/bin/bash
@@ -41,7 +42,7 @@ fn test_downloading_from_url() {
     let tmp_dir_path = PathBuf::from(tmp_dir.path());
     println!("{:?}", tmp_dir_path);
 
-    download_from_url("https://sh.rustup.rs", &tmp_dir_path, output_name).unwrap();
+    download_from_url("https://sh.rustup.rs", &tmp_dir_path, output_name, &REAL_FS).unwrap();
 
     let mut file = File::open(file_path).expect("could not open the file");
     let mut contents = String::new();

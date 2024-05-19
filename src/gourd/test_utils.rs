@@ -2,15 +2,24 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::process::Command;
 
+use anstyle::AnsiColor;
+use anstyle::Color;
+use anstyle::Style;
+use anyhow::bail;
 use chrono::Local;
 use gourd_lib::config::Config;
 use gourd_lib::config::Input;
 use gourd_lib::config::Program;
+use gourd_lib::constants::style_from_fg;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
+use gourd_lib::file_system::FileOperations;
+use gourd_lib::file_system::FileSystemInteractor;
 use tempdir::TempDir;
 
 use crate::experiments::ExperimentExt;
+
+pub const REAL_FS: FileSystemInteractor = FileSystemInteractor { dry_run: false };
 
 pub fn get_compiled_example(
     contents: &str,
@@ -48,7 +57,15 @@ pub fn create_sample_experiment(
     };
 
     (
-        Experiment::from_config(&conf, Environment::Local, Local::now()).unwrap(),
+        Experiment::from_config(&conf, Environment::Local, Local::now(), &REAL_FS).unwrap(),
         conf,
     )
+}
+
+#[test]
+fn test_style() {
+    assert_eq!(
+        style_from_fg(AnsiColor::Red),
+        Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
+    );
 }

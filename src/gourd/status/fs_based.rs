@@ -5,7 +5,7 @@ use anyhow::Context;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
-use gourd_lib::file_system::try_read_toml;
+use gourd_lib::file_system::FileOperations;
 use gourd_lib::measurement::Metrics;
 
 use super::Completion;
@@ -20,12 +20,15 @@ use super::StatusProvider;
 #[derive(Debug, Clone, Copy)]
 pub struct FileBasedStatus {}
 
-impl StatusProvider<()> for FileBasedStatus {
-    fn get_statuses(_: (), experiment: &Experiment) -> anyhow::Result<ExperimentStatus> {
+impl<T> StatusProvider<T> for FileBasedStatus
+where
+    T: FileOperations,
+{
+    fn get_statuses(fs: T, experiment: &Experiment) -> anyhow::Result<ExperimentStatus> {
         let mut statuses = BTreeMap::new();
 
         for (run_id, run) in experiment.runs.iter().enumerate() {
-            let metrics = match try_read_toml::<Metrics>(&run.metrics_path) {
+            let metrics = match fs.try_read_toml::<Metrics>(&run.metrics_path) {
                 Ok(x) => Some(x),
                 Err(_) => None,
             };

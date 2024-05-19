@@ -20,6 +20,7 @@ pub mod slurm;
 pub mod resources;
 
 /// The command line interface and relevant structures.
+#[cfg(not(tarpaulin_include))]
 pub mod cli;
 
 /// The status of the jobs running or finished.

@@ -1,8 +1,7 @@
-use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::Result;
 use chrono::DateTime;
 use chrono::Local;
 use serde::Deserialize;
@@ -11,9 +10,7 @@ use serde::Serialize;
 use crate::afterscript::AfterscriptInfo;
 use crate::config::Input;
 use crate::config::Program;
-use crate::error::ctx;
-use crate::error::Ctx;
-use crate::file_system::truncate_and_canonicalize;
+use crate::file_system::FileOperations;
 
 /// The run location of the experiment.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
@@ -68,13 +65,10 @@ pub struct Experiment {
 
 impl Experiment {
     /// Save the experiment to a file with its timestamp.
-    pub fn save(&self, folder: &Path) -> anyhow::Result<PathBuf> {
-        let saving_path = truncate_and_canonicalize(&folder.join(format!("{}.toml", self.seq)))?;
+    pub fn save(&self, folder: &Path, fs: &impl FileOperations) -> Result<PathBuf> {
+        let saving_path = folder.join(format!("{}.toml", self.seq));
 
-        fs::write(&saving_path, toml::to_string(&self)?).with_context(ctx!(
-            "Could not save the experiment at {saving_path:?}", ;
-            "Enusre that you have suffcient permissions",
-        ))?;
+        fs.try_write_toml(&saving_path, &self)?;
 
         Ok(saving_path)
     }
