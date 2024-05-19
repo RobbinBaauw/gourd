@@ -5,7 +5,6 @@ use std::process::Command;
 use anstyle::AnsiColor;
 use anstyle::Color;
 use anstyle::Style;
-use anyhow::bail;
 use chrono::Local;
 use gourd_lib::config::Config;
 use gourd_lib::config::Input;
@@ -13,7 +12,6 @@ use gourd_lib::config::Program;
 use gourd_lib::constants::style_from_fg;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
-use gourd_lib::file_system::FileOperations;
 use gourd_lib::file_system::FileSystemInteractor;
 use tempdir::TempDir;
 
