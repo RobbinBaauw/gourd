@@ -1,6 +1,8 @@
 mod check_binary_linux;
 mod check_binary_macos;
 
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+use std::path::PathBuf;
 /// Verify if the architecture of a `binary` matched the `expected` architecture.
 use std::process::Command;
 
@@ -15,6 +17,11 @@ use gourd_lib::experiment::Experiment;
 use crate::wrapper::check_binary_linux::verify_arch;
 #[cfg(target_os = "macos")]
 use crate::wrapper::check_binary_macos::verify_arch;
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn verify_arch(_: &PathBuf, _: &str) -> Result<()> {
+    Ok(())
+}
 
 /// This function returns the commands to be run for an n x m matching of the runs to tests.
 ///
