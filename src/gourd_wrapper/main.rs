@@ -89,7 +89,8 @@ fn process() -> Result<(), anyhow::Error> {
 
     let clock = start_measuring();
 
-    let child = Command::new(&rc.binary_path)
+    #[allow(unused_mut)]
+    let mut child = Command::new(&rc.binary_path)
         .args(&rc.additional_args)
         .stdin(Stdio::from(File::open(rc.input_path.clone()).context(
             format!("Could not open the input {:?}", rc.input_path),
