@@ -58,7 +58,7 @@ fn non_matching_arch() {
 
     let (experiment, conf) = create_sample_experiment(first, second);
 
-    match wrap(&experiment, "x86-64", &conf) {
+    match wrap(&experiment, "x86_64", &conf) {
         Err(err) => {
             assert!(format!("{}", err.root_cause()).contains("not match the expected architecture"))
         }

@@ -6,7 +6,6 @@ use std::time::Duration;
 use anyhow::anyhow;
 use anyhow::Error;
 use gourd_lib::measurement::RUsage;
-use libc::WEXITSTATUS;
 use libc::WIFEXITED;
 
 /// Returns an empty `libc::rusage` struct.
@@ -15,7 +14,7 @@ unsafe fn empty_raw_rusage() -> libc::rusage {
 }
 
 impl GetRUsage for Child {
-    fn wait_for_rusage(&self) -> Result<RUsage, Error> {
+    fn wait_for_rusage(&self) -> Result<(RUsage, i32), Error> {
         let pid = self.id() as i32;
         let mut status: i32 = 0;
 
@@ -31,25 +30,27 @@ impl GetRUsage for Child {
         }
 
         if WIFEXITED(status) {
-            Ok(RUsage {
-                utime: duration_from_timeval(rusage.ru_utime),
-                stime: duration_from_timeval(rusage.ru_stime),
-                maxrss: rusage.ru_maxrss as usize,
-                ixrss: rusage.ru_ixrss as usize,
-                idrss: rusage.ru_idrss as usize,
-                isrss: rusage.ru_isrss as usize,
-                minflt: rusage.ru_minflt as usize,
-                majflt: rusage.ru_majflt as usize,
-                nswap: rusage.ru_nswap as usize,
-                inblock: rusage.ru_inblock as usize,
-                oublock: rusage.ru_oublock as usize,
-                msgsnd: rusage.ru_msgsnd as usize,
-                msgrcv: rusage.ru_msgrcv as usize,
-                nsignals: rusage.ru_nsignals as usize,
-                nvcsw: rusage.ru_nvcsw as usize,
-                nivcsw: rusage.ru_nivcsw as usize,
-                exit_code: WEXITSTATUS(status),
-            })
+            Ok((
+                RUsage {
+                    utime: duration_from_timeval(rusage.ru_utime),
+                    stime: duration_from_timeval(rusage.ru_stime),
+                    maxrss: rusage.ru_maxrss as usize,
+                    ixrss: rusage.ru_ixrss as usize,
+                    idrss: rusage.ru_idrss as usize,
+                    isrss: rusage.ru_isrss as usize,
+                    minflt: rusage.ru_minflt as usize,
+                    majflt: rusage.ru_majflt as usize,
+                    nswap: rusage.ru_nswap as usize,
+                    inblock: rusage.ru_inblock as usize,
+                    oublock: rusage.ru_oublock as usize,
+                    msgsnd: rusage.ru_msgsnd as usize,
+                    msgrcv: rusage.ru_msgrcv as usize,
+                    nsignals: rusage.ru_nsignals as usize,
+                    nvcsw: rusage.ru_nvcsw as usize,
+                    nivcsw: rusage.ru_nivcsw as usize,
+                },
+                status,
+            ))
         } else {
             Err(anyhow!("Could not get the RUsage statistics."))
         }
@@ -60,7 +61,7 @@ impl GetRUsage for Child {
 pub trait GetRUsage {
     /// Waits for the process to exit and returns its resource usage statistics.
     /// Works only on linux with wait4 syscall available.
-    fn wait_for_rusage(&self) -> Result<RUsage, Error>;
+    fn wait_for_rusage(&self) -> Result<(RUsage, i32), Error>;
 }
 
 /// Converts a `libc::timeval` to a `std::time::Duration`.

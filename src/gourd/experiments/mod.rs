@@ -3,6 +3,7 @@ use std::path::Path;
 
 use anyhow::anyhow;
 use anyhow::Context;
+use anyhow::Result;
 use chrono::DateTime;
 use chrono::Local;
 use gourd_lib::afterscript::AfterscriptInfo;
@@ -22,9 +23,9 @@ pub trait ExperimentExt {
     where
         Self: Sized;
     /// find the most recent experiment in a folder
-    fn latest_id_from_folder(folder: &Path) -> anyhow::Result<Option<usize>>;
+    fn latest_id_from_folder(folder: &Path) -> Result<Option<usize>>;
     /// when running gourd status without an argument it should fetch the most recent experiment
-    fn latest_experiment_from_folder(folder: &Path) -> anyhow::Result<Experiment>;
+    fn latest_experiment_from_folder(folder: &Path) -> Result<Experiment>;
 }
 
 impl ExperimentExt for Experiment {
@@ -32,7 +33,7 @@ impl ExperimentExt for Experiment {
     ///
     /// Creates a new experiment by matching all algorithms to all inputs.
     /// The experiment is created in the provided `env` and with `time` as the timestamp.
-    fn from_config(conf: &Config, env: Environment, time: DateTime<Local>) -> anyhow::Result<Self> {
+    fn from_config(conf: &Config, env: Environment, time: DateTime<Local>) -> Result<Self> {
         let mut runs = Vec::new();
 
         let seq = Self::latest_id_from_folder(&conf.experiments_folder)
@@ -75,7 +76,7 @@ impl ExperimentExt for Experiment {
     }
 
     /// Get the filename of the newest experiment.
-    fn latest_id_from_folder(folder: &Path) -> anyhow::Result<Option<usize>> {
+    fn latest_id_from_folder(folder: &Path) -> Result<Option<usize>> {
         let mut highest = None;
 
         for file in fs::read_dir(folder).with_context(ctx!(
@@ -111,7 +112,7 @@ impl ExperimentExt for Experiment {
     }
 
     /// Provided a folder gets the most recent experiment.
-    fn latest_experiment_from_folder(folder: &Path) -> anyhow::Result<Experiment> {
+    fn latest_experiment_from_folder(folder: &Path) -> Result<Experiment> {
         if let Some(id) = Self::latest_id_from_folder(folder)? {
             try_read_toml(&folder.join(format!("{}.toml", id)))
         } else {
@@ -126,7 +127,7 @@ pub fn get_afterscript_info(
     seq: &usize,
     prog_name: &String,
     input_name: &String,
-) -> anyhow::Result<Option<AfterscriptInfo>> {
+) -> Result<Option<AfterscriptInfo>> {
     let afterscript = &config.programs[prog_name].afterscript;
 
     if let Some(afs) = afterscript {

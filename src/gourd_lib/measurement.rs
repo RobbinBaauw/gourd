@@ -64,6 +64,4 @@ pub struct RUsage {
     pub nvcsw: usize,
     /// Involuntary context switches.
     pub nivcsw: usize,
-    /// The exit code of the program.
-    pub exit_code: i32,
 }

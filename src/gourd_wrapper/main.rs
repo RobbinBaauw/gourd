@@ -114,10 +114,10 @@ fn process() -> Result<(), anyhow::Error> {
     #[cfg(unix)]
     let (rusage_output, exit_code) = {
         use crate::measurement_unix::GetRUsage;
-        let r = child
+        let (r, s) = child
             .wait_for_rusage()
             .context("Could not rusage the child")?;
-        (Some(r), r.exit_code)
+        (Some(r), s)
     };
 
     let meas = stop_measuring(clock, exit_code, rusage_output);
