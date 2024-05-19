@@ -1,3 +1,5 @@
+# Cargo.toml for the Gourd project. Check the maintainer documentation.
+
 [package]
 name = "gourd"
 version = "0.1.5-alpha"
@@ -11,54 +13,62 @@ authors = [
   "Rūta Giedrytė <r.giedryte@student.tudelft.nl>"
 ]
 
-[dependencies]
-# the wrapper is compiled on the local architecture, but since the binary is provided by the user,
-# it could be for a different architecture. In order for the wrapper to not `segfault`, we have to
-# check that the binary is for the correct arch
-elf = "0.7.4"
-
-# Both used for the local threading module
-tokio = { version = "1", features = ["full"] }
-futures = "0.3.30"
-
-# Used as an intermediate for the syscalls for getting usage metrics.
-libc = "0.2"
-
-# parsing gourd.toml
-serde = { version = "1.0", features = ["derive"] }
-toml = "0.8.12"
-
-# loading datasets and executables from the internet
-reqwest = { version = "0.12.4", features = ["blocking", "json"] }
-
-# CLI stuff
-clap = { version = "4.5.4", features = ["derive", "cargo"] }
-anstyle = "1.0.7"
-
-# Saving datetimes
-chrono = { version = "0.4", features = ["serde"]}
-
-# Error handling & error propagation
-anyhow = "1"
-thiserror = "1"
-
-# Temporary directories for the shell scripts on DelftBlue, such that they are deleted after use.
-tempdir = "0.3.7"
-
-[dev-dependencies]
-# benching on stable rust
-easybench = "1.1.1"
-
+# The Gourd command-line application.
 [[bin]]
 name = "gourd"
-path = "src/main.rs"
+path = "src/gourd/main.rs"
 
+# The Gourd wrapper, which is used as an intermediary for executing and profiling binaries.
 [[bin]]
 name = "gourd_wrapper"
-path = "src/wrapper_binary.rs"
+path = "src/gourd_wrapper/main.rs"
+
+# The Gourd library, which contains definitions and commons for both Gourd and its wrapper.
+[lib]
+name = "gourd_lib"
+path = "src/gourd_lib/lib.rs"
 
 # This target can be enabled to check the doctests
 # See here: https://github.com/rust-lang/rust/issues/50784
 # [lib]
 # name = "doctest"
-# path = "src/main.rs"
+# path = "src/gourd/main.rs"
+
+
+
+[target.'cfg(unix)'.dependencies]
+# On Linux, macOS, BSD: to perform syscalls to get usage metrics
+libc = "0.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# On Linux: to verify that user-provided ELF binaries match the architecture
+elf = "0.7.4"
+
+[dependencies]
+
+# To execute threads locally using a thread-pool executor
+tokio = { version = "1", features = ["full"] }
+futures = { version = "0.3.30"}
+
+# To encode/decode data in gourd.toml and other Gourd files
+toml = "0.8.12"
+serde = { version = "1.0", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# To load datasets and executables from the internet
+reqwest = { version = "0.12.4", features = ["blocking", "json"] }
+
+# To provide a user-friendly CLI
+clap = { version = "4.5.4", features = ["derive", "cargo"] }
+anstyle = "1.0.7"
+
+# To handle errors
+anyhow = "1"
+thiserror = "1"
+
+# To store temporary files
+tempdir = "0.3.7"
+
+[dev-dependencies]
+# To run benchmarks on stable rust
+easybench = "1.1.1"
