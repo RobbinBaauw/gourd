@@ -56,10 +56,6 @@ where
 pub fn parse_optional_args(slurm_config: &SlurmConfig) -> String {
     let mut result = "".to_string();
 
-    if let Some(val) = &slurm_config.account {
-        result.push_str(&format!("#SBATCH --account={}\n", val));
-    }
-
     if let Some(val) = &slurm_config.begin {
         result.push_str(&format!("#SBATCH --begin={}\n", val));
     }

@@ -78,7 +78,7 @@ fn get_slurm_options_from_config_test() {
             mem_per_cpu: 420,
             out: None,
             experiment_name: "test".to_string(),
-            account: None,
+            account: "test-account".to_string(),
             begin: None,
             mail_type: None,
             mail_user: None,

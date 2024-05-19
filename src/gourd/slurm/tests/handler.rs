@@ -14,15 +14,14 @@ fn parse_optional_args_test_all() {
         cpus: 1,
         mem_per_cpu: 512,
         out: None,
-        account: Some("test-account".to_string()),
+        account: "test-account".to_string(),
         begin: Some("01:10:00".to_string()),
         mail_type: Some("ALL".to_string()),
         mail_user: Some("testUSER".to_string()),
         additional_args: None,
     };
     let output = parse_optional_args(&config);
-    let desired_output = "#SBATCH --account=test-account
-#SBATCH --begin=01:10:00
+    let desired_output = "#SBATCH --begin=01:10:00
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=testUSER
 ";
@@ -39,7 +38,7 @@ fn parse_optional_args_test_only_begin() {
         cpus: 1,
         mem_per_cpu: 512,
         out: None,
-        account: None,
+        account: "test-account".to_string(),
         begin: Some("15:40:15".to_string()),
         mail_type: None,
         mail_user: None,
@@ -75,15 +74,14 @@ fn parse_optional_args_test_custom_args() {
         cpus: 1,
         mem_per_cpu: 512,
         out: None,
-        account: Some("test-account".to_string()),
+        account: "test-account".to_string(),
         begin: None,
         mail_type: Some("ALL".to_string()),
         mail_user: Some("testUSER".to_string()),
         additional_args: Some(custom_args_map),
     };
     let output = parse_optional_args(&config);
-    let desired_output = "#SBATCH --account=test-account
-#SBATCH --mail-type=ALL
+    let desired_output = "#SBATCH --mail-type=ALL
 #SBATCH --mail-user=testUSER
 #SBATCH --custom-arg=value
 #SBATCH --second-custom-arg=second-value

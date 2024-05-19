@@ -90,6 +90,7 @@ impl SlurmInteractor for SlurmCLI {
 #SBATCH --time={}
 #SBATCH --cpus-per-task={}
 #SBATCH --mem-per-cpu={}
+#SBATCH --account={}
 {}
 
 {} {} $SLURM_ARRAY_TASK_ID
@@ -101,6 +102,7 @@ impl SlurmInteractor for SlurmCLI {
             slurm_config.time_limit,
             slurm_config.cpus,
             slurm_config.mem_per_cpu,
+            slurm_config.account,
             optional_args,
             wrapper_path,
             exp_path.display()
