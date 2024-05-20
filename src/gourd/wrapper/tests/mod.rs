@@ -46,6 +46,7 @@ fn non_matching_arch() {
             binary: out,
             arguments: vec![],
             afterscript: None,
+            postprocess_job: None,
         },
     );
 
@@ -94,6 +95,7 @@ fn matching_arch() {
             binary: out.clone(),
             arguments: vec![],
             afterscript: None,
+            postprocess_job: None,
         },
     );
 

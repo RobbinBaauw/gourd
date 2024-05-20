@@ -10,7 +10,7 @@ use self::fs_based::FileBasedStatus;
 pub mod fs_based;
 
 /// The reasons for a job failing.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FailureReason {
     /// The job retunrned a non zero exit status.
     ExitStatus(i32),
@@ -23,7 +23,7 @@ pub enum FailureReason {
 }
 
 /// This possible outcomes of a job.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Completion {
     /// The job has not yet started.
     Dormant,
@@ -39,7 +39,7 @@ pub enum Completion {
 }
 
 /// This possible outcomes of a postprocessing.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PostprocessCompletion {
     /// The postprocessing job has not yet started.
     Dormant,
@@ -55,7 +55,7 @@ pub enum PostprocessCompletion {
 }
 
 /// The results of a postprocessing.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PostprocessOutput {
     /// The shortened version of postprocessing output.
     pub short_output: String,
@@ -64,17 +64,17 @@ pub struct PostprocessOutput {
     pub long_output: String,
 }
 
-/// All possible postprocessing statuses of a job.
-#[derive(Debug, Clone)]
-pub enum Status {
-    /// This job has no postprocessing.
-    NoPostprocessing(Completion),
+/// All possible postprocessing statuses of a run.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Status {
+    /// The completion of the job.
+    pub completion: Completion,
 
-    /// This job runs an afterscript.
-    AfterScript(Completion, PostprocessCompletion),
+    /// The completion of the afterscript, if there.
+    pub afterscript_completion: Option<PostprocessCompletion>,
 
-    /// This job has a full postprocessing.
-    Postprocessed(Completion, PostprocessCompletion),
+    /// The completion of the postprocess job, if there.
+    pub postprocess_job_completion: Option<PostprocessCompletion>,
 }
 
 /// This type maps between `run_id` and the [Status] of the run.

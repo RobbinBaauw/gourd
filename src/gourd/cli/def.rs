@@ -121,6 +121,10 @@ pub enum Command {
     /// Subcommand for getting the version.
     #[command(about = "Display and about page with the program version")]
     Version,
+
+    /// Subcommand for scheduling the slurm postprocessing jobs.
+    #[command(about = "Schedule slurm postprocessing jobs")]
+    Postprocess,
 }
 
 /// Defines the logging tokens for `colog`.

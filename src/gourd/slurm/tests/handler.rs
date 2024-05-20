@@ -19,6 +19,9 @@ fn parse_optional_args_test_all() {
         mail_type: Some("ALL".to_string()),
         mail_user: Some("testUSER".to_string()),
         additional_args: None,
+        post_job_time_limit: None,
+        post_job_cpus: None,
+        post_job_mem_per_cpu: None,
     };
     let output = parse_optional_args(&config);
     let desired_output = "#SBATCH --begin=01:10:00
@@ -43,6 +46,9 @@ fn parse_optional_args_test_only_begin() {
         mail_type: None,
         mail_user: None,
         additional_args: None,
+        post_job_time_limit: None,
+        post_job_cpus: None,
+        post_job_mem_per_cpu: None,
     };
     let output = parse_optional_args(&config);
     let desired_output = "#SBATCH --begin=15:40:15\n";
@@ -79,6 +85,9 @@ fn parse_optional_args_test_custom_args() {
         mail_type: Some("ALL".to_string()),
         mail_user: Some("testUSER".to_string()),
         additional_args: Some(custom_args_map),
+        post_job_time_limit: None,
+        post_job_cpus: None,
+        post_job_mem_per_cpu: None,
     };
     let output = parse_optional_args(&config);
     let desired_output = "#SBATCH --mail-type=ALL

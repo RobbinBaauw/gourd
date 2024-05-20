@@ -1,4 +1,3 @@
-use std::convert::Into;
 use std::path::PathBuf;
 
 use anstyle::AnsiColor;
@@ -9,10 +8,25 @@ use anstyle::Style;
 pub const WRAPPER_DEFAULT: fn() -> String = || "gourd_wrapper".to_string();
 
 /// The default path to the afterscript.
-pub const AFTERSCRIPT_DEFAULT: fn() -> PathBuf = || "".into();
+pub const AFTERSCRIPT_DEFAULT: fn() -> Option<PathBuf> = || None;
 
-/// The default path to the afterscript output.
-pub const AFTERSCRIPT_OUTPUT_DEFAULT: fn() -> PathBuf = || "after".into();
+/// The default path to the output of an afterscript.
+pub const AFTERSCRIPT_OUTPUT_DEFAULT: fn() -> Option<PathBuf> = || None;
+
+/// The default path to the postprocess job program.
+pub const POSTPROCESS_JOB_DEFAULT: fn() -> Option<PathBuf> = || None;
+
+/// The default path to the output of a postprocess job.
+pub const POSTPROCESS_JOB_OUTPUT_DEFAULT: fn() -> Option<PathBuf> = || None;
+
+/// The default time limit of a postprocess job.
+pub const POSTPROCESS_JOB_TIME: fn() -> Option<String> = || None;
+
+/// The default cpus per postprocess job.
+pub const POSTPROCESS_JOB_CPUS: fn() -> Option<usize> = || None;
+
+/// The default memory per cpu for postprocess jobs.
+pub const POSTPROCESS_JOB_MEM: fn() -> Option<usize> = || None;
 
 /// The default arguments for an input.
 pub const EMPTY_ARGS: fn() -> Vec<String> = Vec::new;

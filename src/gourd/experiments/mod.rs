@@ -1,12 +1,12 @@
 use std::fs;
 use std::path::Path;
+use std::path::PathBuf;
 
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use chrono::DateTime;
 use chrono::Local;
-use gourd_lib::afterscript::AfterscriptInfo;
 use gourd_lib::config::Config;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
@@ -71,7 +71,12 @@ impl ExperimentExt for Experiment {
                             .output_path
                             .join(format!("{}/algo_{}/{}_output", seq, prog_name, input_name)),
                     )?,
-                    afterscript_info: get_afterscript_info(conf, &seq, prog_name, input_name, fs)?,
+                    afterscript_output_path: get_afterscript_info(
+                        conf, &seq, prog_name, input_name, fs,
+                    )?,
+                    post_job_output_path: get_postprocess_job_info(
+                        conf, &seq, prog_name, input_name, fs,
+                    )?,
                     job_id: None,
                 });
             }
@@ -134,27 +139,45 @@ impl ExperimentExt for Experiment {
     }
 }
 
-/// Constructs an afterscript info struct based on values in the config.
+/// Constructs an afterscript path based on values in the config.
 pub fn get_afterscript_info(
     config: &Config,
     seq: &usize,
     prog_name: &String,
     input_name: &String,
     fs: &impl FileOperations,
-) -> Result<Option<AfterscriptInfo>> {
-    let afterscript = &config.programs[prog_name].afterscript;
+) -> Result<Option<PathBuf>> {
+    let postprocessing = &config.programs[prog_name].afterscript;
 
-    if let Some(afs) = afterscript {
-        let afterscript_path = fs.truncate_and_canonicalize(&afs.src.clone())?;
+    if let Some(path) = postprocessing {
+        let afterscript_output_path = fs.truncate_and_canonicalize(&path.clone().join(format!(
+            "{}/algo_{}/afterscript_{}",
+            seq, prog_name, input_name
+        )))?;
 
-        let afterscript_output_path = fs.truncate_and_canonicalize(&afs.out.clone().join(
-            format!("{}/algo_{}/{}_afterscript", seq, prog_name, input_name),
-        ))?;
+        Ok(Some(afterscript_output_path))
+    } else {
+        Ok(None)
+    }
+}
 
-        Ok(Some(AfterscriptInfo {
-            afterscript_path,
-            afterscript_output_path,
-        }))
+/// Constructs a postprocess job output path based on values in the config.
+pub fn get_postprocess_job_info(
+    config: &Config,
+    seq: &usize,
+    prog_name: &String,
+    input_name: &String,
+    fs: &impl FileOperations,
+) -> Result<Option<PathBuf>> {
+    let postprocessing = &config.programs[prog_name].postprocess_job;
+
+    if let Some(path) = postprocessing {
+        let postprocess_output_path = fs.truncate_and_canonicalize(&path.clone().join(format!(
+            "{}/algo_{}postprocess_job_{}",
+            seq, prog_name, input_name
+        )))?;
+
+        Ok(Some(postprocess_output_path))
     } else {
         Ok(None)
     }

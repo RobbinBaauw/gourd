@@ -25,7 +25,8 @@ use crate::cli::def::RunSubcommand;
 use crate::cli::printing::print_version;
 use crate::experiments::ExperimentExt;
 use crate::local::run_local;
-use crate::post::run_afterscript;
+use crate::post::afterscript::run_afterscript;
+use crate::post::postprocess_job::schedule_post_jobs;
 use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::handler::SlurmHandler;
 use crate::slurm::interactor::SlurmCLI;
@@ -131,6 +132,25 @@ pub fn process_command(cmd: &Cli) -> Result<()> {
         Command::Init(_) => panic!("Gourd Init has not been implemented yet"),
         Command::Anal(_) => panic!("Analyze has not been implemented yet"),
         Command::Version => print_version(),
+        Command::Postprocess => {
+            debug!("Reading the config: {:?}", cmd.config);
+
+            let config = Config::from_file(&cmd.config, &file_system)?;
+
+            let mut experiment = Experiment::latest_experiment_from_folder(
+                &config.experiments_folder,
+                &file_system,
+            )?;
+
+            debug!("Found the newest experiment with id: {}", experiment.seq);
+
+            let mut statuses = get_statuses(&experiment, file_system)?;
+
+            schedule_post_jobs(&mut experiment, &config, &mut statuses, &file_system)?;
+
+            debug!("Postprocessing scheduled for available jobs");
+            display_statuses(&experiment, &statuses);
+        }
     }
 
     Ok(())

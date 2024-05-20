@@ -30,6 +30,8 @@ fn breaking_changes_config_struct() {
         inputs: BTreeMap::new(),
         programs: BTreeMap::new(),
         slurm: None,
+        afterscript_output_folder: None,
+        postprocess_job_output_folder: None,
     };
 }
 
@@ -46,6 +48,8 @@ fn breaking_changes_config_file_all_values() {
         metrics_path = "./vulfpeck/"
         experiments_folder = "./parcels/"
         wrapper = "gourd_wrapper"
+        afterscript_output_folder = "./after/"
+        postprocess_job_output_folder = "./post_job/"
 
         [programs]
 
@@ -64,6 +68,8 @@ fn breaking_changes_config_file_all_values() {
             inputs: BTreeMap::new(),
             programs: BTreeMap::new(),
             slurm: None,
+            afterscript_output_folder: Some(PathBuf::from("./after/")),
+            postprocess_job_output_folder: Some(PathBuf::from("./post_job/")),
         },
         Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );
@@ -99,6 +105,8 @@ fn breaking_changes_config_file_required_values() {
             inputs: BTreeMap::new(),
             programs: BTreeMap::new(),
             slurm: None,
+            afterscript_output_folder: None,
+            postprocess_job_output_folder: None,
         },
         Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );
@@ -238,6 +246,8 @@ fn test_globs() {
             inputs,
             programs: BTreeMap::new(),
             slurm: None,
+            afterscript_output_folder: None,
+            postprocess_job_output_folder: None,
         },
         Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );

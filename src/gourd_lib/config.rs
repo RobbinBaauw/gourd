@@ -15,6 +15,11 @@ use crate::constants::AFTERSCRIPT_DEFAULT;
 use crate::constants::AFTERSCRIPT_OUTPUT_DEFAULT;
 use crate::constants::EMPTY_ARGS;
 use crate::constants::GLOB_ESCAPE;
+use crate::constants::POSTPROCESS_JOB_CPUS;
+use crate::constants::POSTPROCESS_JOB_DEFAULT;
+use crate::constants::POSTPROCESS_JOB_MEM;
+use crate::constants::POSTPROCESS_JOB_OUTPUT_DEFAULT;
+use crate::constants::POSTPROCESS_JOB_TIME;
 use crate::constants::PRIMARY_STYLE;
 use crate::constants::WRAPPER_DEFAULT;
 use crate::error::ctx;
@@ -31,19 +36,13 @@ pub struct Program {
     #[serde(default = "EMPTY_ARGS")]
     pub arguments: Vec<String>,
 
-    /// The configuration for the afterscript, if there is one.
-    pub afterscript: Option<AfterscriptConf>,
-}
-
-/// Configuration for an afterscript on a job
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct AfterscriptConf {
-    /// The path to afterscript output for basic postprocessing.
-    #[serde(default = "AFTERSCRIPT_OUTPUT_DEFAULT")]
-    pub out: PathBuf,
-    /// The path to afterscript for basic postprocessing.
+    /// The path to the afterscript, if there is one.
     #[serde(default = "AFTERSCRIPT_DEFAULT")]
-    pub src: PathBuf,
+    pub afterscript: Option<PathBuf>,
+
+    /// The path to the postprocess job, if there is one.
+    #[serde(default = "POSTPROCESS_JOB_DEFAULT")]
+    pub postprocess_job: Option<PathBuf>,
 }
 
 /// A pair of a path to an input and additional cli arguments.
@@ -113,6 +112,14 @@ pub struct Config {
     /// The command to execute to get to the wrapper.
     #[serde(default = "WRAPPER_DEFAULT")]
     pub wrapper: String,
+
+    /// The path to a folder where the afterscript outputs will be stored.
+    #[serde(default = "AFTERSCRIPT_OUTPUT_DEFAULT")]
+    pub afterscript_output_folder: Option<PathBuf>,
+
+    /// The path to a folder where the afterscript outputs will be stored.
+    #[serde(default = "POSTPROCESS_JOB_OUTPUT_DEFAULT")]
+    pub postprocess_job_output_folder: Option<PathBuf>,
 }
 
 /// The config options when running through Slurm
@@ -157,6 +164,18 @@ pub struct SlurmConfig {
 
     /// Custom slurm arguments
     pub additional_args: Option<BTreeMap<String, SBatchArg>>,
+
+    /// Maximum time allowed _for each_ postprocess job.
+    #[serde(default = "POSTPROCESS_JOB_TIME")]
+    pub post_job_time_limit: Option<String>, // this is a string because slurm jobs can be longer than 24h, which is the largest value in toml time. format needs to be either "days-hours:minutes:seconds" or "minutes"
+
+    /// CPUs to use per postprocess job.
+    #[serde(default = "POSTPROCESS_JOB_CPUS")]
+    pub post_job_cpus: Option<usize>,
+
+    /// Memory in MB to allocate per CPU per postprocess job.
+    #[serde(default = "POSTPROCESS_JOB_MEM")]
+    pub post_job_mem_per_cpu: Option<usize>,
 }
 
 /// The structure for providing custom slurm arguments
@@ -181,6 +200,8 @@ impl Default for Config {
             programs: BTreeMap::new(),
             inputs: BTreeMap::new(),
             slurm: None,
+            afterscript_output_folder: AFTERSCRIPT_OUTPUT_DEFAULT(),
+            postprocess_job_output_folder: POSTPROCESS_JOB_OUTPUT_DEFAULT(),
         }
     }
 }
