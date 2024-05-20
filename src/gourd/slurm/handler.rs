@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use anyhow::Result;
 use gourd_lib::config::Config;
 use gourd_lib::config::SlurmConfig;
 use gourd_lib::constants::MAIL_TYPE_VALID_OPTIONS;
@@ -39,7 +40,7 @@ where
         config: &Config,
         experiment: &Experiment,
         exp_path: PathBuf,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         let slurm_config = get_slurm_options_from_config(config)?;
 
         self.internal.schedule_array(

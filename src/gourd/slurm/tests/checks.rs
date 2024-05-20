@@ -1,15 +1,17 @@
 use std::ops::Range;
 use std::path::PathBuf;
 
+use anyhow::Result;
+
 use super::*;
 #[test]
 fn versioning_test() {
     struct X {}
     impl SlurmInteractor for X {
-        fn get_version(&self) -> anyhow::Result<[u64; 2]> {
+        fn get_version(&self) -> Result<[u64; 2]> {
             Ok([21, 8])
         }
-        fn get_partitions(&self) -> anyhow::Result<Vec<Vec<String>>> {
+        fn get_partitions(&self) -> Result<Vec<Vec<String>>> {
             Ok(vec![])
         }
 
@@ -19,7 +21,7 @@ fn versioning_test() {
             _slurm_config: &SlurmConfig,
             _wrapper_path: &str,
             _exp_path: PathBuf,
-        ) -> anyhow::Result<()> {
+        ) -> Result<()> {
             Ok(())
         }
 
@@ -39,10 +41,10 @@ fn versioning_test() {
 fn versioning_un_test() {
     struct X {}
     impl SlurmInteractor for X {
-        fn get_version(&self) -> anyhow::Result<[u64; 2]> {
+        fn get_version(&self) -> Result<[u64; 2]> {
             Ok([21, 8])
         }
-        fn get_partitions(&self) -> anyhow::Result<Vec<Vec<String>>> {
+        fn get_partitions(&self) -> Result<Vec<Vec<String>>> {
             Ok(vec![])
         }
 
@@ -52,7 +54,7 @@ fn versioning_un_test() {
             _slurm_config: &SlurmConfig,
             _wrapper_path: &str,
             _exp_path: PathBuf,
-        ) -> anyhow::Result<()> {
+        ) -> Result<()> {
             Ok(())
         }
 
@@ -83,6 +85,9 @@ fn get_slurm_options_from_config_test() {
             mail_type: None,
             mail_user: None,
             additional_args: None,
+            post_job_time_limit: Some("1:42:00".to_string()),
+            post_job_cpus: Some(1),
+            post_job_mem_per_cpu: Some(2137),
         }),
         ..Default::default()
     };

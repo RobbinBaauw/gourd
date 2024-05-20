@@ -4,6 +4,7 @@ use std::process::Command;
 
 use anyhow::anyhow;
 use anyhow::Context;
+use anyhow::Result;
 use gourd_lib::config::SlurmConfig;
 use gourd_lib::constants::SLURM_VERSIONS;
 use gourd_lib::ctx;
@@ -33,7 +34,7 @@ impl Default for SlurmCLI {
 /// we don't know if other versions are supported.
 impl SlurmInteractor for SlurmCLI {
     /// Get the SLURM version from CLI output.
-    fn get_version(&self) -> anyhow::Result<[u64; 2]> {
+    fn get_version(&self) -> Result<[u64; 2]> {
         let s_info_out = Command::new("sinfo").arg("--version").output()?;
         let version = String::from_utf8_lossy(&s_info_out.stdout)
             .to_string()
@@ -52,7 +53,7 @@ impl SlurmInteractor for SlurmCLI {
 
     /// Get available partitions on the cluster.
     /// returns a (space and newline delimited) table of partition name and availability.
-    fn get_partitions(&self) -> anyhow::Result<Vec<Vec<String>>> {
+    fn get_partitions(&self) -> Result<Vec<Vec<String>>> {
         let s_info_out = Command::new("sinfo").arg("-o").arg("%P %a").output()?;
         let partitions = String::from_utf8_lossy(&s_info_out.stdout)
             .split('\n')
@@ -75,7 +76,7 @@ impl SlurmInteractor for SlurmCLI {
         slurm_config: &SlurmConfig,
         wrapper_path: &str,
         exp_path: PathBuf,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         let temp = TempDir::new("gourd-slurm")?;
         let batch_script = temp.path().join("batch.sh");
 

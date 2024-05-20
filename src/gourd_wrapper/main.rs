@@ -65,7 +65,7 @@ fn main() {
     }
 }
 
-fn process() -> Result<(), anyhow::Error> {
+fn process() -> Result<()> {
     let args: Vec<String> = env::args().collect();
 
     let fs = FileSystemInteractor { dry_run: false };
@@ -168,7 +168,7 @@ fn process_slurm_args(args: &[String], fs: &impl FileOperations) -> Result<RunCo
     })
 }
 
-fn process_local_args(args: &[String]) -> anyhow::Result<RunConf> {
+fn process_local_args(args: &[String]) -> Result<RunConf> {
     if args.len() < 6 {
         bail!("Wrapper needs at least 6 arguments");
     }

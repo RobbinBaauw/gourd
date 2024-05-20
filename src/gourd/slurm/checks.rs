@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use anyhow::Context;
+use anyhow::Result;
 use gourd_lib::config::Config;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
@@ -10,7 +11,7 @@ use crate::slurm::SlurmConfig;
 use crate::slurm::SlurmInteractor;
 
 /// Check the config that it has the necessary fields
-pub fn get_slurm_options_from_config(config: &Config) -> anyhow::Result<&SlurmConfig> {
+pub fn get_slurm_options_from_config(config: &Config) -> Result<&SlurmConfig> {
     config.slurm.as_ref()
         .ok_or_else(|| anyhow!("No SLURM configuration found"))
         .with_context(ctx!(
@@ -24,7 +25,7 @@ where
     T: SlurmInteractor,
 {
     /// Check if the SLURM version is supported.
-    pub(crate) fn check_version(&self) -> anyhow::Result<()>
+    pub(crate) fn check_version(&self) -> Result<()>
     where
         T: SlurmInteractor,
     {
@@ -51,7 +52,7 @@ where
     }
 
     /// Check if the provided partition is valid.
-    pub fn check_partition(&self, partition: &str) -> anyhow::Result<()>
+    pub fn check_partition(&self, partition: &str) -> Result<()>
     where
         T: SlurmInteractor,
     {

@@ -7,7 +7,6 @@ use chrono::Local;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::afterscript::AfterscriptInfo;
 use crate::config::Input;
 use crate::config::Program;
 use crate::file_system::FileOperations;
@@ -43,8 +42,11 @@ pub struct Run {
     /// Slurm job id, if ran on slurm
     pub job_id: Option<usize>,
 
-    /// The paths to afterscript output, optionally.
-    pub afterscript_info: Option<AfterscriptInfo>,
+    /// The path to afterscript output, optionally.
+    pub afterscript_output_path: Option<PathBuf>,
+
+    /// The path to postprocess job output, optionally.
+    pub post_job_output_path: Option<PathBuf>,
 }
 
 /// Describes one experiment.
