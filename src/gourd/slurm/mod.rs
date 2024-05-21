@@ -7,7 +7,8 @@ use gourd_lib::config::SlurmConfig;
 
 /// Some checks when running on slurm to improve error handling
 pub mod checks;
-mod chunk;
+/// An implementation for allocating queued jobs to chunks
+pub mod chunk;
 /// The core slurm functionality
 pub mod handler;
 /// Currently used implementation of interacting with SLURM through the CLI

@@ -8,8 +8,15 @@ use gourd_lib::experiment::SlurmExperiment;
 
 use crate::slurm::checks::get_slurm_data_from_experiment;
 
+/// A trait that applies to an Experiment and enables its constituent runs to be split into Chunks.
 pub trait Chunkable {
+    /// Get a vector of `usize` IDs that correspond to the indices of `self.runs` that have not yet
+    /// been scheduled on the SLURM cluster. Returns an error if this is not a SLURM experiment.
     fn get_unscheduled_runs(&self) -> Result<Vec<usize>, Error>;
+    /// Creates up to `num_chunks` Chunk objects of maximum length `chunk_length`
+    /// from the provided `Run` IDs, such that each chunk contains Runs with
+    /// equal resource limits (as provided by a mapping function). The IDs must
+    /// be valid and should probably be retrieved using `get_unscheduled_runs`.
     fn create_chunks(
         &self,
         chunk_length: usize,
@@ -17,12 +24,16 @@ pub trait Chunkable {
         ids: impl Iterator<Item = usize>,
     ) -> Result<Vec<Chunk>, Error>;
 
+    /// Creates up to `num_chunks` Chunk objects of maximum length `chunk_length`
+    /// from the provided `Run` IDs, such that each chunk contains Runs with
+    /// equal resource limits (as provided by a mapping function). The IDs must
+    /// be valid and should probably be retrieved using `get_unscheduled_runs`.
     #[allow(dead_code)]
     fn create_chunks_with_resource_limits(
         &self,
         chunk_length: usize,
         num_chunks: usize,
-        resource_limit: &dyn Fn(&Run) -> ResourceLimits,
+        resource_limit: fn(&Run) -> ResourceLimits,
         ids: impl Iterator<Item = usize>,
     ) -> Result<Vec<Chunk>, Error>;
 }
@@ -84,7 +95,7 @@ impl Chunkable for Experiment {
         &self,
         chunk_length: usize,
         num_chunks: usize,
-        resource_limit: &dyn Fn(&Run) -> ResourceLimits,
+        resource_limit: fn(&Run) -> ResourceLimits,
         ids: impl Iterator<Item = usize>,
     ) -> Result<Vec<Chunk>, Error> {
         let mut chunks: Vec<Chunk> = vec![];
@@ -113,3 +124,7 @@ impl Chunkable for Experiment {
         Ok(chunks)
     }
 }
+
+#[cfg(test)]
+#[path = "tests/chunk.rs"]
+mod tests;

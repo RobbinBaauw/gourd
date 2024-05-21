@@ -80,7 +80,7 @@ pub struct SlurmExperiment {
 
 /// Describes one chunk: a Slurm array of scheduled runs with common resource limits.
 /// Chunks are created at runtime; a run is in one chunk iff it has been scheduled.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Chunk {
     /// The runs that belong to this chunk (by RunID)
     pub runs: Vec<usize>,

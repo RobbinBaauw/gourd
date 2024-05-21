@@ -60,13 +60,19 @@ impl ExperimentExt for Experiment {
             Environment::Slurm => {
                 let _ = &conf.slurm.to_owned().with_context(
                     ctx!("A SLURM configuration missing from this config file.", ;
-                        "fill the field 'slurm' to your gourd.toml if you want to run on SLURM",))?;
-                let limits = conf.resource_limits.clone().map(|lim| SlurmExperiment {
-                    chunks: vec![],
-                    resource_limits: lim.clone(),
-                }).with_context(
-                    ctx!("SLURM resource limits are missing from this config file.",;
-                        "add 'resource_limits' to your gourd.toml if you want to run on SLURM", ))?;
+                        "fill the field 'slurm' to your gourd.toml if you want to run on SLURM",),
+                )?;
+                let limits = conf
+                    .resource_limits
+                    .clone()
+                    .map(|lim| SlurmExperiment {
+                        chunks: vec![],
+                        resource_limits: lim.clone(),
+                    })
+                    .with_context(
+                        ctx!("SLURM resource limits are missing from this config file.",;
+                        "add 'resource_limits' to your gourd.toml if you want to run on SLURM", ),
+                    )?;
 
                 Ok::<Option<SlurmExperiment>, Error>(Some(limits))
             }
