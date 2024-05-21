@@ -191,7 +191,7 @@ pub struct SBatchArg {
 
 /// The resource limits, a Slurm configuration parameter that can be changed during an experiment.
 /// Contains the CPU, time, and memory bounds per run.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq, Serialize, Deserialize)]
 pub struct ResourceLimits {
     /// Maximum time allowed _for each_ job.
     pub time_limit: Duration,

@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::collections::HashMap;
 
 use anyhow::Result;
 use gourd_lib::config::ResourceLimits;
@@ -41,7 +42,7 @@ pub trait Chunkable {
         &self,
         chunk_length: usize,
         num_chunks: usize,
-        resource_limit: fn(&Run) -> ResourceLimits,
+        resource_limit: impl Fn(&Run) -> ResourceLimits,
         ids: impl Iterator<Item = usize>,
     ) -> Result<Vec<Chunk>>;
 }
@@ -51,7 +52,9 @@ impl Chunkable for Experiment {
         let slurm = get_slurm_data_from_experiment(self)?;
         let mut unscheduled: BTreeSet<usize> = (0..self.runs.len()).collect();
         for chunk in &slurm.chunks {
-            unscheduled.retain(|r| !chunk.runs.contains(r));
+            for chunk_run in chunk.runs.clone() {
+                unscheduled.remove(&chunk_run);
+            }
         }
         Ok(unscheduled.into_iter().collect())
     }
@@ -92,34 +95,48 @@ impl Chunkable for Experiment {
         &self,
         chunk_length: usize,
         num_chunks: usize,
-        resource_limit: fn(&Run) -> ResourceLimits,
+        resource_limit: impl Fn(&Run) -> ResourceLimits,
         ids: impl Iterator<Item = usize>,
     ) -> Result<Vec<Chunk>> {
-        let mut chunks: Vec<Chunk> = vec![];
+        let mut chunks_map: HashMap<ResourceLimits, Chunk> = HashMap::new();
+        let mut final_chunks: Vec<Chunk> = vec![];
         for id in ids {
             debug_assert!(id < self.runs.len(), "Run ID out of range");
             let run = &self.runs[id];
             let limit = resource_limit(run);
-            match chunks.iter_mut().find(|c| c.resource_limits == limit) {
-                Some(t) => {
-                    if t.runs.len() < chunk_length {
-                        t.runs.push(id)
+            match chunks_map.get_mut(&limit) {
+                Some(chunk) => {
+                    if chunk.runs.len() < chunk_length {
+                        chunk.runs.push(id)
                     } else {
-                        chunks.push(Chunk {
-                            runs: vec![id],
-                            resource_limits: limit.clone(),
-                        })
+                        final_chunks.push(chunk.clone());
+                        chunks_map.insert(
+                            limit.clone(),
+                            Chunk {
+                                runs: vec![id],
+                                resource_limits: limit,
+                            },
+                        );
                     }
                 }
-                None => chunks.push(Chunk {
-                    runs: vec![id],
-                    resource_limits: limit.clone(),
-                }),
+                None => {
+                    _ = chunks_map.insert(
+                        limit.clone(),
+                        Chunk {
+                            runs: vec![id],
+                            resource_limits: limit,
+                        },
+                    )
+                }
             }
         }
-        chunks.sort_by(|a, b| b.runs.len().partial_cmp(&a.runs.len()).unwrap());
-        chunks.truncate(num_chunks);
-        Ok(chunks)
+        for chunk in chunks_map.values() {
+            final_chunks.push(chunk.clone());
+        }
+        // Sort in descending order of chunk size
+        final_chunks.sort_by(|a, b| b.runs.len().partial_cmp(&a.runs.len()).unwrap());
+        final_chunks.truncate(num_chunks);
+        Ok(final_chunks)
     }
 }
 
