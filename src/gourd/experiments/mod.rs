@@ -4,7 +4,6 @@ use std::path::PathBuf;
 
 use anyhow::anyhow;
 use anyhow::Context;
-use anyhow::Error;
 use anyhow::Result;
 use chrono::DateTime;
 use chrono::Local;
@@ -58,10 +57,13 @@ impl ExperimentExt for Experiment {
 
         let slurm: Option<SlurmExperiment> = match env {
             Environment::Slurm => {
-                let _ = &conf.slurm.to_owned().with_context(
-                    ctx!("A SLURM configuration missing from this config file.", ;
-                        "fill the field 'slurm' to your gourd.toml if you want to run on SLURM",),
-                )?;
+                if conf.slurm.is_none() {
+                    None.with_context(
+                        ctx!("A SLURM configuration missing from this config file.", ;
+                        "Fill the field `slurm` in your gourd.toml if you want to run on SLURM",),
+                    )?;
+                }
+
                 let limits = conf
                     .resource_limits
                     .clone()
@@ -71,13 +73,13 @@ impl ExperimentExt for Experiment {
                     })
                     .with_context(
                         ctx!("SLURM resource limits are missing from this config file.",;
-                        "add 'resource_limits' to your gourd.toml if you want to run on SLURM", ),
+                        "Add `resource_limits` to your gourd.toml if you want to run on SLURM", ),
                     )?;
 
-                Ok::<Option<SlurmExperiment>, Error>(Some(limits))
+                Some(limits)
             }
-            Environment::Local => Ok(None),
-        }?;
+            Environment::Local => None,
+        };
 
         for prog_name in conf.programs.keys() {
             for input_name in conf.inputs.keys() {

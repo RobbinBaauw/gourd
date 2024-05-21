@@ -31,24 +31,31 @@ impl Default for SlurmCLI {
     }
 }
 
+/// Creates a Slurm duration string.
+///
+/// Converts a standard `std::time::Duration` to a Slurm duration in one of
+/// the following formats: {ss, mm:ss, hh:mm:ss, d-hh:mm:ss}
 fn format_slurm_duration(duration: Duration) -> String {
     let secs = duration.as_secs();
     let secs_rem = secs % 60;
     if secs == secs_rem {
-        return format!("{}", secs);
+        return format!("{:0>2}", secs);
     }
     let mins = secs / 60;
     let mins_rem = mins % 60;
     if mins == mins_rem {
-        return format!("{}:{}", mins, secs_rem);
+        return format!("{:0>2}:{:0>2}", mins, secs_rem);
     }
     let hours = mins / 60;
     let hours_rem = hours % 24;
     if hours == hours_rem {
-        return format!("{}:{}:{}", hours, mins_rem, secs_rem);
+        return format!("{:0>2}:{:0>2}:{:0>2}", hours, mins_rem, secs_rem);
     }
     let days = hours / 24;
-    format!("{}-{}:{}:{}", days, hours_rem, mins_rem, secs_rem)
+    format!(
+        "{}-{:0>2}:{:0>2}:{:0>2}",
+        days, hours_rem, mins_rem, secs_rem
+    )
 }
 
 /// These are using functions specific to CLI version 21.8.x
@@ -158,3 +165,7 @@ impl SlurmInteractor for SlurmCLI {
             .join(", ")
     }
 }
+
+#[cfg(test)]
+#[path = "tests/interactor.rs"]
+mod tests;

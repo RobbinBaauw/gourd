@@ -34,10 +34,10 @@ pub fn get_slurm_data_from_experiment(experiment: &Experiment) -> Result<&SlurmE
         ))
 }
 
-/// Get a mutable reference to SLURM runtime data from the experiment, giving an error if not present
+/// Get &mut SLURM runtime data from the experiment, giving an error if not present
 pub fn get_mut_slurm_data_from_experiment(
     experiment: &mut Experiment,
-) -> anyhow::Result<&mut SlurmExperiment> {
+) -> Result<&mut SlurmExperiment> {
     experiment
         .slurm
         .as_mut()
