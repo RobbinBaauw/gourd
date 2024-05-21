@@ -1,11 +1,13 @@
 use std::ops::Range;
-use std::path::PathBuf;
+use std::path::Path;
 
 use anyhow::Result;
+use gourd_lib::config::ResourceLimits;
 use gourd_lib::config::SlurmConfig;
 
 /// Some checks when running on slurm to improve error handling
 pub mod checks;
+mod chunk;
 /// The core slurm functionality
 pub mod handler;
 /// Currently used implementation of interacting with SLURM through the CLI
@@ -25,8 +27,9 @@ pub trait SlurmInteractor {
         &self,
         range: Range<usize>,
         slurm_config: &SlurmConfig,
+        resource_limits: &ResourceLimits,
         wrapper_path: &str,
-        exp_path: PathBuf,
+        exp_path: &Path,
     ) -> Result<()>;
 
     /// Check if a version of SLURM is supported by this interactor.

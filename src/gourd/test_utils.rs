@@ -10,11 +10,11 @@ use gourd_lib::config::Config;
 use gourd_lib::config::Input;
 use gourd_lib::config::Program;
 use gourd_lib::constants::style_from_fg;
-use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileSystemInteractor;
 use tempdir::TempDir;
 
+use crate::cli::process::Environment;
 use crate::experiments::ExperimentExt;
 
 pub const REAL_FS: FileSystemInteractor = FileSystemInteractor { dry_run: false };
@@ -52,6 +52,7 @@ pub fn create_sample_experiment(
         programs: prog,
         inputs,
         slurm: None,
+        resource_limits: None,
         afterscript_output_folder: Some(TempDir::new("after").unwrap().into_path()),
         postprocess_job_output_folder: Some(TempDir::new("post_job").unwrap().into_path()),
     };

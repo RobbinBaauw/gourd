@@ -1,7 +1,8 @@
 use std::ops::Range;
-use std::path::PathBuf;
+use std::path::Path;
 
 use anyhow::Result;
+use gourd_lib::config::ResourceLimits;
 
 use super::*;
 #[test]
@@ -19,8 +20,9 @@ fn versioning_test() {
             &self,
             _range: Range<usize>,
             _slurm_config: &SlurmConfig,
+            _resource_limits: &ResourceLimits,
             _wrapper_path: &str,
-            _exp_path: PathBuf,
+            _exp_path: &Path,
         ) -> Result<()> {
             Ok(())
         }
@@ -52,8 +54,9 @@ fn versioning_un_test() {
             &self,
             _range: Range<usize>,
             _slurm_config: &SlurmConfig,
+            _resource_limits: &ResourceLimits,
             _wrapper_path: &str,
-            _exp_path: PathBuf,
+            _exp_path: &Path,
         ) -> Result<()> {
             Ok(())
         }
@@ -75,9 +78,8 @@ fn get_slurm_options_from_config_test() {
     let config = Config {
         slurm: Some(SlurmConfig {
             partition: "test".to_string(),
-            time_limit: "1:00:00".to_string(),
-            cpus: 1,
-            mem_per_cpu: 420,
+            array_count_limit: 10,
+            array_size_limit: 1000,
             out: None,
             experiment_name: "test".to_string(),
             account: "test-account".to_string(),

@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use std::mem::swap;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use anyhow::anyhow;
 use anyhow::Context;
@@ -106,6 +107,9 @@ pub struct Config {
     /// If running on a SLURM cluster, the job configurations
     pub slurm: Option<SlurmConfig>,
 
+    /// If running on a SLURM cluster, the initial global resource limits
+    pub resource_limits: Option<ResourceLimits>,
+
     //
     // Advanced settings.
     //
@@ -138,14 +142,11 @@ pub struct SlurmConfig {
     /// - "visual"
     pub partition: String, // technically this would be an enum, but it's different per cluster so i don't know if we should hardcode delftblue's options
 
-    /// Maximum time allowed _for each_ job.
-    pub time_limit: String, // this is a string because slurm jobs can be longer than 24h, which is the largest value in toml time. format needs to be either "days-hours:minutes:seconds" or "minutes"
+    /// The maximum number of arrays to schedule at once.
+    pub array_count_limit: usize,
 
-    /// CPUs to use per job
-    pub cpus: usize,
-
-    /// Memory in MB to allocate per CPU per job
-    pub mem_per_cpu: usize,
+    /// The maximum number of jobs to schedule in a Slurm array.
+    pub array_size_limit: usize,
 
     /// Where slurm should put the stdout and stderr of the job.
     pub out: Option<PathBuf>,
@@ -188,6 +189,20 @@ pub struct SBatchArg {
     pub value: String,
 }
 
+/// The resource limits, a Slurm configuration parameter that can be changed during an experiment.
+/// Contains the CPU, time, and memory bounds per run.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ResourceLimits {
+    /// Maximum time allowed _for each_ job.
+    pub time_limit: Duration,
+
+    /// CPUs to use per job
+    pub cpus: usize,
+
+    /// Memory in MB to allocate per CPU per job
+    pub mem_per_cpu: usize,
+}
+
 // An implementation that provides a default value of `Config`,
 // which allows for the eventual addition of optional config items.
 impl Default for Config {
@@ -200,6 +215,7 @@ impl Default for Config {
             programs: BTreeMap::new(),
             inputs: BTreeMap::new(),
             slurm: None,
+            resource_limits: None,
             afterscript_output_folder: AFTERSCRIPT_OUTPUT_DEFAULT(),
             postprocess_job_output_folder: POSTPROCESS_JOB_OUTPUT_DEFAULT(),
         }
