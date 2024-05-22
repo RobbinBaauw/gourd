@@ -58,10 +58,11 @@ impl ExperimentExt for Experiment {
         let slurm: Option<SlurmExperiment> = match env {
             Environment::Slurm => {
                 if conf.slurm.is_none() {
-                    None.with_context(
-                        ctx!("A SLURM configuration missing from this config file.", ;
-                        "Fill the field `slurm` in your gourd.toml if you want to run on SLURM",),
-                    )?;
+                    return Err(anyhow!(
+                        "A SLURM configuration missing from this config file."
+                    ))
+                    .with_context(ctx!("", ;
+                        "Fill the field `slurm` in your gourd.toml if you want to run on SLURM",));
                 }
 
                 let limits = conf
@@ -71,13 +72,17 @@ impl ExperimentExt for Experiment {
                         chunks: vec![],
                         resource_limits: lim.clone(),
                     })
-                    .with_context(
-                        ctx!("SLURM resource limits are missing from this config file.",;
-                        "Add `resource_limits` to your gourd.toml if you want to run on SLURM", ),
-                    )?;
+                    .ok_or(anyhow!(
+                        "SLURM resource limits are missing from this config file."
+                    ))
+                    .with_context(ctx!(
+                        "",;
+                        "Add `resource_limits` to your gourd.toml if you want to run on SLURM",
+                    ))?;
 
                 Some(limits)
             }
+
             Environment::Local => None,
         };
 
