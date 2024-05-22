@@ -5,7 +5,8 @@ use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use chrono::Local;
-use clap::Parser;
+use clap::CommandFactory;
+use clap::FromArgMatches;
 use colog::default_builder;
 use colog::formatter;
 use gourd_lib::config::Config;
@@ -17,7 +18,8 @@ use log::info;
 use log::trace;
 use log::LevelFilter;
 
-use super::def::LogTokens;
+use super::log::LogTokens;
+use super::printing::get_styles;
 use crate::cli::def::Cli;
 use crate::cli::def::Command;
 use crate::cli::def::RunSubcommand;
@@ -44,7 +46,10 @@ pub enum Environment {
 
 /// This function parses command that gourd was run with.
 pub fn parse_command() {
-    let command = Cli::parse();
+    let styled = Cli::command().styles(get_styles()).get_matches();
+
+    // This unwrap will print the error if the command is wrong.
+    let command = Cli::from_arg_matches(&styled).unwrap();
 
     // https://github.com/rust-lang/rust/blob/master/library/std/src/backtrace.rs
     let backtrace_enabled = match env::var("RUST_LIB_BACKTRACE") {
@@ -110,14 +115,14 @@ pub fn process_command(cmd: &Cli) -> Result<()> {
                         info!("Would have scheduled the experiment on slurm (dry)")
                     } else {
                         s.run_experiment(&config, &mut experiment, exp_path)?;
+                        info!("Experiment started.");
                     }
                 }
             }
 
             experiment.save(&config.experiments_folder, &file_system)?;
-
-            info!("Experiment started.");
         }
+
         Command::Status(_) => {
             debug!("Reading the config: {:?}", cmd.config);
 

@@ -1,8 +1,11 @@
-/// CLI Definition
+/// CLI Definition.
 pub mod def;
 
-/// Util & printing functions
+/// Util & printing functions.
 pub mod printing;
 
-/// Main processing module
+/// Main processing module.
 pub mod process;
+
+/// Logging definitions.
+pub mod log;

@@ -73,3 +73,6 @@ pub const MAIL_TYPE_VALID_OPTIONS: [&str; 13] = [
     "TIME_LIMIT_50",
     "ARRAY_TASKS",
 ];
+
+/// The maximal amount of runs before status only shows a short summary.
+pub const SHORTEN_STATUS_CUTOFF: usize = 100;
