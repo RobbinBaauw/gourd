@@ -29,7 +29,7 @@ fn main() -> Result<(), Error> {
 
     let _ = fs::create_dir(&target_dir);
 
-    let mut cmd = Cli::command();
+    let mut cmd = CLI::command();
 
     generate_to(Bash, &mut cmd, "gourd", &target_dir)?;
     generate_to(Fish, &mut cmd, "gourd", &target_dir)?;
