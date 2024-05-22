@@ -51,11 +51,13 @@ impl Chunkable for Experiment {
     fn get_unscheduled_runs(&self) -> Result<Vec<usize>> {
         let slurm = get_slurm_data_from_experiment(self)?;
         let mut unscheduled: BTreeSet<usize> = (0..self.runs.len()).collect();
+
         for chunk in &slurm.chunks {
             for chunk_run in chunk.runs.clone() {
                 unscheduled.remove(&chunk_run);
             }
         }
+
         Ok(unscheduled.into_iter().collect())
     }
 
@@ -66,6 +68,7 @@ impl Chunkable for Experiment {
         ids: impl Iterator<Item = usize>,
     ) -> Result<Vec<Chunk>> {
         let slurm = get_slurm_data_from_experiment(self)?;
+
         fn new_chunk(slurm_experiment: &SlurmExperiment, capacity: usize) -> Chunk {
             Chunk {
                 runs: Vec::with_capacity(capacity),
@@ -75,6 +78,7 @@ impl Chunkable for Experiment {
 
         let mut chunks: Vec<Chunk> = vec![];
         let mut current_chunk = new_chunk(slurm, chunk_length);
+
         for id in ids {
             debug_assert!(id < self.runs.len(), "Run ID out of range");
             if chunks.len() == num_chunks {
@@ -88,6 +92,7 @@ impl Chunkable for Experiment {
                 current_chunk.runs.push(id);
             }
         }
+
         Ok(chunks)
     }
 
@@ -100,6 +105,7 @@ impl Chunkable for Experiment {
     ) -> Result<Vec<Chunk>> {
         let mut chunks_map: HashMap<ResourceLimits, Chunk> = HashMap::new();
         let mut final_chunks: Vec<Chunk> = vec![];
+
         for id in ids {
             debug_assert!(id < self.runs.len(), "Run ID out of range");
             let run = &self.runs[id];
@@ -119,6 +125,7 @@ impl Chunkable for Experiment {
                         );
                     }
                 }
+
                 None => {
                     _ = chunks_map.insert(
                         limit.clone(),
@@ -130,12 +137,15 @@ impl Chunkable for Experiment {
                 }
             }
         }
+
         for chunk in chunks_map.values() {
             final_chunks.push(chunk.clone());
         }
+
         // Sort in descending order of chunk size
         final_chunks.sort_by(|a, b| b.runs.len().partial_cmp(&a.runs.len()).unwrap());
         final_chunks.truncate(num_chunks);
+
         Ok(final_chunks)
     }
 }

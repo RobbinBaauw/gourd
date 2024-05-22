@@ -44,13 +44,16 @@ where
     ) -> Result<()> {
         let slurm_config = get_slurm_options_from_config(config)?;
         let runs = experiment.get_unscheduled_runs()?;
+
         let chunks_to_schedule = experiment.create_chunks(
             slurm_config.array_count_limit,
             // TODO: correctly handle ongoing array jobs causing a lower limit
             slurm_config.array_size_limit,
             runs.into_iter(),
         )?;
+
         let slurm_experiment = get_mut_slurm_data_from_experiment(experiment)?;
+
         for chunk in chunks_to_schedule {
             // TODO: make the wrapper aware of which chunk we are scheduling
             self.internal.schedule_array(
@@ -60,6 +63,7 @@ where
                 &config.wrapper,
                 &exp_path,
             )?;
+
             slurm_experiment.chunks.push(chunk)
         }
 

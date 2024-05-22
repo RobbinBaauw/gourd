@@ -16,10 +16,12 @@ fn get_unscheduled_runs_test() {
         afterscript: None,
         postprocess_job: None,
     };
+
     let input = Input {
         input: None,
         arguments: vec![],
     };
+
     let (mut experiment, _conf) = create_sample_experiment(
         BTreeMap::from([
             (String::from("Prog1"), prog.clone()),
@@ -32,6 +34,7 @@ fn get_unscheduled_runs_test() {
             (String::from("Inp3"), input),
         ]),
     );
+
     let resource_limits = ResourceLimits {
         time_limit: Duration::new(600, 0),
         cpus: 0,
@@ -45,6 +48,7 @@ fn get_unscheduled_runs_test() {
         }],
         resource_limits,
     });
+
     let runs = experiment.get_unscheduled_runs().unwrap();
 
     assert_eq!(runs, vec!(2, 3, 4, 5, 6, 7, 8))
@@ -58,10 +62,12 @@ fn create_chunks_basic_test() {
         afterscript: None,
         postprocess_job: None,
     };
+
     let input = Input {
         input: None,
         arguments: vec![],
     };
+
     let (mut experiment, _conf) = create_sample_experiment(
         BTreeMap::from([
             (String::from("Prog1"), prog.clone()),
@@ -74,6 +80,7 @@ fn create_chunks_basic_test() {
             (String::from("Inp3"), input),
         ]),
     );
+
     let resource_limits = ResourceLimits {
         time_limit: Duration::new(600, 0),
         cpus: 0,
@@ -114,20 +121,24 @@ fn create_chunks_greedy_test() {
         afterscript: None,
         postprocess_job: None,
     };
+
     let prog_b = Program {
         binary: PathBuf::new().join("b"),
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,
     };
+
     let input_a = Input {
         input: Some(PathBuf::new().join("a")),
         arguments: vec![],
     };
+
     let input_b = Input {
         input: Some(PathBuf::new().join("b")),
         arguments: vec![],
     };
+
     let (mut experiment, _conf) = create_sample_experiment(
         BTreeMap::from([
             (String::from("Prog_A"), prog_a.clone()),
@@ -144,11 +155,13 @@ fn create_chunks_greedy_test() {
             inputs
         },
     );
+
     let resource_limits_a = ResourceLimits {
         time_limit: Duration::new(600, 0),
         cpus: 0,
         mem_per_cpu: 0,
     };
+
     let resource_limits_b = ResourceLimits {
         time_limit: Duration::new(1200, 0),
         cpus: 0,
