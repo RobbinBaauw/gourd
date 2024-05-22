@@ -10,7 +10,6 @@ use colog::default_builder;
 use colog::formatter;
 use gourd_lib::config::Config;
 use gourd_lib::constants::ERROR_STYLE;
-use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileSystemInteractor;
 use log::debug;
@@ -32,6 +31,16 @@ use crate::slurm::handler::SlurmHandler;
 use crate::slurm::interactor::SlurmCLI;
 use crate::status::display_statuses;
 use crate::status::get_statuses;
+
+/// An enum to distinguish the run context.
+#[derive(Clone, Copy, Debug)]
+pub enum Environment {
+    /// Local execution.
+    Local,
+
+    /// Slurm execution.
+    Slurm,
+}
 
 /// This function parses command that gourd was run with.
 pub fn parse_command() {
@@ -97,8 +106,6 @@ pub fn process_command(cmd: &Cli) -> Result<()> {
                     s.check_version()?;
                     s.check_partition(&get_slurm_options_from_config(&config)?.partition)?;
 
-                    #[allow(clippy::unnecessary_mut_passed)] // in the near future we will update
-                    // the experiment when running it, for example to include job ids in the runs
                     if cmd.dry {
                         info!("Would have scheduled the experiment on slurm (dry)")
                     } else {

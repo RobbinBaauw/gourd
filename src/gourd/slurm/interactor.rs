@@ -1,10 +1,12 @@
 use std::ops::Range;
-use std::path::PathBuf;
+use std::path::Path;
 use std::process::Command;
+use std::time::Duration;
 
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use gourd_lib::config::ResourceLimits;
 use gourd_lib::config::SlurmConfig;
 use gourd_lib::constants::SLURM_VERSIONS;
 use gourd_lib::ctx;
@@ -27,6 +29,40 @@ impl Default for SlurmCLI {
             versions: SLURM_VERSIONS.to_vec(),
         }
     }
+}
+
+/// Creates a Slurm duration string.
+///
+/// Converts a standard `std::time::Duration` to a Slurm duration in one of
+/// the following formats: {ss, mm:ss, hh:mm:ss, d-hh:mm:ss}
+fn format_slurm_duration(duration: Duration) -> String {
+    let secs = duration.as_secs();
+    let secs_rem = secs % 60;
+
+    if secs == secs_rem {
+        return format!("{:0>2}", secs);
+    }
+
+    let mins = secs / 60;
+    let mins_rem = mins % 60;
+
+    if mins == mins_rem {
+        return format!("{:0>2}:{:0>2}", mins, secs_rem);
+    }
+
+    let hours = mins / 60;
+    let hours_rem = hours % 24;
+
+    if hours == hours_rem {
+        return format!("{:0>2}:{:0>2}:{:0>2}", hours, mins_rem, secs_rem);
+    }
+
+    let days = hours / 24;
+
+    format!(
+        "{}-{:0>2}:{:0>2}:{:0>2}",
+        days, hours_rem, mins_rem, secs_rem
+    )
 }
 
 /// These are using functions specific to CLI version 21.8.x
@@ -74,8 +110,9 @@ impl SlurmInteractor for SlurmCLI {
         &self,
         range: Range<usize>,
         slurm_config: &SlurmConfig,
+        resource_limits: &ResourceLimits,
         wrapper_path: &str,
-        exp_path: PathBuf,
+        exp_path: &Path,
     ) -> Result<()> {
         let temp = TempDir::new("gourd-slurm")?;
         let batch_script = temp.path().join("batch.sh");
@@ -100,9 +137,9 @@ impl SlurmInteractor for SlurmCLI {
             range.start,
             range.end,
             slurm_config.partition,
-            slurm_config.time_limit,
-            slurm_config.cpus,
-            slurm_config.mem_per_cpu,
+            format_slurm_duration(resource_limits.time_limit),
+            resource_limits.cpus,
+            resource_limits.mem_per_cpu,
             slurm_config.account,
             optional_args,
             wrapper_path,
@@ -135,3 +172,7 @@ impl SlurmInteractor for SlurmCLI {
             .join(", ")
     }
 }
+
+#[cfg(test)]
+#[path = "tests/interactor.rs"]
+mod tests;

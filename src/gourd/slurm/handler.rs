@@ -6,7 +6,9 @@ use gourd_lib::config::SlurmConfig;
 use gourd_lib::constants::MAIL_TYPE_VALID_OPTIONS;
 use gourd_lib::experiment::Experiment;
 
+use crate::slurm::checks::get_mut_slurm_data_from_experiment;
 use crate::slurm::checks::get_slurm_options_from_config;
+use crate::slurm::chunk::Chunkable;
 use crate::slurm::SlurmInteractor;
 
 /// Functionality associated with running on slurm
@@ -34,21 +36,37 @@ where
     T: SlurmInteractor,
 {
     /// Run an experiment on delftblue.
-    /// TODO: scheduling algorithm to support multiple memory and time configurations.
     pub fn run_experiment(
         &self,
         config: &Config,
-        experiment: &Experiment,
+        experiment: &mut Experiment,
         exp_path: PathBuf,
     ) -> Result<()> {
         let slurm_config = get_slurm_options_from_config(config)?;
+        let runs = experiment.get_unscheduled_runs()?;
 
-        self.internal.schedule_array(
-            0..experiment.runs.len(),
-            slurm_config,
-            &config.wrapper,
-            exp_path,
+        let chunks_to_schedule = experiment.create_chunks(
+            slurm_config.array_count_limit,
+            // TODO: correctly handle ongoing array jobs causing a lower limit
+            slurm_config.array_size_limit,
+            runs.into_iter(),
         )?;
+
+        let slurm_experiment = get_mut_slurm_data_from_experiment(experiment)?;
+
+        for chunk in chunks_to_schedule {
+            // TODO: make the wrapper aware of which chunk we are scheduling
+            self.internal.schedule_array(
+                0..chunk.runs.len(),
+                slurm_config,
+                &chunk.resource_limits,
+                &config.wrapper,
+                &exp_path,
+            )?;
+
+            slurm_experiment.chunks.push(chunk)
+        }
+
         Ok(())
     }
 }

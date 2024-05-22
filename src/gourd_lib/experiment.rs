@@ -9,20 +9,11 @@ use serde::Serialize;
 
 use crate::config::Input;
 use crate::config::Program;
+use crate::config::ResourceLimits;
 use crate::file_system::FileOperations;
 
-/// The run location of the experiment.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
-pub enum Environment {
-    /// Local execution.
-    Local,
-
-    /// Slurm execution.
-    Slurm,
-}
-
 /// Describes a matching between an algorithm and an input.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Run {
     /// The program to run.
     pub program: Program,
@@ -55,8 +46,9 @@ pub struct Experiment {
     /// The pairings of program-input for this experiment.
     pub runs: Vec<Run>,
 
-    /// The run location of this experiment.
-    pub env: Environment,
+    /// The runtime data for running on Slurm.
+    /// Present if this is a Slurm experiment, absent otherwise.
+    pub slurm: Option<SlurmExperiment>,
 
     /// The time of creation of the experiment.
     pub creation_time: DateTime<Local>,
@@ -74,6 +66,27 @@ impl Experiment {
 
         Ok(saving_path)
     }
+}
+
+/// Runtime data for running on Slurm, including scheduled chunks.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SlurmExperiment {
+    /// Chunks scheduled for running on Slurm.
+    pub chunks: Vec<Chunk>,
+
+    /// Global resource limits that will apply to _newly created chunks_.
+    pub resource_limits: ResourceLimits,
+}
+
+/// Describes one chunk: a Slurm array of scheduled runs with common resource limits.
+/// Chunks are created at runtime; a run is in one chunk iff it has been scheduled.
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct Chunk {
+    /// The runs that belong to this chunk (by RunID)
+    pub runs: Vec<usize>,
+
+    /// The resource limits of this chunk.
+    pub resource_limits: ResourceLimits,
 }
 
 // this stays here as an idea to eventually implement,
