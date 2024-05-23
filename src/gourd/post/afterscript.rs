@@ -9,6 +9,7 @@ use anyhow::Result;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
+use gourd_lib::file_system::FileOperations;
 
 use crate::resources::run_script;
 use crate::status::Completion;
@@ -16,12 +17,17 @@ use crate::status::PostprocessCompletion;
 use crate::status::Status;
 
 /// Runs the afterscript on jobs that are completed and do not yet have an afterscript output.
-pub fn run_afterscript(
+pub fn run_afterscript<F>(
     statuses: &BTreeMap<usize, Option<Status>>,
     experiment: &Experiment,
-) -> Result<()> {
+    file_system: F,
+) -> Result<BTreeMap<usize, String>>
+where
+    F: FileOperations,
+{
     let runs = filter_runs_for_afterscript(statuses)?;
 
+    let mut labels = BTreeMap::new();
     for run_id in runs {
         let run = &experiment.runs[*run_id];
         let after_out_path = &run.afterscript_output_path;
@@ -63,9 +69,24 @@ pub fn run_afterscript(
                     ))?
             ));
         }
-    }
 
-    Ok(())
+        if let Some(label_map) = &experiment.config.label {
+            let text = file_system.read_utf8(&after_output)?;
+            for l in label_map.keys() {
+                let label = label_map
+                    .get(l)
+                    .expect("your implementation of BTreeMap is wrong");
+                if regex_lite::Regex::new(&label.regex)
+                    .unwrap()
+                    .is_match(&text)
+                {
+                    labels.insert(*run_id, l.clone());
+                    break;
+                }
+            }
+        }
+    }
+    Ok(labels)
 }
 
 /// Find the completed jobs where afterscript did not run yet.

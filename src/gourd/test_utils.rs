@@ -55,6 +55,7 @@ pub fn create_sample_experiment(
         resource_limits: None,
         afterscript_output_folder: Some(TempDir::new("after").unwrap().into_path()),
         postprocess_job_output_folder: Some(TempDir::new("post_job").unwrap().into_path()),
+        label: Some(BTreeMap::new()),
     };
 
     (

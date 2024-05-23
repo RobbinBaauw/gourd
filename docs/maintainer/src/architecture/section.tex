@@ -6,3 +6,46 @@
 \subsection{Structural Overview}
 
 This section explains each part of the application's modular layout and the technologies used.
+
+\subsection{Labels}
+note: this is going to be moved to user docs.
+I am temporarily putting it here just so the documentation exists.
+Whoever moves this to user guides (lucas told me he will do it) is also responsible for styling the code blocks :)
+
+When running \verb|gourd status|, by default the statuses only display information about Slurm scheduling of the run or an exit code.
+In the case that a job execution can succeed (exit code 0) but the run should still be considered a failure, the user can add a custom label to the run, derived from the output of the run's afterscript.
+Labels can be created in the configuration file as names with a regular expression, where if the regex has a match in the afterscript's output, then this label is assigned to the run.
+Syntax is as follows:
+
+\texttt{gourd.toml}
+\begin{verbatim}
+    [label.<label_name>]
+    regex = <regex>
+    rerun_by_default = <true/false>
+\end{verbatim}
+\begin{itemize}
+    \item \verb|<label_name>|: The name of the label as is to be displayed by \verb|gourd status|.
+    \item \verb|<regex>|: The regular expression to match against the afterscript's output.
+    If a match is found, the label is assigned to the run.
+    \item \verb|<true/false>|: Including this is optional, with a default value of \verb|true|.
+    If the field is not present or present with value \verb|true|, the run will be rerun by default if this label is assigned to it; ie this will be considered a failed run.
+    If false then \verb|gourd status| will display the run as successful, and \verb|gourd rerun failed| will ignore it.
+\end{itemize}
+Labels are assigned on a first-match basis. For example if the configuration file looks like:
+\begin{verbatim}
+    [label.label1]
+    regex = "Success"
+    rerun_by_default = false
+
+    [label.label2]
+    regex = "RuntimeException"
+\end{verbatim}
+and the afterscript output looks like:
+\begin{verbatim}
+    Starting afterscript...
+    Success! The output was correct.
+    Verifying something else...
+    RuntimeException thrown while parsing
+\end{verbatim}
+then by principle of first-match, the run will be assigned label1 and not label2, because label1 has higher priority in the configuration file.
+The behaviour of this can be changed by reordering the labels.
