@@ -21,24 +21,32 @@ Syntax is as follows:
 \begin{verbatim}
     [label.<label_name>]
     regex = <regex>
+    priority = <int>
     rerun_by_default = <true/false>
 \end{verbatim}
 \begin{itemize}
     \item \verb|<label_name>|: The name of the label as is to be displayed by \verb|gourd status|.
     \item \verb|<regex>|: The regular expression to match against the afterscript's output.
     If a match is found, the label is assigned to the run.
+    \item \verb|<int>|: The priority of the label.
+    Higher numbers have higher priority.
+    If multiple labels match the afterscript's output, the label with the highest priority is assigned to the run.
+    Multiple labels with the same priority are assigned to the run is undefined behaviour (I think they are ordered alphabetically by name's hash).
     \item \verb|<true/false>|: Including this is optional, with a default value of \verb|true|.
     If the field is not present or present with value \verb|true|, the run will be rerun by default if this label is assigned to it; ie this will be considered a failed run.
     If false then \verb|gourd status| will display the run as successful, and \verb|gourd rerun failed| will ignore it.
 \end{itemize}
-Labels are assigned on a first-match basis. For example if the configuration file looks like:
+Labels are assigned based on priority.
+For example if the configuration file looks like:
 \begin{verbatim}
     [label.label1]
     regex = "Success"
+    priority = 1
     rerun_by_default = false
 
     [label.label2]
     regex = "RuntimeException"
+    priority = 2
 \end{verbatim}
 and the afterscript output looks like:
 \begin{verbatim}
@@ -47,5 +55,4 @@ and the afterscript output looks like:
     Verifying something else...
     RuntimeException thrown while parsing
 \end{verbatim}
-then by principle of first-match, the run will be assigned label1 and not label2, because label1 has higher priority in the configuration file.
-The behaviour of this can be changed by reordering the labels.
+then by principle of priorities, the run will be assigned label2 even though both regex match.

@@ -33,7 +33,7 @@ fn breaking_changes_config_struct() {
         resource_limits: None,
         afterscript_output_folder: None,
         postprocess_job_output_folder: None,
-        label: Some(BTreeMap::new()),
+        labels: Some(BTreeMap::new()),
     };
 }
 
@@ -73,7 +73,7 @@ fn breaking_changes_config_file_all_values() {
             resource_limits: None,
             afterscript_output_folder: Some(PathBuf::from("./after/")),
             postprocess_job_output_folder: Some(PathBuf::from("./post_job/")),
-            label: None,
+            labels: None,
         },
         Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );
@@ -112,7 +112,7 @@ fn breaking_changes_config_file_required_values() {
             resource_limits: None,
             afterscript_output_folder: None,
             postprocess_job_output_folder: None,
-            label: None,
+            labels: None,
         },
         Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );
@@ -255,7 +255,7 @@ fn test_globs() {
             resource_limits: None,
             afterscript_output_folder: None,
             postprocess_job_output_folder: None,
-            label: None,
+            labels: None,
         },
         Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );
@@ -297,6 +297,7 @@ fn test_regex_that_do_match() {
             experiments_folder = ""
             [label.stefan]
             regex = "[a-zA-Z0-9]+ loves stefan"
+            priority = 42
             [programs]
             [inputs]
         "#;
@@ -306,11 +307,10 @@ fn test_regex_that_do_match() {
 
     let config =
         Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.");
-    assert_eq!(
-        regex_lite::Regex::new(config.label.unwrap().get("stefan").unwrap().regex.as_str())
+    assert!(
+        regex_lite::Regex::new(config.labels.unwrap().get("stefan").unwrap().regex.as_str())
             .unwrap()
-            .is_match("18C loves stefan"),
-        true
+            .is_match("18C loves stefan")
     );
 }
 
@@ -324,6 +324,7 @@ fn test_invalid_regex_gives_error() {
             experiments_folder = ""
             [label.stefan]
             regex = "{{{{{{{{{{{{{{{{ i didnt pass acc"
+            priority = 42
             [programs]
             [inputs]
         "#;

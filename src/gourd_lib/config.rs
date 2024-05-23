@@ -84,6 +84,10 @@ pub struct Label {
     /// The regex to run over the afterscript output. If there's a match, this label is assigned.
     pub regex: String,
 
+    /// The priority of the label. Higher numbers mean higher priority, and if label is
+    /// present it will override lower priority labels, even if they are also present.
+    pub priority: u64,
+
     /// Whether using rerun failed will rerun this job- ie is this label a "failure"
     #[serde(default = "RERUN_LABEL_BY_DEFAULT")]
     pub rerun_by_default: bool,
@@ -147,7 +151,8 @@ pub struct Config {
     /// regex = "<regex>" # the regex where if it matches then this label is assigned
     /// rerun_by_default = true # whether using rerun failed will rerun this job- ie is this label a "failure"
     /// ```
-    pub label: Option<BTreeMap<String, Label>>,
+    #[serde(alias = "label")]
+    pub labels: Option<BTreeMap<String, Label>>,
 }
 
 /// The config options when running through Slurm
@@ -242,7 +247,7 @@ impl Default for Config {
             resource_limits: None,
             afterscript_output_folder: AFTERSCRIPT_OUTPUT_DEFAULT(),
             postprocess_job_output_folder: POSTPROCESS_JOB_OUTPUT_DEFAULT(),
-            label: Some(BTreeMap::new()),
+            labels: Some(BTreeMap::new()),
         }
     }
 }
@@ -265,7 +270,7 @@ impl Config {
             Self::disallow_substring(name, INTERNAL_GLOB)?;
             Self::disallow_substring(name, INTERNAL_POST)?;
         }
-        if let Some(labels) = &initial.label {
+        if let Some(labels) = &initial.labels {
             Self::check_regexes(labels)?;
         }
 

@@ -70,21 +70,7 @@ where
             ));
         }
 
-        if let Some(label_map) = &experiment.config.label {
-            let text = file_system.read_utf8(&after_output)?;
-            for l in label_map.keys() {
-                let label = label_map
-                    .get(l)
-                    .expect("your implementation of BTreeMap is wrong");
-                if regex_lite::Regex::new(&label.regex)
-                    .unwrap()
-                    .is_match(&text)
-                {
-                    labels.insert(*run_id, l.clone());
-                    break;
-                }
-            }
-        }
+        add_label_to_run(*run_id, &mut labels, experiment, after_output, &file_system)?;
     }
     Ok(labels)
 }
@@ -149,6 +135,41 @@ pub fn run_afterscript_for_run(
     ))?;
 
     Ok(exit_status)
+}
+
+fn add_label_to_run(
+    run_id: usize,
+    labels: &mut BTreeMap<usize, String>,
+    experiment: &Experiment,
+    after_output: PathBuf,
+    file_system: &impl FileOperations,
+) -> Result<()> {
+    if let Some(label_map) = &experiment.config.labels {
+        let text = file_system.read_utf8(&after_output)?;
+        for l in {
+            let mut keys = label_map.keys().collect::<Vec<&String>>();
+            keys.sort_by(|a, b| {
+                label_map
+                    .get(*b)
+                    .unwrap()
+                    .priority
+                    .cmp(&label_map.get(*a).unwrap().priority)
+            });
+            keys
+        } {
+            let label = label_map
+                .get(l)
+                .expect("your implementation of BTreeMap is wrong");
+            if regex_lite::Regex::new(&label.regex)
+                .unwrap()
+                .is_match(&text)
+            {
+                labels.insert(run_id, l.clone());
+                break;
+            }
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
