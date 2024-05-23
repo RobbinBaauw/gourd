@@ -159,8 +159,8 @@ fn process_slurm_args(args: &[String], fs: &impl FileOperations) -> Result<RunCo
         .unwrap();
 
     Ok(RunConf {
-        binary_path: exp.runs[id].program.binary.clone(),
-        input_path: exp.runs[id].input.input.clone(),
+        binary_path: exp.config.programs[&exp.runs[id].program].binary.clone(),
+        input_path: exp.config.inputs[&exp.runs[id].input].input.clone(),
         output_path: exp.runs[id].output_path.clone(),
         result_path: exp.runs[id].metrics_path.clone(),
         err_path: exp.runs[id].err_path.clone(),

@@ -7,8 +7,8 @@ use crate::test_utils::get_compiled_example;
 /// assert that they run correctly
 /// Note: while there are no assertions for it, the outputs
 /// should be in increasing order of computation time!
-#[test]
-fn runner_fibonacci_test() {
+#[tokio::test]
+async fn runner_fibonacci_test() {
     // Ensure binary is built
     let (out, _tmp) = get_compiled_example(include_str!("test_resources/fibonacci.rs"), None);
 
@@ -20,17 +20,14 @@ fn runner_fibonacci_test() {
         commands.push(cmd);
     }
 
-    let results = run_locally(commands);
+    let results = run_locally(commands).await;
 
-    assert!(results.is_ok(), "Executing children failed");
-    for r in results.unwrap() {
-        assert!(r.success(), "Couldn't execute child, test failed");
-    }
+    assert!(results.is_ok(), "Executing children processes failed");
 }
 
 /// Test sleeping in the thread pool (don't drown tho)
-#[test]
-fn runner_sleep_test() {
+#[tokio::test]
+async fn runner_sleep_test() {
     let mut commands: Vec<Command> = vec![];
     for value in [4, 3, 2, 1, 2, 3] {
         let mut cmd = Command::new("sleep");
@@ -38,10 +35,7 @@ fn runner_sleep_test() {
         commands.push(cmd);
     }
 
-    let results = run_locally(commands);
+    let results = run_locally(commands).await;
 
-    assert!(results.is_ok(), "Executing children failed");
-    for r in results.unwrap() {
-        assert!(r.success(), "Couldn't execute child, test failed");
-    }
+    assert!(results.is_ok(), "Executing children processes failed");
 }

@@ -8,7 +8,6 @@ use std::process::Command;
 
 use anyhow::Context;
 use anyhow::Result;
-use gourd_lib::config::Config;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
@@ -27,37 +26,35 @@ fn verify_arch(_: &PathBuf, _: &str, _: &impl FileOperations) -> Result<()> {
 /// This function returns the commands to be run for an n x m matching of the runs to tests.
 ///
 /// The results and outputs will be located in `config.output_dir`.
-pub fn wrap(
-    experiment: &Experiment,
-    arch: &str,
-    conf: &Config,
-    fs: &impl FileOperations,
-) -> Result<Vec<Command>> {
+pub fn wrap(experiment: &Experiment, arch: &str, fs: &impl FileOperations) -> Result<Vec<Command>> {
     let mut result = Vec::new();
 
     for run in &experiment.runs {
-        verify_arch(&run.program.binary, arch, fs)?;
+        let program = &experiment.config.programs[&run.program];
+        let input = &experiment.config.inputs[&run.input];
 
-        let mut cmd = Command::new(&conf.wrapper);
-        cmd.arg(&run.program.binary.canonicalize().with_context(ctx!(
-              "The executable for {:?} could not be found", run.program.binary;
+        verify_arch(&program.binary, arch, fs)?;
+
+        let mut cmd = Command::new(&experiment.config.wrapper);
+        cmd.arg(&program.binary.canonicalize().with_context(ctx!(
+              "The executable for {:?} could not be found", program.binary;
               "Please ensure that all executables exist", ))?)
             // TODO: Fix this in the new version of the wrapper, assigned to Andreas
             .arg(
-                run.input
+                input
                     .input
                     .clone()
                     .unwrap()
                     .canonicalize()
                     .with_context(ctx!(
-              "The input file {:?} could not be found", run.input.input;
+              "The input file {:?} could not be found", input.input;
               "Please ensure that all input files exist", ))?,
             )
             .arg(run.output_path.clone())
             .arg(run.metrics_path.clone())
             .arg(run.err_path.clone())
-            .args(&run.program.arguments)
-            .args(&run.input.arguments);
+            .args(&program.arguments)
+            .args(&input.arguments);
 
         result.push(cmd);
     }

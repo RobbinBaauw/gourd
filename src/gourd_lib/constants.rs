@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::time::Duration;
 
 use anstyle::AnsiColor;
 use anstyle::Color;
@@ -34,6 +35,15 @@ pub const EMPTY_ARGS: fn() -> Vec<String> = Vec::new;
 /// The prefix which will cause an argument to be interpreted as a glob.
 pub const GLOB_ESCAPE: &str = "glob|";
 
+/// The internal representation of globbed inputs.
+pub const INTERNAL_GLOB: &str = "_glob_";
+
+/// The internal representation of postprocess runs.
+pub const INTERNAL_POST: &str = "_postprocess_";
+
+/// The amount between refreshes of the status screen, in ms.
+pub const STATUS_REFRESH_RATE: Duration = Duration::from_millis(50);
+
 /// Create a style with a defined foreground color.
 pub const fn style_from_fg(color: AnsiColor) -> Style {
     Style::new().fg_color(Some(Color::Ansi(color)))
@@ -46,7 +56,7 @@ pub const PRIMARY_STYLE: Style = style_from_fg(AnsiColor::Green).bold();
 pub const SECONDARY_STYLE: Style = style_from_fg(AnsiColor::BrightGreen);
 
 /// The styling for the university name.
-pub const UNIVERSITY_STYLE: Style = Style::new().bold();
+pub const NAME_STYLE: Style = Style::new().bold();
 
 /// The styling for error messages.
 pub const ERROR_STYLE: Style = style_from_fg(AnsiColor::Red).bold().blink();

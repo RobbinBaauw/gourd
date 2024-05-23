@@ -68,14 +68,21 @@ pub enum RunSubcommand {
 /// Structure of status subcommand.
 #[derive(Args, Debug, Clone, Copy)]
 pub struct StatusStruct {
+    #[arg(short, long, help = "Rerun failed jobs")]
+    pub(crate) rerun_failed: bool,
+
     #[arg(
-        id = "run-failed",
-        value_name = "bool",
-        short,
-        long,
-        help = "Rerun failed jobs"
+        value_name = "EXPERIMENT",
+        help = "The id of the experiment for which to fetch status [default: newest experiment]"
     )]
-    run_failed: bool,
+    pub(crate) experiment_id: Option<usize>,
+
+    #[arg(
+        short = 'i',
+        long,
+        help = "Get a detailed description of a run by providing its id"
+    )]
+    pub(crate) run_id: Option<usize>,
 }
 
 /// Structure of init subcommand.

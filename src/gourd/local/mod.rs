@@ -1,7 +1,6 @@
 use std::env;
 
 use anyhow::Result;
-use gourd_lib::config::Config;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
 
@@ -12,10 +11,10 @@ use crate::wrapper::wrap;
 pub mod runner;
 
 /// Run an experiment locally, as specified in the config file.
-pub fn run_local(config: &Config, experiment: &Experiment, fs: &impl FileOperations) -> Result<()> {
-    let cmds = wrap(experiment, env::consts::ARCH, config, fs)?;
+pub async fn run_local(experiment: &Experiment, fs: &impl FileOperations) -> Result<()> {
+    let cmds = wrap(experiment, env::consts::ARCH, fs)?;
 
-    run_locally(cmds)?;
+    run_locally(cmds).await?;
 
     Ok(())
 }

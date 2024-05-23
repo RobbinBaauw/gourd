@@ -39,8 +39,9 @@ pub fn run_afterscript(
                 "",
             ))?;
 
-        let afterscript = run
-            .program
+        let program = &experiment.config.programs[&run.program];
+
+        let afterscript = program
             .afterscript
             .clone()
             .ok_or(anyhow!("Could not get the afterscript information"))

@@ -61,9 +61,8 @@ reqwest = { version = "0.12.4", features = ["blocking", "json"], optional = true
 # To provide a user-friendly CLI
 clap = { version = "4.5.4", features = ["derive", "cargo"] }
 anstyle = "1.0.7"
-
-# To generate shell completions for the CLI
-clap_complete = "4.5.2"
+indicatif = "0.17.8"
+indicatif-log-bridge = "0.2.2"
 
 # To handle errors
 anyhow = "1"
