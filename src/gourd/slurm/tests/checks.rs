@@ -5,6 +5,7 @@ use gourd_lib::experiment::Chunk;
 use gourd_lib::experiment::Experiment;
 
 use super::*;
+use crate::slurm::SlurmStatus;
 #[test]
 fn versioning_test() {
     struct X {}
@@ -23,8 +24,8 @@ fn versioning_test() {
             _chunk_id: usize,
             _experiment: &mut Experiment,
             _exp_path: &Path,
-        ) -> Result<()> {
-            Ok(())
+        ) -> Result<u64> {
+            Ok(123456)
         }
 
         fn is_version_supported(&self, _v: [u64; 2]) -> bool {
@@ -33,6 +34,16 @@ fn versioning_test() {
 
         fn get_supported_versions(&self) -> String {
             "groff".to_string()
+        }
+
+        fn get_accounting_data(&self, _job_id: Vec<String>) -> anyhow::Result<Vec<SlurmStatus>> {
+            Ok(vec![SlurmStatus {
+                job_id: "123456".to_string(),
+                job_name: "test job name".to_string(),
+                state: "FAILED".to_string(),
+                slurm_exit_code: 0,
+                program_exit_code: 0,
+            }])
         }
     }
     let y = SlurmHandler { internal: X {} };
@@ -57,8 +68,8 @@ fn versioning_un_test() {
             _chunk_id: usize,
             _experiment: &mut Experiment,
             _exp_path: &Path,
-        ) -> Result<()> {
-            Ok(())
+        ) -> Result<u64> {
+            Ok(123456)
         }
 
         fn is_version_supported(&self, _v: [u64; 2]) -> bool {
@@ -67,6 +78,16 @@ fn versioning_un_test() {
 
         fn get_supported_versions(&self) -> String {
             "your dad".to_string()
+        }
+
+        fn get_accounting_data(&self, _job_id: Vec<String>) -> anyhow::Result<Vec<SlurmStatus>> {
+            Ok(vec![SlurmStatus {
+                job_id: "123456".to_string(),
+                job_name: "test job name".to_string(),
+                state: "FAILED".to_string(),
+                slurm_exit_code: 0,
+                program_exit_code: 0,
+            }])
         }
     }
     let y = SlurmHandler { internal: X {} };

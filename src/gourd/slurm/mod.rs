@@ -14,6 +14,25 @@ pub mod handler;
 /// Currently used implementation of interacting with SLURM through the CLI
 pub mod interactor;
 
+/// Structure of Slurm status
+#[derive(Debug, Clone)]
+pub struct SlurmStatus {
+    /// ID of the job
+    pub job_id: String,
+
+    /// Name of the job
+    pub job_name: String,
+
+    /// Current state of the job
+    pub state: String,
+
+    /// Exit code of slurm
+    pub slurm_exit_code: i32,
+
+    /// Exit code of the program
+    pub program_exit_code: i32,
+}
+
 /// The interface for interacting with a SLURM cluster.
 /// This can be via a version-specific CLI, via a REST API, or via a library.
 pub trait SlurmInteractor {
@@ -38,4 +57,7 @@ pub trait SlurmInteractor {
 
     /// Get the supported versions of SLURM for this interactor.
     fn get_supported_versions(&self) -> String;
+
+    /// Get accounting data of user's jobs
+    fn get_accounting_data(&self, job_id: Vec<String>) -> anyhow::Result<Vec<SlurmStatus>>;
 }

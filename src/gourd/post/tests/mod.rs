@@ -145,7 +145,7 @@ fn test_filter_runs_for_afterscript_good_weather() {
     assert_eq!(res.len(), 1);
 
     let paths = res[0];
-    assert_eq!(*paths, 1);
+    assert_eq!(*qpaths, 1);
 }
 
 #[test]

@@ -15,6 +15,7 @@ use log::debug;
 use tempdir::TempDir;
 
 use super::handler::parse_optional_args;
+use super::SlurmStatus;
 use crate::slurm::SlurmInteractor;
 
 /// Creates a Slurm duration string.
@@ -203,6 +204,32 @@ impl SlurmInteractor for SlurmCli {
             .map(|x| format!("{}.{}", x[0], x[1]))
             .collect::<Vec<String>>()
             .join(", ")
+    }
+
+    /// Get accounting data of user's jobs
+    fn get_accounting_data(&self, job_id: Vec<String>) -> anyhow::Result<Vec<SlurmStatus>> {
+        let sacct = Command::new("sacct")
+            .arg("-p")
+            .arg("--format=jobid,jobname,state,exitcode")
+            .arg(format!("--jobs={}", job_id.join(",")))
+            .output()?;
+        let mut result = Vec::new();
+        for job in String::from_utf8_lossy(&sacct.stdout)
+            .trim()
+            .split('\n')
+            .skip(1)
+        {
+            let fields = job.split('|').collect::<Vec<&str>>();
+            let exit_codes = fields[3].split(':').collect::<Vec<&str>>();
+            result.push(SlurmStatus {
+                job_id: fields[0].to_string(),
+                job_name: fields[1].to_string(),
+                state: fields[2].to_string(),
+                slurm_exit_code: exit_codes[0].parse().unwrap_or(0),
+                program_exit_code: exit_codes[1].parse().unwrap_or(0),
+            });
+        }
+        Ok(result)
     }
 }
 

@@ -14,8 +14,8 @@ use crate::constants::NAME_STYLE;
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 #[serde(tag = "type")]
 pub enum Metrics {
-    /// The metrics have not been calucalted yet.
-    Pending,
+    /// The metrics have not been calculated yet.
+    NotCompleted,
 
     /// The measurement has been finished.
     Done(Measurement),

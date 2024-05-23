@@ -51,9 +51,9 @@ where
                         0 => Completion::Success(metrics),
                         _ => Completion::Fail(FailureReason::ExitStatus(metrics)),
                     },
-                    Metrics::Pending => Completion::Pending,
+                    Metrics::NotCompleted => Completion::Running,
                 },
-                None => Completion::Dormant,
+                None => Completion::Pending,
             };
 
             let mut afterscript_completion = None;

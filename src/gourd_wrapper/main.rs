@@ -77,8 +77,8 @@ fn process() -> Result<()> {
 
     fs::write(
         &rc.result_path,
-        toml::to_string(&Metrics::Pending)
-            .context("Could not serialize the Pending metrics state")?,
+        toml::to_string(&Metrics::NotCompleted)
+            .context("Could not serialize the Not Completed metrics state")?,
     )
     .context(format!(
         "Could not write to the result file {:?}",

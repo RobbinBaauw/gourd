@@ -27,6 +27,19 @@ use crate::cli::printing::generate_progress_bar;
 /// File system based status information.
 pub mod fs_based;
 
+/// Slurm based status information
+pub mod slurm_based;
+
+/// The reasons for slurm to kill a job
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum SlurmKillReason {
+    /// Job reached the time limit
+    Timeout,
+
+    /// Job reached the memory limit
+    MemoryLimit,
+}
+
 /// The reasons for a job failing.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FailureReason {
@@ -34,7 +47,7 @@ pub enum FailureReason {
     ExitStatus(Measurement),
 
     /// Slurm killed the job.
-    SlurmKill,
+    SlurmKill(SlurmKillReason),
 
     /// User marked.
     UserForced,
@@ -44,10 +57,10 @@ pub enum FailureReason {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Completion {
     /// The job has not yet started.
-    Dormant,
+    Pending,
 
     /// The job is still running.
-    Pending,
+    Running,
 
     /// The job succeeded.
     Success(Measurement),
@@ -96,7 +109,7 @@ pub struct Status {
 }
 
 /// This type maps between `run_id` and the [Status] of the run.
-pub type ExperimentStatus = BTreeMap<usize, Option<Status>>;
+pub type ExperimentStatus = BTreeMap<String, Option<Status>>;
 
 /// A struct that can attest the statuses or some or all running jobs.
 pub trait StatusProvider<T> {
@@ -111,7 +124,9 @@ pub fn get_statuses(
 ) -> Result<ExperimentStatus> {
     // for now we do not support slurm.
 
-    FileBasedStatus::get_statuses(fs, experiment)
+    // FileBasedStatus::get_statuses(fs, experiment)
+
+    SlurmBasedStatus::get_statuses((), experiment)
 }
 
 impl Display for FailureReason {

@@ -4,6 +4,7 @@ use anyhow::Result;
 use gourd_lib::config::Config;
 use gourd_lib::config::SlurmConfig;
 use gourd_lib::constants::MAIL_TYPE_VALID_OPTIONS;
+use gourd_lib::experiment::Chunk;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
 use log::debug;
