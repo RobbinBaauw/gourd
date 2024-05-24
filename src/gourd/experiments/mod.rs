@@ -114,10 +114,8 @@ impl ExperimentExt for Experiment {
                     )?,
                     afterscript_output_path: conf.afterscript_output_folder.as_ref().map(
                         |out_path| {
-                            out_path.join(format!(
-                                "{}/algo_{}/afterscript_{}",
-                                seq, prog_name, input_name
-                            ))
+                            out_path
+                                .join(format!("{}/{}/afterscript_{}", seq, prog_name, input_name))
                         },
                     ),
                     post_job_output_path: get_postprocess_job_info(

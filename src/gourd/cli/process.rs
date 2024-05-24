@@ -205,7 +205,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             let statuses = get_statuses(&experiment, file_system)?;
 
             // TODO: status should do something with these labels
-            let _labels = run_afterscript(&statuses, &experiment, file_system)?;
+            let _labels = run_afterscript(&statuses, &experiment, &file_system)?;
 
             match run_id {
                 Some(id) => {

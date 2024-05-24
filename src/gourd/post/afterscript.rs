@@ -6,6 +6,7 @@ use std::process::ExitStatus;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use gourd_lib::config::Config;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
@@ -17,14 +18,11 @@ use crate::status::PostprocessCompletion;
 use crate::status::Status;
 
 /// Runs the afterscript on jobs that are completed and do not yet have an afterscript output.
-pub fn run_afterscript<F>(
+pub fn run_afterscript(
     statuses: &BTreeMap<usize, Option<Status>>,
     experiment: &Experiment,
-    file_system: F,
-) -> Result<BTreeMap<usize, String>>
-where
-    F: FileOperations,
-{
+    file_system: &impl FileOperations,
+) -> Result<BTreeMap<usize, String>> {
     let runs = filter_runs_for_afterscript(statuses)?;
 
     let mut labels = BTreeMap::new();
@@ -70,7 +68,7 @@ where
             ));
         }
 
-        add_label_to_run(*run_id, &mut labels, experiment, after_output, &file_system)?;
+        add_label_to_run(*run_id, &mut labels, experiment, after_output, file_system)?;
     }
     Ok(labels)
 }
@@ -146,29 +144,19 @@ fn add_label_to_run(
 ) -> Result<()> {
     if let Some(label_map) = &experiment.config.labels {
         let text = file_system.read_utf8(&after_output)?;
-        for l in {
-            let mut keys = label_map.keys().collect::<Vec<&String>>();
-            keys.sort_by(|a, b| {
-                label_map
-                    .get(*b)
-                    .unwrap()
-                    .priority
-                    .cmp(&label_map.get(*a).unwrap().priority)
-            });
-            keys
-        } {
-            let label = label_map
-                .get(l)
-                .expect("your implementation of BTreeMap is wrong");
-            if regex_lite::Regex::new(&label.regex)
-                .unwrap()
-                .is_match(&text)
-            {
+
+        let mut keys = label_map.keys().collect::<Vec<&String>>();
+        keys.sort_by(|a, b| label_map[*b].priority.cmp(&label_map[*a].priority));
+
+        for l in keys {
+            let label = &label_map[l];
+            if Config::check_regex(l, label)?.is_match(&text) {
                 labels.insert(run_id, l.clone());
                 break;
             }
         }
     }
+
     Ok(())
 }
 

@@ -271,7 +271,9 @@ impl Config {
             Self::disallow_substring(name, INTERNAL_POST)?;
         }
         if let Some(labels) = &initial.labels {
-            Self::check_regexes(labels)?;
+            for (label_name, label) in labels {
+                Self::check_regex(label_name, label)?;
+            }
         }
 
         initial.inputs = Self::expand_globs(initial.inputs)?;
@@ -379,17 +381,13 @@ impl Config {
 
     /// Check that the labels the user gave contain valid regular expressions
     /// for finding them in the afterscript output.
-    fn check_regexes(labels: &BTreeMap<String, Label>) -> Result<()> {
-        for (label_name, label) in labels {
-            regex_lite::Regex::new(&label.regex).with_context(ctx!(
-              "Could not compile regex for label {label_name:?}", ;
-              "Ensure that `{}` is valid regex.
-               Check https://en.wikipedia.org/wiki/Regular_expression#Syntax for syntax help",
-                label.regex,
-            ))?;
-        }
-
-        Ok(())
+    pub fn check_regex(label_name: &String, label: &Label) -> Result<regex_lite::Regex> {
+        regex_lite::Regex::new(&label.regex).with_context(ctx!(
+          "Could not compile regex for label {label_name:?}", ;
+          "Ensure that `{}` is valid regex.
+           Check https://en.wikipedia.org/wiki/Regular_expression#Syntax for syntax help",
+            label.regex,
+        ))
     }
 }
 
