@@ -226,7 +226,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
         Command::Anal(_) => panic!("Analyze has not been implemented yet"),
 
-        Command::Version => print_version(),
+        Command::Version => print_version(cmd.script),
 
         Command::Postprocess => {
             debug!("Reading the config: {:?}", cmd.config);
