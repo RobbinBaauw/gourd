@@ -183,7 +183,7 @@ fn create_chunks_greedy_test() {
     // - use limits_A for combination of input_A and program_A
     // - use limits_B for everything else
     let f = |r: &Run| {
-        if r.input == input_a.clone() && r.program == prog_a.clone() {
+        if r.input.starts_with("Input_A") && r.program == "Prog_A" {
             return resource_limits_a.clone();
         }
         resource_limits_b.clone()

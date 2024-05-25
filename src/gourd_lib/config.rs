@@ -16,6 +16,8 @@ use crate::constants::AFTERSCRIPT_DEFAULT;
 use crate::constants::AFTERSCRIPT_OUTPUT_DEFAULT;
 use crate::constants::EMPTY_ARGS;
 use crate::constants::GLOB_ESCAPE;
+use crate::constants::INTERNAL_GLOB;
+use crate::constants::INTERNAL_POST;
 use crate::constants::POSTPROCESS_JOB_CPUS;
 use crate::constants::POSTPROCESS_JOB_DEFAULT;
 use crate::constants::POSTPROCESS_JOB_MEM;
@@ -82,7 +84,7 @@ pub struct Input {
 // 2. will it break user workflows?
 // 3. update the tests
 // 4. update the user documentation
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Config {
     //
     // Basic settings.
@@ -231,9 +233,30 @@ impl Config {
           "More help and examples can be found with {PRIMARY_STYLE}man gourd.toml{PRIMARY_STYLE:#}",
         ))?;
 
+        for name in initial.inputs.keys() {
+            Self::disallow_substring(name, INTERNAL_GLOB)?;
+            Self::disallow_substring(name, INTERNAL_POST)?;
+        }
+
+        for name in initial.programs.keys() {
+            Self::disallow_substring(name, INTERNAL_GLOB)?;
+            Self::disallow_substring(name, INTERNAL_POST)?;
+        }
+
         initial.inputs = Self::expand_globs(initial.inputs)?;
 
         Ok(initial)
+    }
+
+    fn disallow_substring(name: &String, disallowed: &'static str) -> Result<()> {
+        if name.contains(disallowed) {
+            Err(anyhow!("Failed to include the input {name}")).with_context(ctx!(
+              "The input name contained `{disallowed}`, not allowed", ;
+              "Do not include `{disallowed}` in the name of your inputs",
+            ))
+        } else {
+            Ok(())
+        }
     }
 
     /// Takes the set of all inputs and expands the globbed arguments.
@@ -260,28 +283,30 @@ impl Config {
         let mut result = BTreeMap::new();
 
         for (original, input) in inputs {
-            if original.contains("_glob_") {
-                return Err(anyhow!("Failed to include the input {original}")).with_context(ctx!(
-                  "The input name contained `_glob_`, not allowed", ;
-                  "Do not include `_glob_` in the name of your inputs",
-                ));
-            }
-
             let mut globset = HashSet::new();
             globset.insert(input.clone());
+
+            let mut is_glob = false;
 
             for arg_index in 0..input.arguments.len() {
                 let mut next_globset = HashSet::new();
 
                 for input_instance in &globset {
-                    Self::explode_globset(input_instance, arg_index, &mut next_globset)?;
+                    is_glob |= Self::explode_globset(input_instance, arg_index, &mut next_globset)?;
                 }
 
                 swap(&mut globset, &mut next_globset);
             }
 
-            for (idx, glob) in globset.iter().enumerate() {
-                result.insert(format!("{}_glob_{}", original, idx), glob.clone());
+            if is_glob {
+                for (idx, glob) in globset.iter().enumerate() {
+                    result.insert(
+                        format!("{}{}{}", original, INTERNAL_GLOB, idx),
+                        glob.clone(),
+                    );
+                }
+            } else {
+                result.insert(original, input);
             }
         }
 
@@ -290,7 +315,7 @@ impl Config {
 
     /// Given a `input` and `arg_index` expand the glob at that
     /// argument and put the results in `fill`.
-    fn explode_globset(input: &Input, arg_index: usize, fill: &mut HashSet<Input>) -> Result<()> {
+    fn explode_globset(input: &Input, arg_index: usize, fill: &mut HashSet<Input>) -> Result<bool> {
         let arg = &input.arguments[arg_index];
         let no_escape = arg.strip_prefix(GLOB_ESCAPE);
 
@@ -314,11 +339,11 @@ impl Config {
 
                 fill.insert(glob_instance);
             }
+            Ok(true)
         } else {
             fill.insert(input.clone());
+            Ok(false)
         }
-
-        Ok(())
     }
 }
 

@@ -5,9 +5,9 @@ use std::path::PathBuf;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
-use gourd_lib::config::Config;
 use gourd_lib::config::Input;
 use gourd_lib::config::Program;
+use gourd_lib::constants::INTERNAL_POST;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
@@ -21,7 +21,6 @@ use crate::status::Status;
 /// Schedules the postprocessing job for jobs that are completed and do not yet have a postprocess job output.
 pub fn schedule_post_jobs(
     experiment: &mut Experiment,
-    config: &Config,
     statuses: &mut BTreeMap<usize, Option<Status>>,
     fs: &impl FileOperations,
 ) -> Result<()> {
@@ -45,8 +44,9 @@ pub fn schedule_post_jobs(
                 "",
             ))?;
 
-        let postprocess = run
-            .program
+        let program = &experiment.config.programs[&run.program];
+
+        let postprocess = program
             .postprocess_job
             .clone()
             .ok_or(anyhow!("Could not get the postprocessing information"))
@@ -56,10 +56,10 @@ pub fn schedule_post_jobs(
             ))?;
 
         post_job_for_run(
+            format!("{}_{}", run.program, run.input),
             &postprocess,
             &res_path,
             &post_output,
-            config,
             experiment,
             fs,
         )?
@@ -95,29 +95,43 @@ pub fn filter_runs_for_post_job(runs: &mut BTreeMap<usize, Option<Status>>) -> R
 
 /// Schedules the postprocess job for given jobs.
 pub fn post_job_for_run(
+    name: String,
     postprocess: &Path,
     postprocess_input: &PathBuf,
     postprocess_out: &Path,
-    conf: &Config,
     experiment: &mut Experiment,
     fs: &impl FileOperations,
 ) -> Result<()> {
-    experiment.runs.push(Run {
-        program: Program {
+    let prog_name = format!("{}{}", INTERNAL_POST, name);
+    let input_name = format!("{}{}", INTERNAL_POST, name);
+
+    experiment.config.programs.insert(
+        prog_name.clone(),
+        Program {
             binary: postprocess.to_path_buf(),
             arguments: vec![],
             afterscript: None,
             postprocess_job: None,
         },
-        input: Input {
+    );
+
+    experiment.config.inputs.insert(
+        prog_name.clone(),
+        Input {
             input: Some(postprocess_input.clone()),
             arguments: vec![],
         },
+    );
+
+    experiment.runs.push(Run {
+        program: prog_name,
+        input: input_name,
         err_path: fs.truncate_and_canonicalize(
             &postprocess_out.join(format!("error_{:?}", postprocess_input)),
         )?,
         metrics_path: fs.truncate_and_canonicalize(
-            &conf
+            &experiment
+                .config
                 .metrics_path
                 .join(format!("metrics_{:?}", postprocess_input)),
         )?,

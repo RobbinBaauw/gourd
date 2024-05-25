@@ -1,13 +1,19 @@
 use anstyle::AnsiColor;
+use anyhow::Context;
+use anyhow::Result;
 use clap::crate_authors;
 use clap::crate_name;
 use clap::crate_version;
 use gourd_lib::constants::style_from_fg;
 use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::HELP_STYLE;
+use gourd_lib::constants::NAME_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
 use gourd_lib::constants::SECONDARY_STYLE;
-use gourd_lib::constants::UNIVERSITY_STYLE;
+use gourd_lib::ctx;
+use gourd_lib::error::Ctx;
+use indicatif::ProgressBar;
+use indicatif::ProgressStyle;
 
 /// Util function for getting the style for the CLI
 #[cfg(not(tarpaulin_include))]
@@ -37,7 +43,7 @@ pub fn print_version() {
 
     println!(
         "{}Technische Universiteit Delft 2024{:#}\n",
-        UNIVERSITY_STYLE, UNIVERSITY_STYLE,
+        NAME_STYLE, NAME_STYLE,
     );
 
     println!("Authored by:\n{}", crate_authors!("\n"));
@@ -71,6 +77,21 @@ pub fn format_table(data: Vec<Vec<String>>) -> String {
         result.push_str(&formatted_row.join(" | "));
     }
     result.trim().to_string()
+}
+
+/// Generates the progress bar used by the cli.
+pub fn generate_progress_bar(len: u64) -> Result<ProgressBar> {
+    let prog_style = ProgressStyle::with_template(
+        "{prefix}[{spinner:.green}] {bar:.green/blue} {msg} {pos}/{len}",
+    )
+    .with_context(ctx!("Failed to create the progress bar",;"",))?
+    .progress_chars("##-");
+
+    let bar = ProgressBar::new(len);
+    bar.set_message("Running jobs...");
+    bar.set_style(prog_style);
+
+    Ok(bar)
 }
 
 #[cfg(test)]

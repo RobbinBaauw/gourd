@@ -1,8 +1,19 @@
 use std::collections::BTreeMap;
+use std::fmt::Display;
+use std::io::Write;
 
+use anyhow::anyhow;
+use anyhow::Context;
 use anyhow::Result;
+use gourd_lib::constants::ERROR_STYLE;
+use gourd_lib::constants::NAME_STYLE;
+use gourd_lib::constants::PRIMARY_STYLE;
+use gourd_lib::constants::SHORTEN_STATUS_CUTOFF;
+use gourd_lib::ctx;
+use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
+use log::info;
 
 use self::fs_based::FileBasedStatus;
 
@@ -93,9 +104,173 @@ pub fn get_statuses(experiment: &Experiment, fs: impl FileOperations) -> Result<
     FileBasedStatus::get_statuses(fs, experiment)
 }
 
+impl Display for FailureReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FailureReason::SlurmKill => write!(f, "slurm killed"),
+            FailureReason::UserForced => write!(f, "user killed the job"),
+            FailureReason::ExitStatus(exit) => write!(f, "exit code {exit}"),
+        }
+    }
+}
+
+impl Display for Completion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Completion::Dormant => write!(f, "?")?,
+            Completion::Pending => write!(f, "pending!")?,
+            Completion::Success => write!(f, "{}success{:#}", PRIMARY_STYLE, PRIMARY_STYLE)?,
+            Completion::Fail(exit) => {
+                write!(f, "{}failed with {}{:#}", ERROR_STYLE, exit, ERROR_STYLE)?
+            }
+        };
+
+        Ok(())
+    }
+}
+
 /// Display the status of an experiment in a human readable from.
-pub fn display_statuses(experiment: &Experiment, statuses: &ExperimentStatus) {
-    for (run_id, _) in experiment.runs.iter().enumerate() {
-        println!("Run {} has {:?}", run_id, statuses[&run_id]);
+///
+/// Returns how many jobs are finished.
+pub fn display_statuses(
+    f: &mut impl Write,
+    experiment: &Experiment,
+    statuses: &ExperimentStatus,
+) -> Result<usize> {
+    if experiment.runs.len() <= SHORTEN_STATUS_CUTOFF {
+        long_status(f, experiment, statuses)?;
+    } else {
+        short_status(experiment, statuses)?;
+    }
+
+    let mut finished = 0;
+
+    for run in 0..experiment.runs.len() {
+        if let Some(stat) = &statuses[&run] {
+            match stat.completion {
+                Completion::Success => {
+                    finished += 1;
+                }
+                Completion::Fail(_) => {
+                    finished += 1;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    Ok(finished)
+}
+
+fn short_status(_: &Experiment, _: &ExperimentStatus) -> Result<()> {
+    todo!()
+}
+
+fn long_status(
+    f: &mut impl Write,
+    experiment: &Experiment,
+    statuses: &ExperimentStatus,
+) -> Result<()> {
+    let runs = &experiment.runs;
+
+    let mut by_program: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+
+    for (run_id, run_data) in runs.iter().enumerate() {
+        if let Some(for_this_prog) = by_program.get_mut(&run_data.program) {
+            for_this_prog.push(run_id);
+        } else {
+            by_program.insert(run_data.program.clone(), vec![run_id]);
+        }
+    }
+
+    for (prog, prog_runs) in by_program {
+        writeln!(f)?;
+
+        writeln!(f, "For program {}:", prog)?;
+
+        for run_id in prog_runs {
+            let run = &experiment.runs[run_id];
+
+            if let Some(status) = &statuses[&run_id] {
+                writeln!(
+                    f,
+                    "  {}. with input {} ..... {}",
+                    run_id, run.input, status.completion
+                )?;
+            } else {
+                writeln!(
+                    f,
+                    "  {}. with input {} ..... could not retrieve status ",
+                    run_id, run.input
+                )?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Display the status of an experiment in a human readable from.
+pub fn display_job(
+    f: &mut impl Write,
+    exp: &Experiment,
+    statuses: &ExperimentStatus,
+    id: usize,
+) -> Result<()> {
+    info!(
+        "Displaying the status of job {} in experiment {}",
+        id, exp.seq
+    );
+
+    writeln!(f)?;
+
+    if let Some(run) = exp.runs.get(id) {
+        let program = &exp.config.programs[&run.program];
+        let input = &exp.config.inputs[&run.input];
+
+        writeln!(f, "{NAME_STYLE}program{NAME_STYLE:#}: {}", run.program)?;
+        writeln!(
+            f,
+            "  {NAME_STYLE}binary{NAME_STYLE:#}: {:?}",
+            program.binary
+        )?;
+
+        writeln!(f, "{NAME_STYLE}input{NAME_STYLE:#}: {:?}", run.input)?;
+        writeln!(f, " {NAME_STYLE}file{NAME_STYLE:#}: {:?}", input.input)?;
+
+        let mut args = vec![];
+        args.append(&mut program.arguments.clone());
+        args.append(&mut input.arguments.clone());
+
+        writeln!(f, "{NAME_STYLE}arguments{NAME_STYLE:#}: {:?}\n", args)?;
+
+        writeln!(
+            f,
+            "{NAME_STYLE}output path{NAME_STYLE:#}: {:?}",
+            run.output_path
+        )?;
+        writeln!(
+            f,
+            "{NAME_STYLE}stderr path{NAME_STYLE:#}: {:?}",
+            run.err_path
+        )?;
+        writeln!(
+            f,
+            "{NAME_STYLE}metric path{NAME_STYLE:#}: {:?}\n",
+            run.metrics_path
+        )?;
+
+        if let Some(status) = &statuses[&id] {
+            writeln!(f, "{NAME_STYLE}status?{NAME_STYLE:#} {}", status.completion)?;
+        } else {
+            writeln!(f, "no status information available")?;
+        }
+
+        Ok(())
+    } else {
+        Err(anyhow!("A run with this id does not exist")).with_context(ctx!(
+            "", ;
+            "You can see the run ids by running {}gourd status{:#}", PRIMARY_STYLE, PRIMARY_STYLE
+        ))
     }
 }

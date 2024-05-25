@@ -9,6 +9,7 @@ use gourd_lib::experiment::Experiment;
 use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
 use gourd_lib::measurement::Metrics;
+use log::trace;
 
 use super::Completion;
 use super::ExperimentStatus;
@@ -30,9 +31,18 @@ where
         let mut statuses = BTreeMap::new();
 
         for (run_id, run) in experiment.runs.iter().enumerate() {
+            trace!(
+                "Reading status for run {} from {:?}",
+                run_id,
+                run.metrics_path
+            );
+
             let metrics = match fs.try_read_toml::<Metrics>(&run.metrics_path) {
                 Ok(x) => Some(x),
-                Err(_) => None,
+                Err(e) => {
+                    trace!("Failed to read metrics: {:?}", e);
+                    None
+                }
             };
 
             let completion = match metrics {

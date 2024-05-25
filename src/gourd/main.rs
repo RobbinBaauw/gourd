@@ -39,6 +39,7 @@ mod test_utils;
 ///
 /// This function is the main entrypoint of the program.
 #[cfg(not(tarpaulin_include))]
-fn main() {
-    cli::process::parse_command();
+#[tokio::main]
+async fn main() {
+    cli::process::parse_command().await;
 }

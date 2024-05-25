@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use anyhow::Context;
 use anyhow::Result;
 use log::debug;
-use log::info;
+use log::trace;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
@@ -82,7 +82,7 @@ impl FileOperations for FileSystemInteractor {
 
     fn write_bytes_truncate(&self, path: &Path, bytes: &[u8]) -> Result<()> {
         if self.dry_run {
-            info!("Would have written to {path:?} (dry)");
+            debug!("Would have written to {path:?} (dry)");
             return Ok(());
         }
 
@@ -97,10 +97,10 @@ impl FileOperations for FileSystemInteractor {
     fn truncate_and_canonicalize(&self, path: &Path) -> Result<PathBuf> {
         if self.dry_run {
             if let Some(parent) = path.parent() {
-                debug!("Would have created {parent:?} (dry)");
+                trace!("Would have created {parent:?} (dry)");
             }
 
-            debug!("Would have created {path:?} (dry)");
+            trace!("Would have created {path:?} (dry)");
             return Ok(path.to_path_buf());
         }
 

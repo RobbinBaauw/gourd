@@ -7,19 +7,18 @@ use chrono::Local;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::config::Input;
-use crate::config::Program;
+use crate::config::Config;
 use crate::config::ResourceLimits;
 use crate::file_system::FileOperations;
 
 /// Describes a matching between an algorithm and an input.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Run {
-    /// The program to run.
-    pub program: Program,
+    /// The unique name of the program to run.
+    pub program: String,
 
     /// The unique name of the input to run with.
-    pub input: Input,
+    pub input: String,
 
     /// The path to the stderr output.
     pub err_path: PathBuf,
@@ -53,6 +52,9 @@ pub struct Experiment {
     /// The time of creation of the experiment.
     pub creation_time: DateTime<Local>,
 
+    /// Experiment internal, specific config.
+    pub config: Config,
+
     /// The ID of this experiment.
     pub seq: usize,
 }
@@ -60,7 +62,7 @@ pub struct Experiment {
 impl Experiment {
     /// Save the experiment to a file with its timestamp.
     pub fn save(&self, folder: &Path, fs: &impl FileOperations) -> Result<PathBuf> {
-        let saving_path = folder.join(format!("{}.toml", self.seq));
+        let saving_path = folder.join(format!("{}.lock", self.seq));
 
         fs.try_write_toml(&saving_path, &self)?;
 

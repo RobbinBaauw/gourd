@@ -60,9 +60,9 @@ fn non_matching_arch() {
         },
     );
 
-    let (experiment, conf) = create_sample_experiment(first, second);
+    let (experiment, _) = create_sample_experiment(first, second);
 
-    match wrap(&experiment, "x86_64", &conf, &REAL_FS) {
+    match wrap(&experiment, "x86_64", &REAL_FS) {
         Err(err) => {
             assert!(format!("{}", err.root_cause()).contains("not match the expected architecture"))
         }
@@ -111,7 +111,7 @@ fn matching_arch() {
 
     let (experiment, conf) = create_sample_experiment(first, second);
 
-    let cmds = wrap(&experiment, env::consts::ARCH, &conf, &REAL_FS).unwrap();
+    let cmds = wrap(&experiment, env::consts::ARCH, &REAL_FS).unwrap();
 
     assert_eq!(1, cmds.len());
     assert_eq!(
@@ -123,19 +123,19 @@ fn matching_arch() {
                 .arg(input.canonicalize().unwrap())
                 .arg(
                     conf.output_path
-                        .join("1/algo_any/test1_output")
+                        .join("1/any/test1_output")
                         .canonicalize()
                         .unwrap()
                 )
                 .arg(
                     conf.metrics_path
-                        .join("1/algo_any/test1_metrics")
+                        .join("1/any/test1_metrics")
                         .canonicalize()
                         .unwrap()
                 )
                 .arg(
                     conf.output_path
-                        .join("1/algo_any/test1_error")
+                        .join("1/any/test1_error")
                         .canonicalize()
                         .unwrap()
                 )

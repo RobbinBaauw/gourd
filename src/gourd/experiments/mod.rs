@@ -19,8 +19,10 @@ use crate::cli::process::Environment;
 
 /// Extension trait for the shared `Experiment` struct.
 pub trait ExperimentExt {
-    /// constructor from a `config`.
-
+    /// Initialize a new experiment from a `config`.
+    ///
+    /// Creates a new experiment by matching all algorithms to all inputs.
+    /// The experiment is created in the provided `env` and with `time` as the timestamp.
     fn from_config(
         conf: &Config,
         env: Environment,
@@ -29,19 +31,23 @@ pub trait ExperimentExt {
     ) -> Result<Self>
     where
         Self: Sized;
-    /// find the most recent experiment in a folder
+
+    /// Get the filename of the newest experiment.
     fn latest_id_from_folder(folder: &Path) -> Result<Option<usize>>;
-    /// when running gourd status without an argument it should fetch the most recent experiment
+
+    /// Provided a folder gets the most recent experiment.
     fn latest_experiment_from_folder(folder: &Path, fs: &impl FileOperations)
         -> Result<Experiment>;
+
+    /// Provided a folder gets the specified experiment.
+    fn experiment_from_folder(
+        seq: usize,
+        folder: &Path,
+        fs: &impl FileOperations,
+    ) -> Result<Experiment>;
 }
 
 impl ExperimentExt for Experiment {
-    /// Initialize a new experiment from a `config`.
-    ///
-    /// Creates a new experiment by matching all algorithms to all inputs.
-    /// The experiment is created in the provided `env` and with `time` as the timestamp.
-
     fn from_config(
         conf: &Config,
         env: Environment,
@@ -89,22 +95,22 @@ impl ExperimentExt for Experiment {
         for prog_name in conf.programs.keys() {
             for input_name in conf.inputs.keys() {
                 runs.push(Run {
-                    program: conf.programs[prog_name].clone(),
-                    input: conf.inputs[input_name].clone(),
+                    program: prog_name.clone(),
+                    input: input_name.clone(),
                     err_path: fs.truncate_and_canonicalize(
                         &conf
                             .output_path
-                            .join(format!("{}/algo_{}/{}_error", seq, prog_name, input_name)),
+                            .join(format!("{}/{}/{}_error", seq, prog_name, input_name)),
                     )?,
                     metrics_path: fs.truncate_and_canonicalize(
                         &conf
                             .metrics_path
-                            .join(format!("{}/algo_{}/{}_metrics", seq, prog_name, input_name)),
+                            .join(format!("{}/{}/{}_metrics", seq, prog_name, input_name)),
                     )?,
                     output_path: fs.truncate_and_canonicalize(
                         &conf
                             .output_path
-                            .join(format!("{}/algo_{}/{}_output", seq, prog_name, input_name)),
+                            .join(format!("{}/{}/{}_output", seq, prog_name, input_name)),
                     )?,
                     afterscript_output_path: get_afterscript_info(
                         conf, &seq, prog_name, input_name, fs,
@@ -122,10 +128,10 @@ impl ExperimentExt for Experiment {
             slurm,
             creation_time: time,
             seq,
+            config: conf.clone(),
         })
     }
 
-    /// Get the filename of the newest experiment.
     fn latest_id_from_folder(folder: &Path) -> Result<Option<usize>> {
         let mut highest = None;
 
@@ -142,7 +148,7 @@ impl ExperimentExt for Experiment {
                 .file_name()
                 .to_str()
                 .ok_or(anyhow!("Invalid filename in experiment directory"))?
-                .trim_end_matches(".toml")
+                .trim_end_matches(".lock")
                 .parse()
                 .with_context(ctx!(
                   "Invalid name of experiment file {actual:?}", ;
@@ -161,13 +167,20 @@ impl ExperimentExt for Experiment {
         Ok(highest)
     }
 
-    /// Provided a folder gets the most recent experiment.
+    fn experiment_from_folder(
+        seq: usize,
+        folder: &Path,
+        fs: &impl FileOperations,
+    ) -> Result<Experiment> {
+        fs.try_read_toml(&folder.join(format!("{}.lock", seq)))
+    }
+
     fn latest_experiment_from_folder(
         folder: &Path,
         fs: &impl FileOperations,
     ) -> Result<Experiment> {
         if let Some(id) = Self::latest_id_from_folder(folder)? {
-            fs.try_read_toml(&folder.join(format!("{}.toml", id)))
+            Self::experiment_from_folder(id, folder, fs)
         } else {
             Err(anyhow!("There are no experiments, try running some first").context(""))
         }
