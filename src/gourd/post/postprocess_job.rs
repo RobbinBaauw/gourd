@@ -85,7 +85,7 @@ pub fn filter_runs_for_post_job(runs: &mut BTreeMap<usize, Option<Status>>) -> R
             ))
         })
         .map(|x: Result<(&usize, Status)>| x.unwrap())
-        .filter(|(_, status)| status.completion == Completion::Success)
+        .filter(|(_, status)| matches!(status.completion, Completion::Success(_)))
         .filter(|(_, status)| {
             status.postprocess_job_completion == Some(PostprocessCompletion::Dormant)
         })

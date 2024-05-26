@@ -89,6 +89,9 @@ pub struct Chunk {
 
     /// The resource limits of this chunk.
     pub resource_limits: ResourceLimits,
+
+    /// Whether this chunk already got scheduled.
+    pub scheduled: bool,
 }
 
 // this stays here as an idea to eventually implement,

@@ -2,10 +2,13 @@
 // Licensed under MIT.
 // It exists because we have to modify the behaviour of it.
 
+use std::fmt::Display;
 use std::time::Duration;
 
 use serde::Deserialize;
 use serde::Serialize;
+
+use crate::constants::NAME_STYLE;
 
 /// The metrics of running a program.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
@@ -19,7 +22,7 @@ pub enum Metrics {
 }
 
 /// This structure contains the measurements for one run of the binary.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub struct Measurement {
     /// Interval of wall time.
     pub wall_micros: Duration,
@@ -30,7 +33,7 @@ pub struct Measurement {
 }
 
 /// Resource usage statistics for a process.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub struct RUsage {
     /// User CPU time used.
     pub utime: Duration,
@@ -64,4 +67,36 @@ pub struct RUsage {
     pub nvcsw: usize,
     /// Involuntary context switches.
     pub nivcsw: usize,
+}
+
+impl Display for RUsage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            "  {NAME_STYLE}user   cpu time{NAME_STYLE:#}: {}",
+            humantime::Duration::from(self.utime)
+        )?;
+        writeln!(
+            f,
+            "  {NAME_STYLE}system cpu time{NAME_STYLE:#}: {}",
+            humantime::Duration::from(self.stime)
+        )?;
+        writeln!(
+            f,
+            "  {NAME_STYLE}page faults{NAME_STYLE:#}: {}",
+            self.majflt
+        )?;
+        writeln!(
+            f,
+            "  {NAME_STYLE}signals recieved{NAME_STYLE:#}: {}",
+            self.nsignals
+        )?;
+        writeln!(
+            f,
+            "  {NAME_STYLE}context switches{NAME_STYLE:#}: {}",
+            self.nvcsw + self.nivcsw
+        )?;
+
+        Ok(())
+    }
 }

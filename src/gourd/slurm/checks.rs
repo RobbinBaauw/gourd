@@ -34,20 +34,6 @@ pub fn get_slurm_data_from_experiment(experiment: &Experiment) -> Result<&SlurmE
         ))
 }
 
-/// Get &mut SLURM runtime data from the experiment, giving an error if not present
-pub fn get_mut_slurm_data_from_experiment(
-    experiment: &mut Experiment,
-) -> Result<&mut SlurmExperiment> {
-    experiment
-        .slurm
-        .as_mut()
-        .ok_or_else(|| anyhow!("No SLURM configuration found"))
-        .with_context(ctx!(
-          "Tried to get Slurm resource limits, but the current experiment is not Slurm", ;
-          "Run this command after using `gourd run slurm`",
-        ))
-}
-
 impl<T> SlurmHandler<T>
 where
     T: SlurmInteractor,

@@ -103,8 +103,8 @@ pub fn generate_progress_bar(len: u64) -> Result<ProgressBar> {
     .progress_chars("##-");
 
     let bar = ProgressBar::new(len);
-    bar.set_message("Running jobs...");
     bar.set_style(prog_style);
+    bar.set_message("Running jobs...");
 
     Ok(bar)
 }

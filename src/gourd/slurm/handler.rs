@@ -5,8 +5,9 @@ use gourd_lib::config::Config;
 use gourd_lib::config::SlurmConfig;
 use gourd_lib::constants::MAIL_TYPE_VALID_OPTIONS;
 use gourd_lib::experiment::Experiment;
+use gourd_lib::file_system::FileOperations;
+use log::debug;
 
-use crate::slurm::checks::get_mut_slurm_data_from_experiment;
 use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::chunk::Chunkable;
 use crate::slurm::SlurmInteractor;
@@ -41,31 +42,53 @@ where
         config: &Config,
         experiment: &mut Experiment,
         exp_path: PathBuf,
+        fs: impl FileOperations,
     ) -> Result<()> {
         let slurm_config = get_slurm_options_from_config(config)?;
         let runs = experiment.get_unscheduled_runs()?;
 
-        let chunks_to_schedule = experiment.create_chunks(
+        let mut chunks_to_schedule = experiment.create_chunks(
             slurm_config.array_count_limit,
             // TODO: correctly handle ongoing array jobs causing a lower limit
             slurm_config.array_size_limit,
             runs.into_iter(),
         )?;
 
-        let slurm_experiment = get_mut_slurm_data_from_experiment(experiment)?;
+        experiment
+            .slurm
+            .as_mut()
+            // TODO:
+            .unwrap()
+            .chunks
+            .append(&mut chunks_to_schedule);
 
-        for chunk in chunks_to_schedule {
-            // TODO: make the wrapper aware of which chunk we are scheduling
-            self.internal.schedule_array(
-                0..chunk.runs.len(),
+        experiment.save(&config.experiments_folder, &fs)?;
+
+        for (chunk_id, chunk) in experiment
+            .slurm
+            .as_mut()
+            // TODO:
+            .unwrap()
+            .chunks
+            .iter_mut()
+            .enumerate()
+        {
+            if chunk.scheduled {
+                continue;
+            }
+
+            debug!("Scheduling chunk with {}", chunk.runs.len());
+
+            self.internal.schedule_chunk(
                 slurm_config,
-                &chunk.resource_limits,
+                chunk,
+                chunk_id,
                 &config.wrapper,
-                &exp_path,
+                &fs.canonicalize(&exp_path)?,
             )?;
-
-            slurm_experiment.chunks.push(chunk)
         }
+
+        experiment.save(&config.experiments_folder, &fs)?;
 
         Ok(())
     }

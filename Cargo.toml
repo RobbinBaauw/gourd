@@ -64,6 +64,7 @@ clap = { version = "4.5.4", features = ["derive", "cargo"] }
 anstyle = "1.0.7"
 indicatif = "0.17.8"
 indicatif-log-bridge = "0.2.2"
+humantime = "2.1.0"
 
 # To handle errors
 anyhow = "1"

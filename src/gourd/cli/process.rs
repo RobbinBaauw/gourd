@@ -107,7 +107,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             )?;
 
             let exp_path = experiment.save(&config.experiments_folder, &file_system)?;
-            debug!("Saving the experiment at {exp_path:?}");
+            debug!("Saved the experiment at {exp_path:?}");
 
             match args.sub_command {
                 RunSubcommand::Local { .. } => {
@@ -158,9 +158,11 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     if cmd.dry {
                         info!("Would have scheduled the experiment on slurm (dry)");
                     } else {
-                        s.run_experiment(&config, &mut experiment, exp_path)?;
+                        s.run_experiment(&config, &mut experiment, exp_path, file_system)?;
                         info!("Experiment started");
                     }
+
+                    experiment.save(&config.experiments_folder, &file_system)?;
                 }
             }
 

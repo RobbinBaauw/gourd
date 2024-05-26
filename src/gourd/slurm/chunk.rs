@@ -73,6 +73,7 @@ impl Chunkable for Experiment {
             Chunk {
                 runs: Vec::with_capacity(capacity),
                 resource_limits: slurm_experiment.resource_limits.clone(),
+                scheduled: false,
             }
         }
 
@@ -84,13 +85,19 @@ impl Chunkable for Experiment {
             if chunks.len() == num_chunks {
                 break;
             }
+
             if current_chunk.runs.len() == chunk_length {
                 chunks.push(current_chunk);
                 current_chunk = new_chunk(slurm, chunk_length);
             }
+
             if current_chunk.runs.len() < chunk_length {
                 current_chunk.runs.push(id);
             }
+        }
+
+        if current_chunk.runs.len() != 0 {
+            chunks.push(current_chunk);
         }
 
         Ok(chunks)
@@ -121,6 +128,7 @@ impl Chunkable for Experiment {
                             Chunk {
                                 runs: vec![id],
                                 resource_limits: limit,
+                                scheduled: false,
                             },
                         );
                     }
@@ -132,6 +140,7 @@ impl Chunkable for Experiment {
                         Chunk {
                             runs: vec![id],
                             resource_limits: limit,
+                            scheduled: false,
                         },
                     )
                 }

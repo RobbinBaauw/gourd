@@ -42,6 +42,9 @@ pub trait FileOperations {
 
     /// Create the file and all parent directories.
     fn truncate_and_canonicalize(&self, path: &Path) -> Result<PathBuf>;
+
+    /// Just canonicalize.
+    fn canonicalize(&self, path: &Path) -> Result<PathBuf>;
 }
 
 impl FileOperations for FileSystemInteractor {
@@ -116,6 +119,10 @@ impl FileOperations for FileSystemInteractor {
            "Ensure that you have sufficient permissions",
         ))?;
 
+        self.canonicalize(path)
+    }
+
+    fn canonicalize(&self, path: &Path) -> Result<PathBuf> {
         path.canonicalize().with_context(ctx!(
           "Could not canonicalize {path:?}", ;
           "Ensure that your path is valid",

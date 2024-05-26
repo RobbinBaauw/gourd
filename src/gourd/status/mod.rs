@@ -1,3 +1,4 @@
+use std::cmp::max;
 use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::io::Write;
@@ -13,6 +14,7 @@ use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
+use gourd_lib::measurement::Measurement;
 use log::info;
 
 use self::fs_based::FileBasedStatus;
@@ -24,7 +26,7 @@ pub mod fs_based;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FailureReason {
     /// The job retunrned a non zero exit status.
-    ExitStatus(i32),
+    ExitStatus(Measurement),
 
     /// Slurm killed the job.
     SlurmKill,
@@ -43,7 +45,7 @@ pub enum Completion {
     Pending,
 
     /// The job succeeded.
-    Success,
+    Success(Measurement),
 
     /// The job failed with the following exit status.
     Fail(FailureReason),
@@ -107,9 +109,9 @@ pub fn get_statuses(experiment: &Experiment, fs: impl FileOperations) -> Result<
 impl Display for FailureReason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FailureReason::SlurmKill => write!(f, "slurm killed"),
+            FailureReason::SlurmKill => write!(f, "slurm killed the job"),
             FailureReason::UserForced => write!(f, "user killed the job"),
-            FailureReason::ExitStatus(exit) => write!(f, "exit code {exit}"),
+            FailureReason::ExitStatus(exit) => write!(f, "exit code {}", exit.exit_code),
         }
     }
 }
@@ -117,9 +119,28 @@ impl Display for FailureReason {
 impl Display for Completion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Completion::Dormant => write!(f, "?")?,
+            Completion::Dormant => write!(f, "dormant?")?,
             Completion::Pending => write!(f, "pending!")?,
-            Completion::Success => write!(f, "{}success{:#}", PRIMARY_STYLE, PRIMARY_STYLE)?,
+            Completion::Success(measurement) => {
+                if f.alternate() {
+                    write!(
+                        f,
+                        "{}success{:#} {NAME_STYLE}wall clock time{NAME_STYLE:#}: {}",
+                        PRIMARY_STYLE,
+                        PRIMARY_STYLE,
+                        humantime::Duration::from(measurement.wall_micros)
+                    )?
+                } else {
+                    write!(
+                        f,
+                        "{}success{:#}, took: {}",
+                        PRIMARY_STYLE,
+                        PRIMARY_STYLE,
+                        humantime::Duration::from(measurement.wall_micros)
+                    )?
+                }
+            }
+
             Completion::Fail(exit) => {
                 write!(f, "{}failed with {}{:#}", ERROR_STYLE, exit, ERROR_STYLE)?
             }
@@ -149,7 +170,7 @@ pub fn display_statuses(
     for run in 0..experiment.runs.len() {
         if let Some(stat) = &statuses[&run] {
             match stat.completion {
-                Completion::Success => {
+                Completion::Success(_) => {
                     finished += 1;
                 }
                 Completion::Fail(_) => {
@@ -178,7 +199,11 @@ fn long_status(
 
     let mut by_program: BTreeMap<String, Vec<usize>> = BTreeMap::new();
 
+    let mut longest_input: usize = 0;
+
     for (run_id, run_data) in runs.iter().enumerate() {
+        longest_input = max(longest_input, run_data.input.len());
+
         if let Some(for_this_prog) = by_program.get_mut(&run_data.program) {
             for_this_prog.push(run_id);
         } else {
@@ -197,14 +222,19 @@ fn long_status(
             if let Some(status) = &statuses[&run_id] {
                 writeln!(
                     f,
-                    "  {}. with input {} ..... {}",
-                    run_id, run.input, status.completion
+                    "  {}. {:.<width$}.... {}",
+                    run_id,
+                    run.input,
+                    status.completion,
+                    width = longest_input
                 )?;
             } else {
                 writeln!(
                     f,
-                    "  {}. with input {} ..... could not retrieve status ",
-                    run_id, run.input
+                    "  {}. {:.<width$}.... could not retrieve status ",
+                    run_id,
+                    run.input,
+                    width = longest_input
                 )?;
             }
         }
@@ -265,7 +295,17 @@ pub fn display_job(
         )?;
 
         if let Some(status) = &statuses[&id] {
-            writeln!(f, "{NAME_STYLE}status?{NAME_STYLE:#} {}", status.completion)?;
+            writeln!(
+                f,
+                "{NAME_STYLE}status?{NAME_STYLE:#} {:#}",
+                status.completion
+            )?;
+
+            if let Completion::Success(measruement) = status.completion {
+                if let Some(rusage) = measruement.rusage {
+                    writeln!(f, "{NAME_STYLE}metrics{NAME_STYLE:#}:\n{rusage}")?;
+                }
+            }
         } else {
             writeln!(f, "no status information available")?;
         }

@@ -16,7 +16,7 @@ fn versioning_test() {
             Ok(vec![])
         }
 
-        fn schedule_array(
+        fn schedule_chunk(
             &self,
             _range: Range<usize>,
             _slurm_config: &SlurmConfig,
@@ -50,7 +50,7 @@ fn versioning_un_test() {
             Ok(vec![])
         }
 
-        fn schedule_array(
+        fn schedule_chunk(
             &self,
             _range: Range<usize>,
             _slurm_config: &SlurmConfig,
