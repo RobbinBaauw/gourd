@@ -37,7 +37,19 @@
 
 \usepackage{titlesec}
 \titleformat{\section}
-  {\normalfont\normalsize\bfseries}{\thesection}{1em}{}
+  {\normalfont\large\bfseries}{\thesection}{1em}{}
 
 \titleformat{\subsection}
-  {\normalfont\normalsize\bfseries}{\thesubsection}{1em}{}
+  {\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+\setlength{\parskip}{10pt}
+
+% Improve the \section command if in a LaTeX environment.
+%%@% IF LATEX %@%
+%\let\oldsection\section
+%\renewcommand{\section}[1]{%
+%\end{adjustwidth}%
+%\oldsection*{#1}%
+%\begin{adjustwidth}{18pt}{0pt}%
+%}
+%%@% END-IF %@%

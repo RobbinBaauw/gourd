@@ -9,7 +9,7 @@ use clap::Subcommand;
 #[allow(unused)]
 #[derive(Parser, Debug)]
 #[command(
-    about = "Gourd, an emipirical evaluator",
+    about = "Gourd, an empirical evaluator",
     disable_help_subcommand = true
 )]
 pub struct Cli {
@@ -57,11 +57,11 @@ pub struct RunStruct {
 #[derive(Subcommand, Debug, Copy, Clone)]
 pub enum RunSubcommand {
     /// Subcommand for running locally.
-    #[command(about = "Schedule a run on the local machine")]
+    #[command(about = "Create and run an experiment on this computer.")]
     Local {},
 
     /// Subcommand for running on slurm.
-    #[command(about = "Schedule a run using slurm")]
+    #[command(about = "Create and run an experiment using Slurm.")]
     Slurm {},
 }
 
@@ -110,26 +110,26 @@ pub struct AnalyseStruct {}
 #[derive(Subcommand, Debug)]
 pub enum Command {
     /// Subcommand for scheduling a run.
-    #[command(about = "Create an experiment and run it")]
+    #[command(about = "Create an experiment from configuration and run it.")]
     Run(RunStruct),
 
-    /// Subcommand for checking status of a run.
-    #[command(about = "Display the status of a run")]
-    Status(StatusStruct),
-
-    /// Subcommand for analysing results of a run.
-    #[command(about = "Analyse a run")]
-    Analyse(AnalyseStruct),
-
     /// Subcommand for initializing new experiment.
-    #[command(about = "Initialize a new experiment")]
+    #[command(about = "Set up a template of an experiment configuration.")]
     Init(InitStruct),
 
-    /// Subcommand for getting the version.
-    #[command(about = "Display and about page with the program version")]
-    Version,
+    /// Subcommand for checking status of a run.
+    #[command(about = "Display the status of an experiment that was run.")]
+    Status(StatusStruct),
 
     /// Subcommand for scheduling another batch of slurm jobs.
     #[command(about = "Schedule another batch of slurm jobs")]
     Continue,
+
+    /// Subcommand for analysing results of a run.
+    #[command(about = "Output metrics of completed runs.")]
+    Analyse(AnalyseStruct),
+
+    /// Subcommand for getting the version.
+    #[command(about = "Show the software version.")]
+    Version,
 }
