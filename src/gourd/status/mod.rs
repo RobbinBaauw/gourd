@@ -132,6 +132,7 @@ impl Display for Completion {
 /// Display the status of an experiment in a human readable from.
 ///
 /// Returns how many jobs are finished.
+#[cfg(not(tarpaulin_include))] // We won't test stdout
 pub fn display_statuses(
     f: &mut impl Write,
     experiment: &Experiment,
@@ -162,10 +163,12 @@ pub fn display_statuses(
     Ok(finished)
 }
 
+#[cfg(not(tarpaulin_include))] // We can't test stdout
 fn short_status(_: &Experiment, _: &ExperimentStatus) -> Result<()> {
     todo!()
 }
 
+#[cfg(not(tarpaulin_include))] // We can't test stdout
 fn long_status(
     f: &mut impl Write,
     experiment: &Experiment,
@@ -211,6 +214,7 @@ fn long_status(
 }
 
 /// Display the status of an experiment in a human readable from.
+#[cfg(not(tarpaulin_include))] // We can't test stdout
 pub fn display_job(
     f: &mut impl Write,
     exp: &Experiment,
@@ -274,3 +278,7 @@ pub fn display_job(
         ))
     }
 }
+
+#[cfg(test)]
+#[path = "tests/mod.rs"]
+mod tests;

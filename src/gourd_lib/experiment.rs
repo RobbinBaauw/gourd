@@ -12,7 +12,7 @@ use crate::config::ResourceLimits;
 use crate::file_system::FileOperations;
 
 /// Describes a matching between an algorithm and an input.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Run {
     /// The unique name of the program to run.
     pub program: String,
@@ -40,7 +40,7 @@ pub struct Run {
 }
 
 /// Describes one experiment.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Experiment {
     /// The pairings of program-input for this experiment.
     pub runs: Vec<Run>,
@@ -71,7 +71,7 @@ impl Experiment {
 }
 
 /// Runtime data for running on Slurm, including scheduled chunks.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct SlurmExperiment {
     /// Chunks scheduled for running on Slurm.
     pub chunks: Vec<Chunk>,

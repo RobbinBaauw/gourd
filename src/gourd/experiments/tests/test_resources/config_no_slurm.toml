@@ -1,0 +1,11 @@
+output_path = "test path"
+metrics_path = "test path"
+experiments_folder = "test path"
+
+[programs.a]
+arguments = []
+binary = "test binary"
+
+[inputs.b]
+input = "test input"
+arguments = []

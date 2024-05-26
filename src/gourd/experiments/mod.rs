@@ -234,3 +234,7 @@ pub fn get_postprocess_job_info(
         Ok(None)
     }
 }
+
+#[cfg(test)]
+#[path = "tests/mod.rs"]
+mod tests;
