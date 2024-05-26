@@ -4,35 +4,11 @@ use anyhow::Result;
 use gourd_lib::config::Config;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
-use gourd_lib::experiment::Experiment;
-use gourd_lib::experiment::SlurmExperiment;
 
 use crate::cli::printing::format_table;
 use crate::slurm::handler::SlurmHandler;
 use crate::slurm::SlurmConfig;
 use crate::slurm::SlurmInteractor;
-
-/// Check the config that it has the necessary fields
-pub fn get_slurm_options_from_config(config: &Config) -> Result<&SlurmConfig> {
-    config.slurm.as_ref()
-        .ok_or_else(|| anyhow!("No SLURM configuration found"))
-        .with_context(ctx!(
-              "Tried to execute on Slurm but the configuration field for the Slurm options in gourd.toml was empty", ;
-              "Make sure that your gourd.toml includes the required fields under [slurm]",
-            ))
-}
-
-/// Get SLURM runtime data from the experiment, giving an error if not present
-pub fn get_slurm_data_from_experiment(experiment: &Experiment) -> Result<&SlurmExperiment> {
-    experiment
-        .slurm
-        .as_ref()
-        .ok_or_else(|| anyhow!("No SLURM configuration found"))
-        .with_context(ctx!(
-          "Tried to get Slurm resource limits, but the current experiment is not Slurm", ;
-          "Run this command after using `gourd run slurm`",
-        ))
-}
 
 impl<T> SlurmHandler<T>
 where
@@ -86,6 +62,16 @@ where
             ))
         }
     }
+}
+
+/// Check the config that it has the necessary fields
+pub fn get_slurm_options_from_config(config: &Config) -> Result<&SlurmConfig> {
+    config.slurm.as_ref()
+        .ok_or_else(|| anyhow!("No SLURM configuration found"))
+        .with_context(ctx!(
+              "Tried to execute on Slurm but the configuration field for the Slurm options in gourd.toml was empty", ;
+              "Make sure that your gourd.toml includes the required fields under [slurm]",
+            ))
 }
 
 #[cfg(test)]

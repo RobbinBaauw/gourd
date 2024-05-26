@@ -1,7 +1,9 @@
 use std::cmp::max;
 use std::collections::BTreeMap;
 use std::fmt::Display;
+use std::io::BufWriter;
 use std::io::Write;
+use std::thread::sleep;
 
 use anyhow::anyhow;
 use anyhow::Context;
@@ -10,14 +12,17 @@ use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::NAME_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
 use gourd_lib::constants::SHORTEN_STATUS_CUTOFF;
+use gourd_lib::constants::STATUS_REFRESH_PERIOD;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
 use gourd_lib::measurement::Measurement;
+use indicatif::MultiProgress;
 use log::info;
 
 use self::fs_based::FileBasedStatus;
+use crate::cli::printing::generate_progress_bar;
 
 /// File system based status information.
 pub mod fs_based;
@@ -96,11 +101,14 @@ pub type ExperimentStatus = BTreeMap<usize, Option<Status>>;
 /// A struct that can attest the statuses or some or all running jobs.
 pub trait StatusProvider<T> {
     /// Try to get the statuses of jobs.
-    fn get_statuses(connection: T, experiment: &Experiment) -> Result<ExperimentStatus>;
+    fn get_statuses(connection: &mut T, experiment: &Experiment) -> Result<ExperimentStatus>;
 }
 
 /// Get the status of the provided experiment.
-pub fn get_statuses(experiment: &Experiment, fs: impl FileOperations) -> Result<ExperimentStatus> {
+pub fn get_statuses(
+    experiment: &Experiment,
+    fs: &mut impl FileOperations,
+) -> Result<ExperimentStatus> {
     // for now we do not support slurm.
 
     FileBasedStatus::get_statuses(fs, experiment)
@@ -220,7 +228,7 @@ fn long_status(
             let run = &experiment.runs[run_id];
 
             if let Some(status) = &statuses[&run_id] {
-                writeln!(
+                write!(
                     f,
                     "  {}. {:.<width$}.... {}",
                     run_id,
@@ -228,6 +236,14 @@ fn long_status(
                     status.completion,
                     width = longest_input
                 )?;
+
+                if let Completion::Dormant = status.completion {
+                    if let Some(slurm_id) = &run.slurm_id {
+                        write!(f, " scheduled on slurm as {}", slurm_id)?;
+                    }
+                }
+
+                writeln!(f)?;
             } else {
                 writeln!(
                     f,
@@ -294,6 +310,10 @@ pub fn display_job(
             run.metrics_path
         )?;
 
+        if let Some(slurm_id) = &run.slurm_id {
+            writeln!(f, "scheduled on slurm as {}", slurm_id)?;
+        }
+
         if let Some(status) = &statuses[&id] {
             writeln!(
                 f,
@@ -303,6 +323,12 @@ pub fn display_job(
 
             if let Completion::Success(measruement) = status.completion {
                 if let Some(rusage) = measruement.rusage {
+                    writeln!(f, "{NAME_STYLE}metrics{NAME_STYLE:#}:\n{rusage}")?;
+                }
+            } else if let Completion::Fail(FailureReason::ExitStatus(measurement)) =
+                status.completion
+            {
+                if let Some(rusage) = measurement.rusage {
                     writeln!(f, "{NAME_STYLE}metrics{NAME_STYLE:#}:\n{rusage}")?;
                 }
             }
@@ -317,6 +343,41 @@ pub fn display_job(
             "You can see the run ids by running {}gourd status{:#}", PRIMARY_STYLE, PRIMARY_STYLE
         ))
     }
+}
+/// Print status until all tasks are finished.
+pub fn blocking_status(
+    progress: &MultiProgress,
+    experiment: &Experiment,
+    fs: &mut impl FileOperations,
+) -> Result<()> {
+    let mut complete = 0;
+    let mut message = "".to_string();
+
+    let bar = progress.add(generate_progress_bar(experiment.runs.len() as u64)?);
+
+    while complete < experiment.runs.len() {
+        let mut buf = BufWriter::new(Vec::new());
+
+        let statuses = get_statuses(experiment, fs)?;
+        complete = display_statuses(&mut buf, experiment, &statuses)?;
+        message = format!("{}\n", String::from_utf8(buf.into_inner()?)?);
+
+        bar.set_prefix(message.clone());
+        bar.set_position(complete as u64);
+
+        sleep(STATUS_REFRESH_PERIOD);
+    }
+
+    bar.finish();
+    progress.remove(&bar);
+    progress.clear()?;
+
+    let leftover = generate_progress_bar(experiment.runs.len() as u64)?;
+    leftover.set_position(complete as u64);
+    leftover.set_prefix(message);
+    leftover.finish();
+
+    Ok(())
 }
 
 #[cfg(test)]

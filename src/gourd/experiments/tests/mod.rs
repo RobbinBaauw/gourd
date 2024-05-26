@@ -7,47 +7,6 @@ use super::*;
 use crate::test_utils::REAL_FS;
 
 #[test]
-fn config_no_slurm() {
-    let tempdir = TempDir::new("tests").unwrap();
-
-    let mut config: Config = Config::from_file(
-        Path::new("src/gourd/experiments/tests/test_resources/config_no_slurm.toml"),
-        &REAL_FS,
-    )
-    .unwrap();
-    config.output_path = PathBuf::from(tempdir.path());
-    config.metrics_path = PathBuf::from(tempdir.path());
-    config.experiments_folder = PathBuf::from(tempdir.path());
-
-    let x = Experiment::from_config(&config, Environment::Slurm, Local::now(), &REAL_FS);
-    assert!(x.is_err());
-    assert_eq!(
-        format!("{}", x.unwrap_err().root_cause()),
-        "A SLURM configuration missing from this config file."
-    );
-}
-
-#[test]
-fn config_no_resource_limits() {
-    let tempdir = TempDir::new("tests").unwrap();
-    let mut config: Config = Config::from_file(
-        Path::new("src/gourd/experiments/tests/test_resources/config_no_limits.toml"),
-        &REAL_FS,
-    )
-    .unwrap();
-    config.output_path = PathBuf::from(tempdir.path());
-    config.metrics_path = PathBuf::from(tempdir.path());
-    config.experiments_folder = PathBuf::from(tempdir.path());
-
-    let x = Experiment::from_config(&config, Environment::Slurm, Local::now(), &REAL_FS);
-    assert!(x.is_err());
-    assert_eq!(
-        format!("{}", x.unwrap_err().root_cause()),
-        "SLURM resource limits are missing from this config file."
-    );
-}
-
-#[test]
 fn config_correct_slurm() {
     let tempdir = TempDir::new("tests").unwrap();
     let mut config: Config = Config::from_file(
@@ -61,7 +20,7 @@ fn config_correct_slurm() {
 
     let time = Local::now();
 
-    let result = Experiment::from_config(&config, Environment::Slurm, time, &REAL_FS);
+    let result = Experiment::from_config(&config, time, &REAL_FS);
     assert!(result.is_ok());
 
     let runs = vec![Run {
@@ -79,20 +38,18 @@ fn config_correct_slurm() {
             .join("1/a/b_metrics")
             .canonicalize()
             .unwrap(),
-        job_id: None,
+        slurm_id: None,
         afterscript_output_path: None,
         post_job_output_path: None,
     }];
 
     let test_experiment = Experiment {
         runs,
-        slurm: Some(SlurmExperiment {
-            chunks: vec![],
-            resource_limits: ResourceLimits {
-                time_limit: Duration::new(60, 0),
-                cpus: 1,
-                mem_per_cpu: 512,
-            },
+        chunks: vec![],
+        resource_limits: Some(ResourceLimits {
+            time_limit: Duration::new(60, 0),
+            cpus: 1,
+            mem_per_cpu: 512,
         }),
         creation_time: time,
         config,
@@ -116,7 +73,7 @@ fn config_correct_local() {
 
     let time = Local::now();
 
-    let result = Experiment::from_config(&config, Environment::Local, time, &REAL_FS);
+    let result = Experiment::from_config(&config, time, &REAL_FS);
     assert!(result.is_ok());
 
     let runs = vec![
@@ -135,7 +92,7 @@ fn config_correct_local() {
                 .join("1/b/d_metrics")
                 .canonicalize()
                 .unwrap(),
-            job_id: None,
+            slurm_id: None,
             afterscript_output_path: None,
             post_job_output_path: None,
         },
@@ -154,7 +111,7 @@ fn config_correct_local() {
                 .join("1/b/e_metrics")
                 .canonicalize()
                 .unwrap(),
-            job_id: None,
+            slurm_id: None,
             afterscript_output_path: None,
             post_job_output_path: None,
         },
@@ -173,7 +130,7 @@ fn config_correct_local() {
                 .join("1/c/d_metrics")
                 .canonicalize()
                 .unwrap(),
-            job_id: None,
+            slurm_id: None,
             afterscript_output_path: None,
             post_job_output_path: None,
         },
@@ -192,7 +149,7 @@ fn config_correct_local() {
                 .join("1/c/e_metrics")
                 .canonicalize()
                 .unwrap(),
-            job_id: None,
+            slurm_id: None,
             afterscript_output_path: None,
             post_job_output_path: None,
         },
@@ -200,7 +157,8 @@ fn config_correct_local() {
 
     let test_experiment = Experiment {
         runs,
-        slurm: None,
+        chunks: vec![],
+        resource_limits: None,
         creation_time: time,
         config,
         seq: 1,
@@ -231,8 +189,8 @@ fn latest_id_correct() {
     config.metrics_path = PathBuf::from(tempdir.path());
     config.experiments_folder = PathBuf::from(tempdir.path());
 
-    Experiment::from_config(&config, Environment::Local, Local::now(), &REAL_FS).unwrap();
-    Experiment::from_config(&config, Environment::Local, Local::now(), &REAL_FS).unwrap();
+    Experiment::from_config(&config, Local::now(), &REAL_FS).unwrap();
+    Experiment::from_config(&config, Local::now(), &REAL_FS).unwrap();
 
     let id = Experiment::latest_id_from_folder(tempdir.path()).unwrap();
     assert_eq!(id, Some(2));

@@ -40,10 +40,12 @@ pub trait FileOperations {
     /// Wirte a [String] to a file.
     fn write_utf8_truncate(&self, path: &Path, data: &str) -> Result<()>;
 
-    /// Create the file and all parent directories.
+    /// Truncates the file and then runs [FileOperations::canonicalize].
     fn truncate_and_canonicalize(&self, path: &Path) -> Result<PathBuf>;
 
-    /// Just canonicalize.
+    /// Given a path try to canonicalize it.
+    ///
+    /// This will fail for files that do not exist.
     fn canonicalize(&self, path: &Path) -> Result<PathBuf>;
 }
 

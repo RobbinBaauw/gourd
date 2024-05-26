@@ -23,7 +23,6 @@ use std::time::Instant;
 
 use anstyle::Color;
 use anstyle::Style;
-use anyhow::anyhow;
 use anyhow::bail;
 use anyhow::Context;
 use anyhow::Result;
@@ -156,20 +155,21 @@ fn process_args(args: &[String], fs: &impl FileOperations) -> Result<RunConf> {
         "Ensure that Slurm is configured correctly",
     ))?;
 
-    let id = exp
-        .slurm
-        .ok_or(anyhow!("Could not find the chunk"))
-        .context("")?
-        .chunks[chunk_id]
-        .runs[slurm_id];
+    let id = exp.chunks[chunk_id].runs[slurm_id];
+
+    let program = &exp.config.programs[&exp.runs[id].program];
+    let input = &exp.config.inputs[&exp.runs[id].input];
+
+    let mut additional_args = program.arguments.clone();
+    additional_args.append(&mut input.arguments.clone());
 
     Ok(RunConf {
-        binary_path: exp.config.programs[&exp.runs[id].program].binary.clone(),
-        input_path: exp.config.inputs[&exp.runs[id].input].input.clone(),
+        binary_path: program.binary.clone(),
+        input_path: input.input.clone(),
         output_path: exp.runs[id].output_path.clone(),
         result_path: exp.runs[id].metrics_path.clone(),
         err_path: exp.runs[id].err_path.clone(),
-        additional_args: vec![],
+        additional_args,
     })
 }
 

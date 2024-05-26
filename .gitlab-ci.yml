@@ -121,7 +121,7 @@ rustdoc:
     name: rustdoc
     expose_as: rustdoc
     paths:
-      - target/doc/
+      - target/x86_64-unknown-linux-musl/doc/
 
 maintainer_docs:
   <<: *texlive_full

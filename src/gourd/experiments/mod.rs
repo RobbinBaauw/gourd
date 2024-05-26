@@ -12,10 +12,7 @@ use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::experiment::Run;
-use gourd_lib::experiment::SlurmExperiment;
 use gourd_lib::file_system::FileOperations;
-
-use crate::cli::process::Environment;
 
 /// Extension trait for the shared `Experiment` struct.
 pub trait ExperimentExt {
@@ -23,12 +20,7 @@ pub trait ExperimentExt {
     ///
     /// Creates a new experiment by matching all algorithms to all inputs.
     /// The experiment is created in the provided `env` and with `time` as the timestamp.
-    fn from_config(
-        conf: &Config,
-        env: Environment,
-        time: DateTime<Local>,
-        fs: &impl FileOperations,
-    ) -> Result<Self>
+    fn from_config(conf: &Config, time: DateTime<Local>, fs: &impl FileOperations) -> Result<Self>
     where
         Self: Sized;
 
@@ -48,49 +40,13 @@ pub trait ExperimentExt {
 }
 
 impl ExperimentExt for Experiment {
-    fn from_config(
-        conf: &Config,
-        env: Environment,
-        time: DateTime<Local>,
-        fs: &impl FileOperations,
-    ) -> Result<Self> {
+    fn from_config(conf: &Config, time: DateTime<Local>, fs: &impl FileOperations) -> Result<Self> {
         let mut runs = Vec::new();
 
         let seq = Self::latest_id_from_folder(&conf.experiments_folder)
             .unwrap_or(Some(0))
             .unwrap_or(0)
             + 1;
-
-        let slurm: Option<SlurmExperiment> = match env {
-            Environment::Slurm => {
-                if conf.slurm.is_none() {
-                    return Err(anyhow!(
-                        "A SLURM configuration missing from this config file."
-                    ))
-                    .with_context(ctx!("", ;
-                        "Fill the field `slurm` in your gourd.toml if you want to run on SLURM",));
-                }
-
-                let limits = conf
-                    .resource_limits
-                    .clone()
-                    .map(|lim| SlurmExperiment {
-                        chunks: vec![],
-                        resource_limits: lim.clone(),
-                    })
-                    .ok_or(anyhow!(
-                        "SLURM resource limits are missing from this config file."
-                    ))
-                    .with_context(ctx!(
-                        "",;
-                        "Add `resource_limits` to your gourd.toml if you want to run on SLURM",
-                    ))?;
-
-                Some(limits)
-            }
-
-            Environment::Local => None,
-        };
 
         for prog_name in conf.programs.keys() {
             for input_name in conf.inputs.keys() {
@@ -122,17 +78,18 @@ impl ExperimentExt for Experiment {
                         // todo for ruta: check that this is correct
                         conf, &seq, prog_name, input_name, fs,
                     )?,
-                    job_id: None,
+                    slurm_id: None,
                 });
             }
         }
 
         Ok(Self {
             runs,
-            slurm,
             creation_time: time,
             seq,
             config: conf.clone(),
+            chunks: vec![],
+            resource_limits: conf.resource_limits.clone(),
         })
     }
 

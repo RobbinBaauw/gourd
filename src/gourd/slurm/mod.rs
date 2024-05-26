@@ -3,6 +3,7 @@ use std::path::Path;
 use anyhow::Result;
 use gourd_lib::config::SlurmConfig;
 use gourd_lib::experiment::Chunk;
+use gourd_lib::experiment::Experiment;
 
 /// Some checks when running on slurm to improve error handling
 pub mod checks;
@@ -28,7 +29,7 @@ pub trait SlurmInteractor {
         slurm_config: &SlurmConfig,
         chunk: &mut Chunk,
         chunk_id: usize,
-        wrapper_path: &str,
+        experiment: &mut Experiment,
         exp_path: &Path,
     ) -> Result<()>;
 

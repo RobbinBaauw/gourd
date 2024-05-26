@@ -54,40 +54,32 @@ where
             runs.into_iter(),
         )?;
 
-        experiment
-            .slurm
-            .as_mut()
-            // TODO:
-            .unwrap()
-            .chunks
-            .append(&mut chunks_to_schedule);
+        experiment.chunks.append(&mut chunks_to_schedule);
+        let mut chunks_to_iterate = experiment.chunks.clone();
 
         experiment.save(&config.experiments_folder, &fs)?;
 
-        for (chunk_id, chunk) in experiment
-            .slurm
-            .as_mut()
-            // TODO:
-            .unwrap()
-            .chunks
-            .iter_mut()
-            .enumerate()
-        {
+        for (chunk_id, chunk) in chunks_to_iterate.iter_mut().enumerate() {
             if chunk.scheduled {
                 continue;
             }
 
-            debug!("Scheduling chunk with {}", chunk.runs.len());
+            debug!(
+                "Scheduling chunk {} with {} runs",
+                chunk_id,
+                chunk.runs.len()
+            );
 
             self.internal.schedule_chunk(
                 slurm_config,
                 chunk,
                 chunk_id,
-                &config.wrapper,
+                experiment,
                 &fs.canonicalize(&exp_path)?,
             )?;
         }
 
+        experiment.chunks = chunks_to_iterate;
         experiment.save(&config.experiments_folder, &fs)?;
 
         Ok(())

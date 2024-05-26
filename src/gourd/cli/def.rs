@@ -83,6 +83,10 @@ pub struct StatusStruct {
         help = "Get a detailed description of a run by providing its id"
     )]
     pub(crate) run_id: Option<usize>,
+
+    /// Whether to follow the status, by default false.
+    #[arg(long, help = "Do not exit until all jobs are finished")]
+    pub(crate) follow: bool,
 }
 
 /// Structure of init subcommand.

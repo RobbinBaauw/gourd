@@ -1,11 +1,13 @@
 mod check_binary_linux;
 mod check_binary_macos;
 
+use std::path::Path;
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 use std::path::PathBuf;
 /// Verify if the architecture of a `binary` matched the `expected` architecture.
 use std::process::Command;
 
+use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use gourd_lib::ctx;
@@ -26,35 +28,31 @@ fn verify_arch(_: &PathBuf, _: &str, _: &impl FileOperations) -> Result<()> {
 /// This function returns the commands to be run for an n x m matching of the runs to tests.
 ///
 /// The results and outputs will be located in `config.output_dir`.
-pub fn wrap(experiment: &Experiment, arch: &str, fs: &impl FileOperations) -> Result<Vec<Command>> {
+pub fn wrap(
+    experiment: &Experiment,
+    experiment_path: &Path,
+    arch: &str,
+    fs: &impl FileOperations,
+) -> Result<Vec<Command>> {
     let mut result = Vec::new();
 
-    for run in &experiment.runs {
+    if experiment.chunks.len() != 1 {
+        return Err(anyhow!("Wrapping locally requires exactly one chunk"))
+            .with_context(ctx!("",;"You may be running too many programs on local",));
+    }
+
+    for (chunk_rel, run_id) in experiment.chunks[0].runs.iter().enumerate() {
+        let run = &experiment.runs[*run_id];
         let program = &experiment.config.programs[&run.program];
-        let input = &experiment.config.inputs[&run.input];
 
         verify_arch(&program.binary, arch, fs)?;
 
         let mut cmd = Command::new(&experiment.config.wrapper);
-        cmd.arg(&program.binary.canonicalize().with_context(ctx!(
-              "The executable for {:?} could not be found", program.binary;
-              "Please ensure that all executables exist", ))?)
-            // TODO: Fix this in the new version of the wrapper, assigned to Andreas
-            .arg(
-                input
-                    .input
-                    .clone()
-                    .unwrap()
-                    .canonicalize()
-                    .with_context(ctx!(
-              "The input file {:?} could not be found", input.input;
-              "Please ensure that all input files exist", ))?,
-            )
-            .arg(run.output_path.clone())
-            .arg(run.metrics_path.clone())
-            .arg(run.err_path.clone())
-            .args(&program.arguments)
-            .args(&input.arguments);
+
+        // The number of the first chunk is 0.
+        cmd.arg("0")
+            .arg(experiment_path)
+            .arg(format!("{}", chunk_rel));
 
         result.push(cmd);
     }

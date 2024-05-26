@@ -249,13 +249,7 @@ fn test_add_label_to_run() {
         .expect("The test file could not be written.");
 
     let conf = Config::from_file(file_pb.as_path(), &fs).unwrap();
-    let exp = Experiment::from_config(
-        &conf,
-        crate::cli::process::Environment::Local,
-        chrono::Local::now(),
-        &fs,
-    )
-    .unwrap();
+    let exp = Experiment::from_config(&conf, chrono::Local::now(), &fs).unwrap();
     let mut labels = BTreeMap::new();
     assert!(conf.labels.is_some());
     add_label_to_run(0, &mut labels, &exp, dir.path().join("after.txt"), &fs)

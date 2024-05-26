@@ -140,7 +140,7 @@ pub fn post_job_for_run(
         )?,
         afterscript_output_path: None,
         post_job_output_path: None,
-        job_id: None,
+        slurm_id: None,
     });
 
     Ok(())

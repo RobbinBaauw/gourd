@@ -27,7 +27,7 @@ impl<T> StatusProvider<T> for FileBasedStatus
 where
     T: FileOperations,
 {
-    fn get_statuses(fs: T, experiment: &Experiment) -> Result<ExperimentStatus> {
+    fn get_statuses(fs: &mut T, experiment: &Experiment) -> Result<ExperimentStatus> {
         let mut statuses = BTreeMap::new();
 
         for (run_id, run) in experiment.runs.iter().enumerate() {
