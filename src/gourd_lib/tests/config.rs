@@ -33,6 +33,7 @@ fn breaking_changes_config_struct() {
         resource_limits: None,
         afterscript_output_folder: None,
         postprocess_job_output_folder: None,
+        labels: Some(BTreeMap::new()),
     };
 }
 
@@ -72,6 +73,7 @@ fn breaking_changes_config_file_all_values() {
             resource_limits: None,
             afterscript_output_folder: Some(PathBuf::from("./after/")),
             postprocess_job_output_folder: Some(PathBuf::from("./post_job/")),
+            labels: None,
         },
         Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );
@@ -110,6 +112,7 @@ fn breaking_changes_config_file_required_values() {
             resource_limits: None,
             afterscript_output_folder: None,
             postprocess_job_output_folder: None,
+            labels: None,
         },
         Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );
@@ -252,6 +255,7 @@ fn test_globs() {
             resource_limits: None,
             afterscript_output_folder: None,
             postprocess_job_output_folder: None,
+            labels: None,
         },
         Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );
@@ -281,4 +285,52 @@ fn test_globs_invalid_pattern() {
         format!("{:?}", Config::from_file(file_pathbuf.as_path(), &REAL_FS))
             .contains("Failed to expand")
     );
+}
+
+#[test]
+fn test_regex_that_do_match() {
+    let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
+    let file_pathbuf = dir.path().join("file.toml");
+    let config_contents = r#"
+            output_path = "./ginger_root"
+            metrics_path = "./vulfpeck/"
+            experiments_folder = ""
+            [label.stefan]
+            regex = "[a-zA-Z0-9]+ loves stefan"
+            priority = 42
+            [programs]
+            [inputs]
+        "#;
+    let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
+    file.write_all(config_contents.as_bytes())
+        .expect("The test file could not be written.");
+
+    let config =
+        Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.");
+    assert!(
+        regex_lite::Regex::new(config.labels.unwrap().get("stefan").unwrap().regex.as_str())
+            .unwrap()
+            .is_match("18C loves stefan")
+    );
+}
+
+#[test]
+fn test_invalid_regex_gives_error() {
+    let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
+    let file_pathbuf = dir.path().join("file.toml");
+    let config_contents = r#"
+            output_path = "./ginger_root"
+            metrics_path = "./vulfpeck/"
+            experiments_folder = ""
+            [label.stefan]
+            regex = "{{{{{{{{{{{{{{{{ i didnt pass acc"
+            priority = 42
+            [programs]
+            [inputs]
+        "#;
+    let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
+    file.write_all(config_contents.as_bytes())
+        .expect("The test file could not be written.");
+
+    assert!(Config::from_file(file_pathbuf.as_path(), &REAL_FS).is_err());
 }

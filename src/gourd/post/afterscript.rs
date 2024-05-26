@@ -6,9 +6,11 @@ use std::process::ExitStatus;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use gourd_lib::config::Config;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
+use gourd_lib::file_system::FileOperations;
 
 use crate::resources::run_script;
 use crate::status::Completion;
@@ -19,9 +21,11 @@ use crate::status::Status;
 pub fn run_afterscript(
     statuses: &BTreeMap<usize, Option<Status>>,
     experiment: &Experiment,
-) -> Result<()> {
+    file_system: &impl FileOperations,
+) -> Result<BTreeMap<usize, String>> {
     let runs = filter_runs_for_afterscript(statuses)?;
 
+    let mut labels = BTreeMap::new();
     for run_id in runs {
         let run = &experiment.runs[*run_id];
         let after_out_path = &run.afterscript_output_path;
@@ -63,9 +67,10 @@ pub fn run_afterscript(
                     ))?
             ));
         }
-    }
 
-    Ok(())
+        add_label_to_run(*run_id, &mut labels, experiment, after_output, file_system)?;
+    }
+    Ok(labels)
 }
 
 /// Find the completed jobs where afterscript did not run yet.
@@ -128,6 +133,31 @@ pub fn run_afterscript_for_run(
     ))?;
 
     Ok(exit_status)
+}
+
+fn add_label_to_run(
+    run_id: usize,
+    labels: &mut BTreeMap<usize, String>,
+    experiment: &Experiment,
+    after_output: PathBuf,
+    file_system: &impl FileOperations,
+) -> Result<()> {
+    if let Some(label_map) = &experiment.config.labels {
+        let text = file_system.read_utf8(&after_output)?;
+
+        let mut keys = label_map.keys().collect::<Vec<&String>>();
+        keys.sort_by(|a, b| label_map[*b].priority.cmp(&label_map[*a].priority));
+
+        for l in keys {
+            let label = &label_map[l];
+            if Config::check_regex(l, label)?.is_match(&text) {
+                labels.insert(run_id, l.clone());
+                break;
+            }
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

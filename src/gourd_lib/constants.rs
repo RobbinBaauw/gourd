@@ -86,3 +86,6 @@ pub const MAIL_TYPE_VALID_OPTIONS: [&str; 13] = [
 
 /// The maximal amount of runs before status only shows a short summary.
 pub const SHORTEN_STATUS_CUTOFF: usize = 100;
+
+/// Do we assume by default that runs with custom labels are failed runs?
+pub const RERUN_LABEL_BY_DEFAULT: fn() -> bool = || true;

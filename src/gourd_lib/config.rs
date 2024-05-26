@@ -24,6 +24,7 @@ use crate::constants::POSTPROCESS_JOB_MEM;
 use crate::constants::POSTPROCESS_JOB_OUTPUT_DEFAULT;
 use crate::constants::POSTPROCESS_JOB_TIME;
 use crate::constants::PRIMARY_STYLE;
+use crate::constants::RERUN_LABEL_BY_DEFAULT;
 use crate::constants::WRAPPER_DEFAULT;
 use crate::error::ctx;
 use crate::error::Ctx;
@@ -66,7 +67,7 @@ pub struct Program {
 pub struct Input {
     /// The path to the input.
     ///
-    /// If  not specified nothing is provided on the programs input.
+    /// If not specified, nothing is provided on the program's input.
     pub input: Option<PathBuf>,
 
     /// The additional cli arguments for the executable.
@@ -75,6 +76,21 @@ pub struct Input {
     /// By default these will be empty.
     #[serde(default = "EMPTY_ARGS")]
     pub arguments: Vec<String>,
+}
+
+/// A label that can be assigned to a job based on the afterscript output.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
+pub struct Label {
+    /// The regex to run over the afterscript output. If there's a match, this label is assigned.
+    pub regex: String,
+
+    /// The priority of the label. Higher numbers mean higher priority, and if label is
+    /// present it will override lower priority labels, even if they are also present.
+    pub priority: u64,
+
+    /// Whether using rerun failed will rerun this job- ie is this label a "failure"
+    #[serde(default = "RERUN_LABEL_BY_DEFAULT")]
+    pub rerun_by_default: bool,
 }
 
 /// A config struct used throughout the `gourd` application.
@@ -103,7 +119,7 @@ pub struct Config {
 
     /// The list of inputs for each of them.
     ///
-    /// The name of an input cannot contain `_glob_`.
+    /// The name of an input cannot contain `glob|`.
     pub inputs: BTreeMap<String, Input>,
 
     /// If running on a SLURM cluster, the job configurations
@@ -126,6 +142,17 @@ pub struct Config {
     /// The path to a folder where the afterscript outputs will be stored.
     #[serde(default = "POSTPROCESS_JOB_OUTPUT_DEFAULT")]
     pub postprocess_job_output_folder: Option<PathBuf>,
+
+    /// Allow custom labels to be assigned based on the afterscript output.
+    ///
+    /// syntax is:
+    /// ```toml
+    /// [labels.<label_name>]
+    /// regex = "<regex>" # the regex where if it matches then this label is assigned
+    /// rerun_by_default = true # whether using rerun failed will rerun this job- ie is this label a "failure"
+    /// ```
+    #[serde(alias = "label")]
+    pub labels: Option<BTreeMap<String, Label>>,
 }
 
 /// The config options when running through Slurm
@@ -220,6 +247,7 @@ impl Default for Config {
             resource_limits: None,
             afterscript_output_folder: AFTERSCRIPT_OUTPUT_DEFAULT(),
             postprocess_job_output_folder: POSTPROCESS_JOB_OUTPUT_DEFAULT(),
+            labels: Some(BTreeMap::new()),
         }
     }
 }
@@ -241,6 +269,11 @@ impl Config {
         for name in initial.programs.keys() {
             Self::disallow_substring(name, INTERNAL_GLOB)?;
             Self::disallow_substring(name, INTERNAL_POST)?;
+        }
+        if let Some(labels) = &initial.labels {
+            for (label_name, label) in labels {
+                Self::check_regex(label_name, label)?;
+            }
         }
 
         initial.inputs = Self::expand_globs(initial.inputs)?;
@@ -344,6 +377,17 @@ impl Config {
             fill.insert(input.clone());
             Ok(false)
         }
+    }
+
+    /// Check that the labels the user gave contain valid regular expressions
+    /// for finding them in the afterscript output.
+    pub fn check_regex(label_name: &String, label: &Label) -> Result<regex_lite::Regex> {
+        regex_lite::Regex::new(&label.regex).with_context(ctx!(
+          "Could not compile regex for label {label_name:?}", ;
+          "Ensure that `{}` is valid regex.
+           Check https://en.wikipedia.org/wiki/Regular_expression#Syntax for syntax help",
+            label.regex,
+        ))
     }
 }
 

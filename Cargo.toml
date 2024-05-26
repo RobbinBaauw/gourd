@@ -54,6 +54,7 @@ toml = "0.8.12"
 serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
 glob = "0.3.1"
+regex-lite = "0.1.5"
 
 # To load datasets and executables from the internet
 reqwest = { version = "0.12.4", features = ["blocking", "json"], optional = true }
