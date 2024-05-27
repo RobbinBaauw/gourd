@@ -8,6 +8,7 @@ use tokio::task::spawn_blocking;
 /// # Multithreaded _local_ runner for tasks
 /// (more documentation needed tbh)
 pub async fn run_locally(tasks: Vec<Command>) -> Result<()> {
+    #[cfg(not(tarpaulin_include))] // Tarpaulin can't calculate the coverage correctly
     tokio::spawn(async {
         let task_futures: Vec<_> = tasks
             .into_iter()

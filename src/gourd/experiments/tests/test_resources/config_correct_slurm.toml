@@ -1,0 +1,24 @@
+output_path = "target/tests/slurm"
+metrics_path = "target/tests/slurm"
+experiments_folder = "target/tests/slurm"
+
+[slurm]
+experiment_name = "test experiment"
+partition = "compute"
+array_count_limit = 1
+array_size_limit = 1
+account = "test account"
+
+[resource_limits]
+time_limit.secs = 60
+time_limit.nanos = 0
+cpus = 1
+mem_per_cpu = 512
+
+[programs.a]
+arguments = []
+binary = "test binary"
+
+[inputs.b]
+input = "test input"
+arguments = []
