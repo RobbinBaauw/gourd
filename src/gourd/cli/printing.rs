@@ -7,9 +7,9 @@ use clap::crate_version;
 use gourd_lib::constants::style_from_fg;
 use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::HELP_STYLE;
+use gourd_lib::constants::LOGO;
 use gourd_lib::constants::NAME_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
-use gourd_lib::constants::SECONDARY_STYLE;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use indicatif::ProgressBar;
@@ -30,23 +30,38 @@ pub fn get_styles() -> clap::builder::Styles {
 
 /// Pretty print gourd's version
 #[cfg(not(tarpaulin_include))]
-pub fn print_version() {
-    println!(
-        "{}{}{:#} at version {}{}{:#}\n\n",
-        PRIMARY_STYLE,
-        crate_name!(),
-        PRIMARY_STYLE,
-        SECONDARY_STYLE,
-        crate_version!(),
-        SECONDARY_STYLE
+pub fn print_version(script: bool) {
+    if script {
+        println!("{} {}", crate_name!(), crate_version!());
+
+        return;
+    }
+
+    let mut to_print = LOGO.replace(
+        "{LINE1}",
+        &format!(
+            "  at version {}{}{:#}",
+            PRIMARY_STYLE,
+            crate_version!(),
+            PRIMARY_STYLE
+        ),
     );
 
-    println!(
-        "{}Technische Universiteit Delft 2024{:#}\n",
-        NAME_STYLE, NAME_STYLE,
+    to_print = to_print.replace(
+        "{LINE2}",
+        &format!(
+            "{}Technische Universiteit Delft 2024{:#}",
+            NAME_STYLE, NAME_STYLE,
+        ),
     );
 
-    println!("Authored by:\n{}", crate_authors!("\n"));
+    to_print = to_print.replace("{LINE3}", "Authored by:");
+
+    for (idx, author) in crate_authors!("\n").split('\n').enumerate() {
+        to_print = to_print.replace(&format!("{{LINE{}}}", idx + 4), author);
+    }
+
+    print!("{to_print}");
 }
 
 /// Util function: formatting a table for printing

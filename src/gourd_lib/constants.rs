@@ -89,3 +89,6 @@ pub const SHORTEN_STATUS_CUTOFF: usize = 100;
 
 /// Do we assume by default that runs with custom labels are failed runs?
 pub const RERUN_LABEL_BY_DEFAULT: fn() -> bool = || true;
+
+/// The logo of the application.
+pub const LOGO: &str = include_str!("../resources/logo.ascii");
