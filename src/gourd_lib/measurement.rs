@@ -11,7 +11,7 @@ use serde::Serialize;
 use crate::constants::NAME_STYLE;
 
 /// The metrics of running a program.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 #[serde(tag = "type")]
 pub enum Metrics {
     /// The metrics have not been calculated yet.

@@ -8,6 +8,7 @@ use std::thread::sleep;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use fs_based::get_fs_statuses;
 use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::NAME_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
@@ -15,13 +16,14 @@ use gourd_lib::constants::SHORTEN_STATUS_CUTOFF;
 use gourd_lib::constants::STATUS_REFRESH_PERIOD;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
+use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
-use gourd_lib::measurement::Measurement;
+use gourd_lib::measurement::Metrics;
 use indicatif::MultiProgress;
 use log::info;
+use slurm_based::get_slurm_statuses;
 
-use self::fs_based::FileBasedStatus;
 use crate::cli::printing::generate_progress_bar;
 
 /// File system based status information.
@@ -33,18 +35,39 @@ pub mod slurm_based;
 /// The reasons for slurm to kill a job
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SlurmKillReason {
+    /// Job terminated due to launch failure, typically due to a hardware failure (e.g. unable to boot the node or block and the job can not be requeued).
+    BootFail,
+
+    /// Job was explicitly cancelled by the user or system administrator. The job may or may not have been initiated.
+    Cancelled,
+
+    /// Job terminated on deadline.
+    Deadline,
+
+    /// Job terminated due to failure of one or more allocated nodes.
+    NodeFail,
+
+    /// Job experienced out of memory error.
+    OutOfMemory,
+
+    /// Job terminated due to preemption.
+    Preempted,
+
+    /// Job has an allocation, but execution has been suspended and CPUs have been released for other jobs.
+    Suspended,
+
     /// Job reached the time limit
     Timeout,
 
-    /// Job reached the memory limit
-    MemoryLimit,
+    /// Unspecified by the account reason to fail
+    SlurmFail,
 }
 
 /// The reasons for a job failing.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FailureReason {
-    /// The job retunrned a non zero exit status.
-    ExitStatus(Measurement),
+    /// The job returned a non zero exit status.
+    Failed,
 
     /// Slurm killed the job.
     SlurmKill(SlurmKillReason),
@@ -53,17 +76,17 @@ pub enum FailureReason {
     UserForced,
 }
 
-/// This possible outcomes of a job.
+/// This possible status of a job.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Completion {
+pub enum State {
     /// The job has not yet started.
     Pending,
 
     /// The job is still running.
     Running,
 
-    /// The job succeeded.
-    Success(Measurement),
+    /// The job completed successfully.
+    Completed,
 
     /// The job failed with the following exit status.
     Fail(FailureReason),
@@ -95,11 +118,52 @@ pub struct PostprocessOutput {
     pub long_output: String,
 }
 
+/// Structure of file based status
+#[derive(Debug, Clone, PartialEq)]
+pub struct FileSystemBasedStatus {
+    /// State of completion of the run
+    pub completion: State,
+
+    /// Metrics of the run
+    pub metrics: Metrics,
+
+    /// The completion of the afterscript, if there.
+    pub afterscript_completion: Option<PostprocessCompletion>,
+
+    /// The completion of the postprocess job, if there.
+    pub postprocess_job_completion: Option<PostprocessCompletion>,
+}
+
+/// Structure of slurm based status
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub struct SlurmBasedStatus {
+    /// State of completion of the run
+    pub completion: State,
+
+    /// Exit code of the program
+    pub exit_code_program: isize,
+
+    /// Exit code of the slurm
+    pub exit_code_slurm: isize,
+}
+
 /// All possible postprocessing statuses of a run.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Status {
-    /// The completion of the job.
-    pub completion: Completion,
+    /// State of the run from file based status
+    pub fs_state: State,
+
+    /// State of the run from slurm based status
+    pub slurm_state: Option<State>,
+
+    /// Metrics of the run
+    pub metrics: Metrics,
+
+    /// Exit code of the program from slurm based status
+    pub slurm_exit_code_slurm: Option<isize>,
+
+    /// Exit code of the slurm
+    pub slurm_exit_code_program: Option<isize>,
 
     /// The completion of the afterscript, if there.
     pub afterscript_completion: Option<PostprocessCompletion>,
@@ -109,13 +173,7 @@ pub struct Status {
 }
 
 /// This type maps between `run_id` and the [Status] of the run.
-pub type ExperimentStatus = BTreeMap<String, Option<Status>>;
-
-/// A struct that can attest the statuses or some or all running jobs.
-pub trait StatusProvider<T> {
-    /// Try to get the statuses of jobs.
-    fn get_statuses(connection: &mut T, experiment: &Experiment) -> Result<ExperimentStatus>;
-}
+pub type ExperimentStatus = BTreeMap<usize, Option<Status>>;
 
 /// Get the status of the provided experiment.
 pub fn get_statuses(
@@ -124,49 +182,57 @@ pub fn get_statuses(
 ) -> Result<ExperimentStatus> {
     // for now we do not support slurm.
 
-    // FileBasedStatus::get_statuses(fs, experiment)
+    let fs = get_fs_statuses(fs, experiment)?;
 
-    SlurmBasedStatus::get_statuses((), experiment)
+    let mut slurm = None;
+
+    if experiment.env == Environment::Slurm {
+        slurm = Some(get_slurm_statuses(experiment)?);
+    }
+
+    merge_statuses(fs, slurm)
+}
+
+fn merge_statuses(
+    _fs: BTreeMap<usize, FileSystemBasedStatus>,
+    _slurm: Option<BTreeMap<usize, SlurmBasedStatus>>,
+) -> Result<ExperimentStatus> {
+    todo!()
+}
+
+impl Display for SlurmKillReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SlurmKillReason::BootFail => write!(f, "boot failed"),
+            SlurmKillReason::Cancelled => write!(f, "cancelled"),
+            SlurmKillReason::Deadline => write!(f, "deadline reached"),
+            SlurmKillReason::NodeFail => write!(f, "node failed"),
+            SlurmKillReason::OutOfMemory => write!(f, "out of memory"),
+            SlurmKillReason::Preempted => write!(f, "preempted"),
+            SlurmKillReason::Suspended => write!(f, "suspended"),
+            SlurmKillReason::Timeout => write!(f, "time out"),
+            _ => write!(f, "no reason"),
+        }
+    }
 }
 
 impl Display for FailureReason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FailureReason::SlurmKill => write!(f, "slurm killed the job"),
+            FailureReason::SlurmKill(reason) => write!(f, "slurm killed the job - {}", reason),
             FailureReason::UserForced => write!(f, "user killed the job"),
-            FailureReason::ExitStatus(exit) => write!(f, "exit code {}", exit.exit_code),
+            FailureReason::Failed => write!(f, "failed"),
         }
     }
 }
 
-impl Display for Completion {
+impl Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Completion::Dormant => write!(f, "dormant?")?,
-            Completion::Pending => write!(f, "pending!")?,
-            Completion::Success(measurement) => {
-                if f.alternate() {
-                    write!(
-                        f,
-                        "{}success{:#} {NAME_STYLE}wall clock time{NAME_STYLE:#}: {}",
-                        PRIMARY_STYLE,
-                        PRIMARY_STYLE,
-                        humantime::Duration::from(measurement.wall_micros)
-                    )?
-                } else {
-                    write!(
-                        f,
-                        "{}success{:#}, took: {}",
-                        PRIMARY_STYLE,
-                        PRIMARY_STYLE,
-                        humantime::Duration::from(measurement.wall_micros)
-                    )?
-                }
-            }
-
-            Completion::Fail(exit) => {
-                write!(f, "{}failed with {}{:#}", ERROR_STYLE, exit, ERROR_STYLE)?
-            }
+            State::Pending => write!(f, "pending?")?,
+            State::Running => write!(f, "running!")?,
+            State::Completed => write!(f, "success")?,
+            State::Fail(reason) => write!(f, "{}{}{:#}", ERROR_STYLE, reason, ERROR_STYLE)?,
         };
 
         Ok(())
@@ -192,11 +258,11 @@ pub fn display_statuses(
 
     for run in 0..experiment.runs.len() {
         if let Some(stat) = &statuses[&run] {
-            match stat.completion {
-                Completion::Success(_) => {
+            match stat.fs_state {
+                State::Completed => {
                     finished += 1;
                 }
-                Completion::Fail(_) => {
+                State::Fail(_) => {
                     finished += 1;
                 }
                 _ => {}
@@ -248,13 +314,15 @@ fn long_status(
                     "  {}. {:.<width$}.... {}",
                     run_id,
                     run.input,
-                    status.completion,
+                    status.fs_state,
                     width = longest_input
                 )?;
 
-                if let Completion::Dormant = status.completion {
-                    if let Some(slurm_id) = &run.slurm_id {
-                        write!(f, " scheduled on slurm as {}", slurm_id)?;
+                if let Some(state) = status.slurm_state {
+                    if state == State::Pending {
+                        if let Some(slurm_id) = &run.slurm_id {
+                            write!(f, " scheduled on slurm as {}", slurm_id)?;
+                        }
                     }
                 }
 
@@ -332,17 +400,19 @@ pub fn display_job(
         if let Some(status) = &statuses[&id] {
             writeln!(
                 f,
-                "{NAME_STYLE}status?{NAME_STYLE:#} {:#}",
-                status.completion
+                "{NAME_STYLE}file status?{NAME_STYLE:#} {:#}",
+                status.fs_state
             )?;
 
-            if let Completion::Success(measruement) = status.completion {
-                if let Some(rusage) = measruement.rusage {
-                    writeln!(f, "{NAME_STYLE}metrics{NAME_STYLE:#}:\n{rusage}")?;
-                }
-            } else if let Completion::Fail(FailureReason::ExitStatus(measurement)) =
-                status.completion
-            {
+            if let Some(slurm_state) = status.slurm_state {
+                writeln!(
+                    f,
+                    "{NAME_STYLE}slurm status?{NAME_STYLE:#} {:#}",
+                    slurm_state
+                )?;
+            }
+
+            if let Metrics::Done(measurement) = status.metrics {
                 if let Some(rusage) = measurement.rusage {
                     writeln!(f, "{NAME_STYLE}metrics{NAME_STYLE:#}:\n{rusage}")?;
                 }

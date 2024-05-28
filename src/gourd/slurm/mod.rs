@@ -27,10 +27,10 @@ pub struct SlurmStatus {
     pub state: String,
 
     /// Exit code of slurm
-    pub slurm_exit_code: i32,
+    pub slurm_exit_code: isize,
 
     /// Exit code of the program
-    pub program_exit_code: i32,
+    pub program_exit_code: isize,
 }
 
 /// The interface for interacting with a SLURM cluster.
@@ -59,5 +59,5 @@ pub trait SlurmInteractor {
     fn get_supported_versions(&self) -> String;
 
     /// Get accounting data of user's jobs
-    fn get_accounting_data(&self, job_id: Vec<String>) -> anyhow::Result<Vec<SlurmStatus>>;
+    fn get_accounting_data(&self, job_id: &[String]) -> anyhow::Result<Vec<SlurmStatus>>;
 }

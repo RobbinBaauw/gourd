@@ -14,8 +14,8 @@ use gourd_lib::experiment::Experiment;
 use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
 
-use crate::status::Completion;
 use crate::status::PostprocessCompletion;
+use crate::status::State;
 use crate::status::Status;
 
 /// Schedules the postprocessing job for jobs that are completed and do not yet have a postprocess job output.
@@ -85,7 +85,7 @@ pub fn filter_runs_for_post_job(runs: &mut BTreeMap<usize, Option<Status>>) -> R
             ))
         })
         .map(|x: Result<(&usize, Status)>| x.unwrap())
-        .filter(|(_, status)| matches!(status.completion, Completion::Success(_)))
+        .filter(|(_, status)| matches!(status.fs_state, State::Completed))
         .filter(|(_, status)| {
             status.postprocess_job_completion == Some(PostprocessCompletion::Dormant)
         })

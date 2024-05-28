@@ -13,8 +13,8 @@ use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
 
 use crate::resources::run_script;
-use crate::status::Completion;
 use crate::status::PostprocessCompletion;
+use crate::status::State;
 use crate::status::Status;
 
 /// Runs the afterscript on jobs that are completed and do not yet have an afterscript output.
@@ -86,8 +86,8 @@ pub fn filter_runs_for_afterscript(runs: &BTreeMap<usize, Option<Status>>) -> Re
                 "",
             ))?;
 
-        if let (Completion::Success(_), Some(PostprocessCompletion::Dormant)) =
-            (status.completion, status.afterscript_completion)
+        if let (State::Completed, Some(PostprocessCompletion::Dormant)) =
+            (status.fs_state, status.afterscript_completion)
         {
             filtered.push(run_id);
         }

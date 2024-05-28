@@ -185,8 +185,16 @@ impl SlurmInteractor for SlurmCli {
           "Could get sbatch output", ; "",
         ))?;
 
+        experiment
+            .batch_ids
+            .as_mut()
+            .unwrap()
+            .push(batch_id.clone());
+
         for (job_subid, run_id) in chunk.runs.iter().enumerate() {
-            experiment.runs[*run_id].slurm_id = Some(format!("{}_{}", batch_id.trim(), job_subid))
+            let job_id = format!("{}_{}", batch_id.trim(), job_subid);
+            experiment.runs[*run_id].slurm_id = Some(job_id.clone());
+            experiment.id_map.as_mut().unwrap().insert(job_id, *run_id);
         }
 
         Ok(())
@@ -207,7 +215,7 @@ impl SlurmInteractor for SlurmCli {
     }
 
     /// Get accounting data of user's jobs
-    fn get_accounting_data(&self, job_id: Vec<String>) -> anyhow::Result<Vec<SlurmStatus>> {
+    fn get_accounting_data(&self, job_id: &[String]) -> anyhow::Result<Vec<SlurmStatus>> {
         let sacct = Command::new("sacct")
             .arg("-p")
             .arg("--format=jobid,jobname,state,exitcode")

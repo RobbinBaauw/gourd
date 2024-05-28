@@ -11,80 +11,74 @@ use gourd_lib::file_system::FileOperations;
 use gourd_lib::measurement::Metrics;
 use log::trace;
 
-use super::Completion;
-use super::ExperimentStatus;
 use super::FailureReason;
+use super::FileSystemBasedStatus;
 use super::PostprocessCompletion;
 use super::PostprocessOutput;
-use super::Status;
-use super::StatusProvider;
+use super::State;
 
-/// Provide job status information based on the files system information.
-#[derive(Debug, Clone, Copy)]
-pub struct FileBasedStatus {}
+/// Function to gather status using file system
+pub fn get_fs_statuses(
+    fs: &mut impl FileOperations,
+    experiment: &Experiment,
+) -> Result<BTreeMap<usize, FileSystemBasedStatus>> {
+    let mut statuses = BTreeMap::new();
 
-impl<T> StatusProvider<T> for FileBasedStatus
-where
-    T: FileOperations,
-{
-    fn get_statuses(fs: &mut T, experiment: &Experiment) -> Result<ExperimentStatus> {
-        let mut statuses = BTreeMap::new();
+    for (run_id, run) in experiment.runs.iter().enumerate() {
+        trace!(
+            "Reading status for run {} from {:?}",
+            run_id,
+            run.metrics_path
+        );
 
-        for (run_id, run) in experiment.runs.iter().enumerate() {
-            trace!(
-                "Reading status for run {} from {:?}",
-                run_id,
-                run.metrics_path
-            );
+        let metrics = match fs.try_read_toml::<Metrics>(&run.metrics_path) {
+            Ok(x) => Some(x),
+            Err(e) => {
+                trace!("Failed to read metrics: {:?}", e);
+                None
+            }
+        };
 
-            let metrics = match fs.try_read_toml::<Metrics>(&run.metrics_path) {
-                Ok(x) => Some(x),
-                Err(e) => {
-                    trace!("Failed to read metrics: {:?}", e);
-                    None
-                }
-            };
-
-            let completion = match metrics {
-                Some(inner) => match inner {
-                    Metrics::Done(metrics) => match metrics.exit_code {
-                        0 => Completion::Success(metrics),
-                        _ => Completion::Fail(FailureReason::ExitStatus(metrics)),
-                    },
-                    Metrics::NotCompleted => Completion::Running,
+        let completion = match metrics {
+            Some(inner) => match inner {
+                Metrics::Done(metrics) => match metrics.exit_code {
+                    0 => State::Completed,
+                    _ => State::Fail(FailureReason::Failed),
                 },
-                None => Completion::Pending,
-            };
+                Metrics::NotCompleted => State::Running,
+            },
+            None => State::Pending,
+        };
 
-            let mut afterscript_completion = None;
-            let mut postprocess_job_completion = None;
+        let mut afterscript_completion = None;
+        let mut postprocess_job_completion = None;
 
-            if run.afterscript_output_path.is_some() {
-                afterscript_completion = Some(get_afterscript_status(run).with_context(ctx!(
-                    "Could not determine the afterscript status", ;
-                    "",
-                ))?);
-            }
-
-            if run.post_job_output_path.is_some() {
-                postprocess_job_completion =
-                    Some(get_postprocess_job_status(run).with_context(ctx!(
-                        "Could not determine the postprocess job status", ;
-                        "",
-                    ))?);
-            }
-
-            let status = Status {
-                completion,
-                afterscript_completion,
-                postprocess_job_completion,
-            };
-
-            statuses.insert(run_id, Some(status));
+        if run.afterscript_output_path.is_some() {
+            afterscript_completion = Some(get_afterscript_status(run).with_context(ctx!(
+                "Could not determine the afterscript status", ;
+                "",
+            ))?);
         }
 
-        Ok(statuses)
+        if run.post_job_output_path.is_some() {
+            postprocess_job_completion =
+                Some(get_postprocess_job_status(run).with_context(ctx!(
+                    "Could not determine the postprocess job status", ;
+                    "",
+                ))?);
+        }
+
+        let status = FileSystemBasedStatus {
+            completion,
+            metrics: metrics.unwrap(),
+            afterscript_completion,
+            postprocess_job_completion,
+        };
+
+        statuses.insert(run_id, status);
     }
+
+    Ok(statuses)
 }
 
 /// Get the completion of an afterscript.

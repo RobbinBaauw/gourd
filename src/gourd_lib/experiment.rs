@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -39,6 +40,18 @@ pub struct Run {
     pub post_job_output_path: Option<PathBuf>,
 }
 
+/// An enum to distinguish the run context.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+pub enum Environment {
+    /// Local execution.
+    Local,
+
+    /// Slurm execution.
+    Slurm,
+
+    Undefined,
+}
+
 /// Describes one experiment.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Experiment {
@@ -59,6 +72,15 @@ pub struct Experiment {
 
     /// The ID of this experiment.
     pub seq: usize,
+
+    /// Mapping of slurm job id to run id
+    pub id_map: Option<BTreeMap<String, usize>>,
+
+    /// Vector of slurm batch ids
+    pub batch_ids: Option<Vec<String>>,
+
+    /// Enviroment of the experiment
+    pub env: Environment,
 }
 
 impl Experiment {

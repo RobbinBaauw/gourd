@@ -15,6 +15,7 @@ use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
+use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileSystemInteractor;
 use indicatif::MultiProgress;
@@ -42,16 +43,6 @@ use crate::status::blocking_status;
 use crate::status::display_job;
 use crate::status::display_statuses;
 use crate::status::get_statuses;
-
-/// An enum to distinguish the run context.
-#[derive(Clone, Copy, Debug)]
-pub enum Environment {
-    /// Local execution.
-    Local,
-
-    /// Slurm execution.
-    Slurm,
-}
 
 /// This function parses command that gourd was run with.
 pub async fn parse_command() {
@@ -103,6 +94,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     if cmd.dry {
                         info!("Would have ran the experiment (dry)");
                     } else {
+                        experiment.env = Environment::Local;
                         run_local(&mut experiment, &exp_path, &file_system).await?;
 
                         info!("Experiment started");
@@ -118,6 +110,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     let s: SlurmHandler<SlurmCli> = SlurmHandler::default();
                     s.check_version()?;
                     s.check_partition(&get_slurm_options_from_config(&config)?.partition)?;
+                    experiment.env = Environment::Slurm;
 
                     if cmd.dry {
                         info!("Would have scheduled the experiment on slurm (dry)");
