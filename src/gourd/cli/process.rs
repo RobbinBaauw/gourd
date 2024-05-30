@@ -198,7 +198,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
         Command::Version => print_version(cmd.script),
 
-        Command::Postprocess => {
+        Command::Continue => {
             debug!("Reading the config: {:?}", cmd.config);
 
             let config = Config::from_file(&cmd.config, &file_system)?;
@@ -210,11 +210,35 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
             debug!("Found the newest experiment with id: {}", experiment.seq);
 
-            let mut statuses = get_statuses(&experiment, &mut file_system)?;
+            // Scheduling postprocessing jobs
+            if let Environment::Slurm = experiment.env {
+                debug!("Checking for postprocess jobs to be run");
 
-            schedule_post_jobs(&mut experiment, &mut statuses, &file_system)?;
+                let mut statuses = get_statuses(&experiment, &mut file_system)?;
+                schedule_post_jobs(&mut experiment, &mut statuses, &file_system)?;
 
-            info!("Postprocessing scheduled for available jobs");
+                info!("Postprocessing scheduled for available jobs");
+            } else {
+                return Err(anyhow!(
+                    "Continue is only available for a Slurm experiment, not for a local one"
+                ));
+            }
+
+            // Continuing the experiment
+            let exp_path = experiment.save(&config.experiments_folder, &file_system)?;
+
+            let s: SlurmHandler<SlurmCli> = SlurmHandler::default();
+            s.check_version()?;
+            s.check_partition(&get_slurm_options_from_config(&config)?.partition)?;
+
+            if cmd.dry {
+                info!("Would have continued the experiment on slurm (dry)");
+            } else {
+                s.run_experiment(&config, &mut experiment, exp_path, file_system)?;
+                info!("Experiment continued");
+            }
+
+            experiment.save(&config.experiments_folder, &file_system)?;
         }
     }
 

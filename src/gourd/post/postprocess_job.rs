@@ -14,6 +14,8 @@ use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
 
 use crate::status::ExperimentStatus;
+use crate::status::PostprocessCompletion;
+use crate::status::SlurmState;
 
 /// Schedules the postprocessing job for jobs that are completed and do not yet have a postprocess job output.
 pub fn schedule_post_jobs(
@@ -66,11 +68,21 @@ pub fn schedule_post_jobs(
 }
 
 /// Finds the completed jobs where posprocess job did not run yet.
-pub fn filter_runs_for_post_job(_: &mut ExperimentStatus) -> Result<Vec<&usize>> {
-    // As discussed.
-    // This function is stubbed for now.
+pub fn filter_runs_for_post_job(runs: &mut ExperimentStatus) -> Result<Vec<&usize>> {
+    let mut filtered = vec![];
 
-    Ok(Vec::new())
+    for (run_id, status) in runs {
+        if status.slurm_status.is_some() {
+            if let (SlurmState::Success, Some(PostprocessCompletion::Dormant)) = (
+                &status.slurm_status.unwrap().completion,
+                &status.fs_status.postprocess_job_completion,
+            ) {
+                filtered.push(run_id);
+            }
+        }
+    }
+
+    Ok(filtered)
 }
 
 /// Schedules the postprocess job for given jobs.
@@ -92,6 +104,7 @@ pub fn post_job_for_run(
             arguments: vec![],
             afterscript: None,
             postprocess_job: None,
+            resource_limits: None, // for now, all of these should be discussed
         },
     );
 

@@ -15,6 +15,7 @@ fn get_unscheduled_runs_test() {
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,
+        resource_limits: None,
     };
 
     let input = Input {
@@ -63,6 +64,7 @@ fn create_chunks_basic_test() {
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,
+        resource_limits: None,
     };
 
     let input = Input {
@@ -131,6 +133,7 @@ fn create_chunks_greedy_test() {
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,
+        resource_limits: None,
     };
 
     let prog_b = Program {
@@ -138,6 +141,7 @@ fn create_chunks_greedy_test() {
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,
+        resource_limits: None,
     };
 
     let input_a = Input {
@@ -193,11 +197,11 @@ fn create_chunks_greedy_test() {
     // Mapping function:
     // - use limits_A for combination of input_A and program_A
     // - use limits_B for everything else
-    let f = |r: &Run| {
+    let f = |r: &Run, _: &Experiment| {
         if r.input.starts_with("Input_A") && r.program == "Prog_A" {
-            return resource_limits_a.clone();
+            return Ok(resource_limits_a.clone());
         }
-        resource_limits_b.clone()
+        Ok(resource_limits_b.clone())
     };
 
     // Test greedy algorithm

@@ -11,12 +11,14 @@ use serde::Serialize;
 use crate::constants::AFTERSCRIPT_DEFAULT;
 use crate::constants::AFTERSCRIPT_OUTPUT_DEFAULT;
 use crate::constants::EMPTY_ARGS;
-use crate::constants::POSTPROCESS_JOB_CPUS;
+use crate::constants::GLOB_ESCAPE;
+use crate::constants::INTERNAL_GLOB;
+use crate::constants::INTERNAL_POST;
+use crate::constants::POSTPROCESS_JOBS_DEFAULT;
 use crate::constants::POSTPROCESS_JOB_DEFAULT;
-use crate::constants::POSTPROCESS_JOB_MEM;
 use crate::constants::POSTPROCESS_JOB_OUTPUT_DEFAULT;
-use crate::constants::POSTPROCESS_JOB_TIME;
 use crate::constants::PRIMARY_STYLE;
+use crate::constants::PROGRAM_RESOURCES_DEFAULT;
 use crate::constants::RERUN_LABEL_BY_DEFAULT;
 use crate::constants::WRAPPER_DEFAULT;
 use crate::error::ctx;
@@ -48,6 +50,10 @@ pub struct Program {
     /// The path to the postprocess job, if there is one.
     #[serde(default = "POSTPROCESS_JOB_DEFAULT")]
     pub postprocess_job: Option<PathBuf>,
+
+    /// Resource limits to optionally overwrite default resource limits.
+    #[serde(default = "PROGRAM_RESOURCES_DEFAULT")]
+    pub resource_limits: Option<ResourceLimits>,
 }
 
 /// A pair of a path to an input and additional cli arguments.
@@ -130,6 +136,9 @@ pub struct Config {
     /// If running on a SLURM cluster, the initial global resource limits
     pub resource_limits: Option<ResourceLimits>,
 
+    /// If running on a SLURM cluster, the initial postprocessing resource limits
+    pub postprocess_resource_limits: Option<ResourceLimits>,
+
     //
     // Advanced settings.
     //
@@ -144,6 +153,10 @@ pub struct Config {
     /// The path to a folder where the afterscript outputs will be stored.
     #[serde(default = "POSTPROCESS_JOB_OUTPUT_DEFAULT")]
     pub postprocess_job_output_folder: Option<PathBuf>,
+
+    /// The list of postprocessing programs.
+    #[serde(default = "POSTPROCESS_JOBS_DEFAULT")]
+    pub postprocess_programs: Option<BTreeMap<String, Program>>,
 
     /// Allow custom labels to be assigned based on the afterscript output.
     ///
@@ -196,18 +209,6 @@ pub struct SlurmConfig {
 
     /// Custom slurm arguments
     pub additional_args: Option<BTreeMap<String, SBatchArg>>,
-
-    /// Maximum time allowed _for each_ postprocess job.
-    #[serde(default = "POSTPROCESS_JOB_TIME")]
-    pub post_job_time_limit: Option<String>, // this is a string because slurm jobs can be longer than 24h, which is the largest value in toml time. format needs to be either "days-hours:minutes:seconds" or "minutes"
-
-    /// CPUs to use per postprocess job.
-    #[serde(default = "POSTPROCESS_JOB_CPUS")]
-    pub post_job_cpus: Option<usize>,
-
-    /// Memory in MB to allocate per CPU per postprocess job.
-    #[serde(default = "POSTPROCESS_JOB_MEM")]
-    pub post_job_mem_per_cpu: Option<usize>,
 }
 
 /// The structure for providing custom slurm arguments
@@ -248,8 +249,10 @@ impl Default for Config {
             inputs: InputMap::default(),
             slurm: None,
             resource_limits: None,
+            postprocess_resource_limits: None,
             afterscript_output_folder: AFTERSCRIPT_OUTPUT_DEFAULT(),
             postprocess_job_output_folder: POSTPROCESS_JOB_OUTPUT_DEFAULT(),
+            postprocess_programs: None,
             labels: Some(BTreeMap::new()),
         }
     }
@@ -262,6 +265,142 @@ impl Config {
         toml::from_str(&fs.read_utf8(path)?).with_context(ctx!(
           "Could not parse {path:?}", ;
           "More help and examples can be found with {PRIMARY_STYLE}man gourd.toml{PRIMARY_STYLE:#}",
+        ))?;
+
+        for name in initial.inputs.keys() {
+            Self::disallow_substring(name, INTERNAL_GLOB)?;
+            Self::disallow_substring(name, INTERNAL_POST)?;
+        }
+
+        for name in initial.programs.keys() {
+            Self::disallow_substring(name, INTERNAL_GLOB)?;
+            Self::disallow_substring(name, INTERNAL_POST)?;
+        }
+
+        if initial.postprocess_programs.is_some() {
+            for name in initial.postprocess_programs.clone().unwrap().keys() {
+                Self::disallow_substring(name, INTERNAL_GLOB)?;
+                Self::disallow_substring(name, INTERNAL_POST)?;
+            }
+        }
+
+        if let Some(labels) = &initial.labels {
+            for (label_name, label) in labels {
+                Self::check_regex(label_name, label)?;
+            }
+        }
+
+        initial.inputs = Self::expand_globs(initial.inputs)?;
+
+        Ok(initial)
+    }
+
+    fn disallow_substring(name: &String, disallowed: &'static str) -> Result<()> {
+        if name.contains(disallowed) {
+            Err(anyhow!("Failed to include the input {name}")).with_context(ctx!(
+              "The input name contained `{disallowed}`, not allowed", ;
+              "Do not include `{disallowed}` in the name of your inputs",
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Takes the set of all inputs and expands the globbed arguments.
+    ///
+    /// # Examples
+    /// ```toml
+    /// [inputs.test_input]
+    /// arguments = [ "=glob=/test/**/*.jpg" ]
+    /// ```
+    ///
+    /// May get expanded to:
+    ///
+    /// ```toml
+    /// [inputs.test_input_glob_0]
+    /// arguments = [ "/test/a/a.jpg" ]
+    ///
+    /// [inputs.test_input_glob_1]
+    /// arguments = [ "/test/a/b.jpg" ]
+    ///
+    /// [inputs.test_input_glob_2]
+    /// arguments = [ "/test/b/b.jpg" ]
+    /// ```
+    fn expand_globs(inputs: BTreeMap<String, Input>) -> Result<BTreeMap<String, Input>> {
+        let mut result = BTreeMap::new();
+
+        for (original, input) in inputs {
+            let mut globset = HashSet::new();
+            globset.insert(input.clone());
+
+            let mut is_glob = false;
+
+            for arg_index in 0..input.arguments.len() {
+                let mut next_globset = HashSet::new();
+
+                for input_instance in &globset {
+                    is_glob |= Self::explode_globset(input_instance, arg_index, &mut next_globset)?;
+                }
+
+                swap(&mut globset, &mut next_globset);
+            }
+
+            if is_glob {
+                for (idx, glob) in globset.iter().enumerate() {
+                    result.insert(
+                        format!("{}{}{}", original, INTERNAL_GLOB, idx),
+                        glob.clone(),
+                    );
+                }
+            } else {
+                result.insert(original, input);
+            }
+        }
+
+        Ok(result)
+    }
+
+    /// Given a `input` and `arg_index` expand the glob at that
+    /// argument and put the results in `fill`.
+    fn explode_globset(input: &Input, arg_index: usize, fill: &mut HashSet<Input>) -> Result<bool> {
+        let arg = &input.arguments[arg_index];
+        let no_escape = arg.strip_prefix(GLOB_ESCAPE);
+
+        if let Some(globbed) = no_escape {
+            for path in glob(globbed).with_context(ctx!(
+              "Failed to expand glob {globbed}", ;
+              "Any arguments starting with `{GLOB_ESCAPE}` are considered globs, \
+              remove it if you wish just to pass an argument",
+            ))? {
+                let mut glob_instance = input.clone();
+
+                glob_instance.arguments[arg_index] = path
+                    .with_context(ctx!(
+                      "The glob failed to evaluate at {no_escape:?}", ;
+                      "Make sure you have permissions to read the file",
+                    ))?
+                    .to_str()
+                    .ok_or(anyhow!("Failed to stringify {no_escape:?}"))
+                    .context("")?
+                    .to_string();
+
+                fill.insert(glob_instance);
+            }
+            Ok(true)
+        } else {
+            fill.insert(input.clone());
+            Ok(false)
+        }
+    }
+
+    /// Check that the labels the user gave contain valid regular expressions
+    /// for finding them in the afterscript output.
+    pub fn check_regex(label_name: &String, label: &Label) -> Result<regex_lite::Regex> {
+        regex_lite::Regex::new(&label.regex).with_context(ctx!(
+          "Could not compile regex for label {label_name:?}", ;
+          "Ensure that `{}` is valid regex.
+           Check https://en.wikipedia.org/wiki/Regular_expression#Syntax for syntax help",
+            label.regex,
         ))
     }
 }

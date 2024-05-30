@@ -100,7 +100,14 @@ impl FileBasedProvider {
                 "",
             ))?;
 
-        let is_empty = dir.read_dir()?.next().is_none();
+        let is_empty = dir
+            .read_dir()
+            .with_context(ctx!(
+                "Directory {:?} not okay", dir;
+                "",
+            ))?
+            .next()
+            .is_none();
 
         // TODO adding meaningful postprocess outputs
         if !is_empty {
@@ -125,7 +132,14 @@ impl FileBasedProvider {
                 "",
             ))?;
 
-        let is_empty = dir.read_dir()?.next().is_none();
+        let is_empty = dir
+            .read_dir()
+            .with_context(ctx!(
+                "Directory {:?} not okay", dir;
+                "",
+            ))?
+            .next()
+            .is_none();
 
         if !is_empty {
             postprocess_completion = PostprocessCompletion::Success(PostprocessOutput {

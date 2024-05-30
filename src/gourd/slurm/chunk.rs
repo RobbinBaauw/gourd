@@ -39,7 +39,7 @@ pub trait Chunkable {
         &self,
         chunk_length: usize,
         num_chunks: usize,
-        resource_limit: impl Fn(&Run) -> ResourceLimits,
+        resource_limit: impl Fn(&Run, &Experiment) -> Result<ResourceLimits>,
         ids: impl Iterator<Item = usize>,
     ) -> Result<Vec<Chunk>>;
 }
@@ -101,7 +101,7 @@ impl Chunkable for Experiment {
         &self,
         chunk_length: usize,
         num_chunks: usize,
-        resource_limit: impl Fn(&Run) -> ResourceLimits,
+        resource_limit: impl Fn(&Run, &Experiment) -> Result<ResourceLimits>,
         ids: impl Iterator<Item = usize>,
     ) -> Result<Vec<Chunk>> {
         let mut chunks_map: HashMap<ResourceLimits, Chunk> = HashMap::new();
@@ -110,7 +110,7 @@ impl Chunkable for Experiment {
         for id in ids {
             debug_assert!(id < self.runs.len(), "Run ID out of range");
             let run = &self.runs[id];
-            let limit = resource_limit(run);
+            let limit = resource_limit(run, self)?;
             match chunks_map.get_mut(&limit) {
                 Some(chunk) => {
                     if chunk.runs.len() < chunk_length {

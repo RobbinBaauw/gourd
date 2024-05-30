@@ -129,7 +129,7 @@ pub enum Command {
     #[command(about = "Display and about page with the program version")]
     Version,
 
-    /// Subcommand for scheduling the slurm postprocessing jobs.
-    #[command(about = "Schedule slurm postprocessing jobs")]
-    Postprocess,
+    /// Subcommand for scheduling another batch of slurm jobs.
+    #[command(about = "Schedule another batch of slurm jobs")]
+    Continue,
 }

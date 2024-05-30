@@ -49,6 +49,7 @@ fn non_matching_arch() {
             arguments: vec![],
             afterscript: None,
             postprocess_job: None,
+            resource_limits: None,
         },
     );
 
@@ -101,6 +102,7 @@ fn matching_arch() {
             arguments: vec![],
             afterscript: None,
             postprocess_job: None,
+            resource_limits: None,
         },
     );
 
