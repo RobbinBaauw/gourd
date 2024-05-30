@@ -1,5 +1,9 @@
+use std::fs::File;
+use std::io::Write;
+
 use anyhow::bail;
 use anyhow::Result;
+use tempdir::TempDir;
 
 use crate::file_system::FileOperations;
 use crate::file_system::FileSystemInteractor;
@@ -48,4 +52,31 @@ impl FileOperations for EmptyFilesystem {
     fn canonicalize(&self, _: &std::path::Path) -> Result<std::path::PathBuf> {
         bail!("File not found")
     }
+}
+
+/// ### Create a sample config file from a string, used in testing.
+/// if you need to test the Config struct you can use this function to create a sample config file,
+/// get the returned path to it and then parse it.
+/// ```rust
+/// # use gourd_lib::test_utils::create_sample_toml;
+/// let (file_pb, dir) = create_sample_toml("
+/// [section]
+/// key = \"value\"
+/// ");
+/// // use the test file ...
+/// # assert!(file_pb.exists());
+/// # assert!(&dir.path().exists());
+/// // ... and then clean up.
+/// # let p = dir.path().to_path_buf();
+/// dir.close().unwrap();
+/// # assert!(!p.exists());
+/// # assert!(!file_pb.exists());
+/// ```
+pub fn create_sample_toml(config_contents: &str) -> (std::path::PathBuf, TempDir) {
+    let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
+    let file_pb = dir.path().join("file.toml");
+    let mut file = File::create(file_pb.as_path()).expect("A file could not be created.");
+    file.write_all(config_contents.as_bytes())
+        .expect("The test file could not be written.");
+    (file_pb, dir)
 }

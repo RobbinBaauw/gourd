@@ -16,6 +16,8 @@ use crate::config::maps::InputMap;
 use crate::config::maps::ProgramMap;
 use crate::config::Config;
 use crate::config::Input;
+use crate::constants::WRAPPER_DEFAULT;
+use crate::test_utils::create_sample_toml;
 use crate::test_utils::REAL_FS;
 
 /// This test will fail if the semantics of the config struct are changed.
@@ -29,9 +31,15 @@ fn breaking_changes_config_struct() {
         metrics_path: PathBuf::from(""),
         experiments_folder: PathBuf::from(""),
         wrapper: "".to_string(),
+<<<<<<< HEAD:src/gourd_lib/config/tests/mod.rs
         inputs: InputMap::default(),
         programs: ProgramMap::default(),
         postprocess_programs: None,
+=======
+        inputs: BTreeMap::new(),
+        escape_hatch: None,
+        programs: BTreeMap::new(),
+>>>>>>> 21f2962 (provide file for inputs):src/gourd_lib/tests/config.rs
         slurm: None,
         resource_limits: None,
         postprocess_resource_limits: None,
@@ -71,9 +79,15 @@ fn breaking_changes_config_file_all_values() {
             metrics_path: PathBuf::from("./vulfpeck"),
             experiments_folder: PathBuf::from("./parcels/"),
             wrapper: "gourd_wrapper".to_string(),
+<<<<<<< HEAD:src/gourd_lib/config/tests/mod.rs
             inputs: InputMap::default(),
             programs: ProgramMap::default(),
             postprocess_programs: None,
+=======
+            inputs: BTreeMap::new(),
+            escape_hatch: None,
+            programs: BTreeMap::new(),
+>>>>>>> 21f2962 (provide file for inputs):src/gourd_lib/tests/config.rs
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
@@ -91,10 +105,8 @@ fn breaking_changes_config_file_all_values() {
 /// too.
 #[test]
 fn breaking_changes_config_file_required_values() {
-    let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
-    let file_pathbuf = dir.path().join("file.toml");
-
-    let config_contents = r#"
+    let (file_pb, dir) = create_sample_toml(
+        r#"
         output_path = "./ginger_root"
         metrics_path = "./vulfpeck/"
         experiments_folder = ""
@@ -102,10 +114,8 @@ fn breaking_changes_config_file_required_values() {
         [inputs]
 
         [programs]
-    "#;
-    let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
-    file.write_all(config_contents.as_bytes())
-        .expect("The test file could not be written.");
+    "#,
+    );
 
     assert_eq!(
         Config {
@@ -113,9 +123,15 @@ fn breaking_changes_config_file_required_values() {
             metrics_path: PathBuf::from("./vulfpeck"),
             experiments_folder: PathBuf::from(""),
             wrapper: "gourd_wrapper".to_string(),
+<<<<<<< HEAD:src/gourd_lib/config/tests/mod.rs
             inputs: InputMap::default(),
             programs: ProgramMap::default(),
             postprocess_programs: None,
+=======
+            inputs: BTreeMap::new(),
+            escape_hatch: None,
+            programs: BTreeMap::new(),
+>>>>>>> 21f2962 (provide file for inputs):src/gourd_lib/tests/config.rs
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
@@ -123,7 +139,7 @@ fn breaking_changes_config_file_required_values() {
             postprocess_job_output_folder: None,
             labels: None,
         },
-        Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
+        Config::from_file(file_pb.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );
     dir.close().unwrap();
 }
@@ -173,30 +189,22 @@ fn config_unparseable_file() {
 
 #[test]
 fn config_ok_file() {
-    let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
-    let file_pathbuf = dir.path().join("file.toml");
-
-    let conf = Config::default();
-    let out =
-        toml::to_string(&conf).expect("The default Config could not be serialized for testing.");
-
-    let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
-    file.write_all(out.as_bytes())
-        .expect("The test file could not be written.");
+    let (file_pb, dir) = create_sample_toml(
+        &toml::to_string(&Config::default())
+            .expect("The default Config could not be serialized for testing."),
+    );
 
     assert_eq!(
-        conf,
-        Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
+        Config::default(),
+        Config::from_file(file_pb.as_path(), &REAL_FS).expect("Unexpected config read error.")
     );
     dir.close().unwrap();
 }
 
 #[test]
 fn disallow_glob_names() {
-    let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
-    let file_pathbuf = dir.path().join("file.toml");
-
-    let config_contents = r#"
+    let (file_pb, dir) = create_sample_toml(
+        r#"
             output_path = "./ginger_root"
             metrics_path = "./vulfpeck/"
             experiments_folder = ""
@@ -205,14 +213,9 @@ fn disallow_glob_names() {
             arguments = []
 
             [programs]
-        "#;
-    let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
-    file.write_all(config_contents.as_bytes())
-        .expect("The test file could not be written.");
-
-    assert!(
-        format!("{:?}", Config::from_file(file_pathbuf.as_path(), &REAL_FS)).contains("_glob_")
+        "#,
     );
+    assert!(format!("{:?}", Config::from_file(file_pb.as_path(), &REAL_FS)).contains("_glob_"));
     dir.close().unwrap();
 }
 
@@ -228,7 +231,7 @@ fn test_globs() {
     let config_contents = format!(
         r#"
             output_path = "./ginger_root"
-            metrics_path = "./vulfpeck/"
+            metrics_path = "./vulfpeck"
             experiments_folder = ""
 
             [inputs.test_blob]
@@ -246,7 +249,7 @@ fn test_globs() {
     let mut inputs = InputMap::default();
 
     inputs.insert(
-        "test_blob_glob_0".to_string(),
+        "_internal_test_blob_glob_0".to_string(),
         Input {
             input: None,
             arguments: vec!["-f".to_string(), in_pathbuf.to_str().unwrap().to_string()],
@@ -255,13 +258,18 @@ fn test_globs() {
 
     assert_eq!(
         Config {
-            output_path: PathBuf::from("./ginger_root/"),
+            output_path: PathBuf::from("./ginger_root"),
             metrics_path: PathBuf::from("./vulfpeck"),
             experiments_folder: PathBuf::from(""),
             wrapper: "gourd_wrapper".to_string(),
             inputs,
+<<<<<<< HEAD:src/gourd_lib/config/tests/mod.rs
             programs: ProgramMap::default(),
             postprocess_programs: None,
+=======
+            escape_hatch: None,
+            programs: BTreeMap::new(),
+>>>>>>> 21f2962 (provide file for inputs):src/gourd_lib/tests/config.rs
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
@@ -276,10 +284,8 @@ fn test_globs() {
 
 #[test]
 fn test_globs_invalid_pattern() {
-    let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
-    let file_pathbuf = dir.path().join("file.toml");
-
-    let config_contents = r#"
+    let (file_pb, _dir) = create_sample_toml(
+        r#"
             output_path = "./ginger_root"
             metrics_path = "./vulfpeck/"
             experiments_folder = ""
@@ -288,22 +294,23 @@ fn test_globs_invalid_pattern() {
             arguments = ["-f", "glob|***"]
 
             [programs]
-        "#;
-    let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
-    file.write_all(config_contents.as_bytes())
-        .expect("The test file could not be written.");
-
+        "#,
+    );
     assert!(
+<<<<<<< HEAD:src/gourd_lib/config/tests/mod.rs
         format!("{:?}", Config::from_file(file_pathbuf.as_path(), &REAL_FS))
             .contains("could not expand")
+=======
+        format!("{:?}", Config::from_file(file_pb.as_path(), &REAL_FS))
+            .contains("Failed to expand")
+>>>>>>> 21f2962 (provide file for inputs):src/gourd_lib/tests/config.rs
     );
 }
 
 #[test]
 fn test_regex_that_do_match() {
-    let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
-    let file_pathbuf = dir.path().join("file.toml");
-    let config_contents = r#"
+    let (file_pb, _dir) = create_sample_toml(
+        r#"
             output_path = "./ginger_root"
             metrics_path = "./vulfpeck/"
             experiments_folder = ""
@@ -312,13 +319,10 @@ fn test_regex_that_do_match() {
             priority = 42
             [programs]
             [inputs]
-        "#;
-    let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
-    file.write_all(config_contents.as_bytes())
-        .expect("The test file could not be written.");
-
+        "#,
+    );
     let config =
-        Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.");
+        Config::from_file(file_pb.as_path(), &REAL_FS).expect("Unexpected config read error.");
     assert!(
         regex_lite::Regex::new(config.labels.unwrap().get("stefan").unwrap().regex.as_str())
             .unwrap()
@@ -328,9 +332,8 @@ fn test_regex_that_do_match() {
 
 #[test]
 fn test_invalid_regex_gives_error() {
-    let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
-    let file_pathbuf = dir.path().join("file.toml");
-    let config_contents = r#"
+    let (file_pathbuf, _dir) = create_sample_toml(
+        r#"
             output_path = "./ginger_root"
             metrics_path = "./vulfpeck/"
             experiments_folder = ""
@@ -339,10 +342,94 @@ fn test_invalid_regex_gives_error() {
             priority = 42
             [programs]
             [inputs]
-        "#;
-    let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
-    file.write_all(config_contents.as_bytes())
+        "#,
+    );
+    assert!(Config::from_file(file_pathbuf.as_path(), &REAL_FS).is_err());
+}
+
+#[test]
+fn parse_valid_escape_hatch_file() {
+    let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
+    let f1 = dir.path().join("file1.toml");
+    let f2 = dir.path().join("file2.toml");
+    // let f3 = dir.path().join("file3.toml");
+    let mut file1 = File::create(f1.as_path()).expect("A file could not be created.");
+    let mut file2 = File::create(f2.as_path()).expect("A file could not be created.");
+    // let mut file3 = File::create(f3.as_path()).expect("A file could not be created.");
+    file1
+        .write_all(
+            format!(
+                "
+    output_path = \"{}/42\"
+    metrics_path = \"{}/43\"
+    experiments_folder = \"{}/44\"
+    escape_hatch = \"{}\"
+    [programs.x]
+    binary = \"/bin/sleep\"
+    [inputs]
+    ",
+                dir.path().to_str().unwrap(),
+                dir.path().to_str().unwrap(),
+                dir.path().to_str().unwrap(),
+                f2.as_path().to_str().unwrap()
+            )
+            .as_bytes(),
+        )
         .expect("The test file could not be written.");
 
-    assert!(Config::from_file(file_pathbuf.as_path(), &REAL_FS).is_err());
+    file2
+        .write_all(
+            "
+    [[inputs]]
+    arguments = [\"hello\"]
+    [[inputs]]
+    arguments = [\"hi\"]
+    "
+            .as_bytes(),
+        )
+        .unwrap();
+
+    let c1 = Config::from_file(f1.as_path(), &REAL_FS).expect("Unexpected config read error.");
+    let c2 = Config {
+        output_path: dir.path().join("42"),
+        metrics_path: dir.path().join("43"),
+        experiments_folder: dir.path().join("44"),
+        programs: vec![(
+            "x".to_string(),
+            crate::config::Program {
+                binary: "/bin/sleep".into(),
+                arguments: vec![],
+                afterscript: None,
+                postprocess_job: None,
+            },
+        )]
+        .into_iter()
+        .collect(),
+        inputs: vec![
+            (
+                "_internal__hatch_0".to_string(),
+                crate::config::Input {
+                    input: None,
+                    arguments: vec!["hello".to_string()],
+                },
+            ),
+            (
+                "_internal__hatch_1".to_string(),
+                crate::config::Input {
+                    input: None,
+                    arguments: vec!["hi".to_string()],
+                },
+            ),
+        ]
+        .into_iter()
+        .collect(),
+        escape_hatch: None,
+        slurm: None,
+        resource_limits: None,
+        wrapper: WRAPPER_DEFAULT(),
+        afterscript_output_folder: None,
+        postprocess_job_output_folder: None,
+        labels: None,
+    };
+    assert_eq!(c1, c2);
 }

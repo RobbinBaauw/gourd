@@ -37,10 +37,16 @@ pub const EMPTY_ARGS: fn() -> Vec<String> = Vec::new;
 pub const GLOB_ESCAPE: &str = "glob|";
 
 /// The internal representation of globbed inputs.
+pub const INTERNAL_HATCH: &str = "_hatch_";
+
+/// The internal representation of globbed inputs.
 pub const INTERNAL_GLOB: &str = "_glob_";
 
-/// The internal representation of postprocess runs.
+// /// The internal representation of postprocess runs.
 pub const INTERNAL_POST: &str = "_postprocess_";
+
+/// Internal representation for names parsed from config
+pub const INTERNAL_PREFIX: &str = "_internal_";
 
 /// The amount between refreshes of the status screen, in ms.
 pub const STATUS_REFRESH_PERIOD: Duration = Duration::from_millis(50);

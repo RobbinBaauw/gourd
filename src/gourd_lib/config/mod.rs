@@ -12,6 +12,10 @@ use crate::constants::AFTERSCRIPT_DEFAULT;
 use crate::constants::AFTERSCRIPT_OUTPUT_DEFAULT;
 use crate::constants::EMPTY_ARGS;
 use crate::constants::POSTPROCESS_JOBS_DEFAULT;
+use crate::constants::GLOB_ESCAPE;
+use crate::constants::INTERNAL_GLOB;
+use crate::constants::INTERNAL_HATCH;
+use crate::constants::INTERNAL_PREFIX;
 use crate::constants::POSTPROCESS_JOB_DEFAULT;
 use crate::constants::POSTPROCESS_JOB_OUTPUT_DEFAULT;
 use crate::constants::PRIMARY_STYLE;
@@ -89,6 +93,22 @@ pub struct Input {
     pub arguments: Vec<String>,
 }
 
+/// ### TOML struct that can be used to provide inputs.
+/// structure is:
+/// ```toml
+/// [[inputs]]
+/// input = "/path/to/input"
+/// arguments = [ "arg1", "arg2" ]
+///
+/// [[inputs]]
+/// input = "/path/to/input2"
+/// arguments = [ "arg1", "arg2" ]
+/// ```
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Hash, Eq)]
+pub struct HatchInputs {
+    pub inputs: Vec<Input>,
+}
+
 /// A label that can be assigned to a job based on the afterscript output.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
 pub struct Label {
@@ -120,21 +140,29 @@ pub struct Config {
     //
     // Basic settings.
     /// The path to a folder where the experiment output will be stored.
+    #[serde(alias = "out")]
     pub output_path: PathBuf,
 
     /// The path to a folder where the metrics output will be stored.
+    #[serde(alias = "metrics")]
     pub metrics_path: PathBuf,
 
     /// The path to a folder where the experiments will be stored.
+    #[serde(alias = "experiments")]
     pub experiments_folder: PathBuf,
 
     /// The list of tested algorithms.
+    #[serde(rename = "program")]
     pub programs: ProgramMap,
 
     /// The list of inputs for each of them.
     ///
     /// The name of an input cannot contain `glob|`.
+    #[serde(rename = "input")]
     pub inputs: InputMap,
+
+    /// A path to a TOML file that contains input combinations.
+    pub escape_hatch: Option<PathBuf>,
 
     /// If running on a SLURM cluster, the job configurations
     pub slurm: Option<SlurmConfig>,
@@ -259,6 +287,7 @@ impl Default for Config {
             wrapper: WRAPPER_DEFAULT(),
             programs: ProgramMap::default(),
             inputs: InputMap::default(),
+            escape_hatch: None,
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
