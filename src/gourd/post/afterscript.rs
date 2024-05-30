@@ -22,7 +22,7 @@ pub fn run_afterscript(
     experiment: &Experiment,
     file_system: &impl FileOperations,
 ) -> Result<BTreeMap<usize, String>> {
-    let runs = filter_runs_for_afterscript(statuses)?;
+    let runs = filter_runs_for_afterscript(statuses);
 
     let mut labels = BTreeMap::new();
     for run_id in runs {
@@ -73,7 +73,7 @@ pub fn run_afterscript(
 }
 
 /// Find the completed jobs where afterscript did not run yet.
-pub fn filter_runs_for_afterscript(runs: &ExperimentStatus) -> Result<Vec<&usize>> {
+pub fn filter_runs_for_afterscript(runs: &ExperimentStatus) -> Vec<&usize> {
     let mut filtered = vec![];
 
     for (run_id, status) in runs {
@@ -85,7 +85,7 @@ pub fn filter_runs_for_afterscript(runs: &ExperimentStatus) -> Result<Vec<&usize
         }
     }
 
-    Ok(filtered)
+    filtered
 }
 
 /// Runs the afterscript on given jobs.

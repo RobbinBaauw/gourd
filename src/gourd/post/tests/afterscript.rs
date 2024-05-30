@@ -105,7 +105,7 @@ fn test_filter_runs_for_afterscript_good_weather() {
         },
     );
 
-    let res = filter_runs_for_afterscript(&runs).unwrap();
+    let res = filter_runs_for_afterscript(&runs);
 
     assert_eq!(res.len(), 1);
 
