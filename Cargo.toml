@@ -36,52 +36,55 @@ name = "gourd_lib"
 path = "src/gourd_lib/lib.rs"
 
 [target.'cfg(unix)'.dependencies]
-# On Linux, macOS, BSD: to perform syscalls to get usage metrics
+# On Linux, macOS, BSD: to perform syscalls to get usage metrics.
 libc = "0.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-# On Linux: to verify that user-provided ELF binaries match the architecture
+# On Linux: to verify that user-provided ELF binaries match the architecture.
 elf = "0.7.4"
 
 [dependencies]
 
-# To execute threads locally using a thread-pool executor
+# To execute threads locally using a thread-pool executor.
 tokio = { version = "1", features = ["full"] }
 futures = { version = "0.3.30"}
 
-# To encode/decode data in gourd.toml and other Gourd files
+# To encode/decode data in gourd.toml and other Gourd files.
 toml = "0.8.12"
 serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
 glob = "0.3.1"
 regex-lite = "0.1.5"
 
-# To load datasets and executables from the internet
+# To load datasets and executables from the internet.
 reqwest = { version = "0.12.4", features = ["blocking", "json"], optional = true }
 
-# To provide a user-friendly CLI
+# To provide a user-friendly CLI.
 clap = { version = "4.5.4", features = ["derive", "cargo"] }
 anstyle = "1.0.7"
 indicatif = "0.17.8"
 indicatif-log-bridge = "0.2.2"
 
-# To handle errors
+# To provide human readable formatting of durations.
+humantime = "2.1.0"
+
+# To handle errors.
 anyhow = "1"
 thiserror = "1"
 
-# To store temporary files
+# To store temporary files.
 tempdir = "0.3.7"
 
-# To log to stdout
+# To log to stdout.
 log = "0.4"
 colog = "1.3.0"
 
 [build-dependencies]
-# To generate shell completions for the CLI
+# To generate shell completions for the CLI.
 clap_complete = "4.5.2"
 clap = { version = "4.5.4", features = ["derive", "cargo"] }
 anstyle = "1.0.7"
 
 [dev-dependencies]
-# To run benchmarks on stable rust
+# To run benchmarks on stable rust.
 easybench = "1.1.1"

@@ -2,9 +2,11 @@ use std::fs::File;
 use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use gourd_lib::config::Config;
 use gourd_lib::file_system::FileSystemInteractor;
+use gourd_lib::measurement::Measurement;
 use tempdir::TempDir;
 
 use super::*;
@@ -34,7 +36,11 @@ fn test_filter_runs_for_post_job() {
     runs.insert(
         0,
         Some(Status {
-            completion: Completion::Success,
+            completion: Completion::Success(Measurement {
+                wall_micros: Duration::from_secs(1),
+                exit_code: 0,
+                rusage: None,
+            }),
             afterscript_completion: None,
             postprocess_job_completion: None,
         }),
@@ -42,7 +48,11 @@ fn test_filter_runs_for_post_job() {
     runs.insert(
         1,
         Some(Status {
-            completion: Completion::Success,
+            completion: Completion::Success(Measurement {
+                wall_micros: Duration::from_secs(1),
+                exit_code: 0,
+                rusage: None,
+            }),
             afterscript_completion: None,
             postprocess_job_completion: Some(PostprocessCompletion::Dormant),
         }),
@@ -58,7 +68,11 @@ fn test_filter_runs_for_post_job() {
     runs.insert(
         3,
         Some(Status {
-            completion: Completion::Success,
+            completion: Completion::Success(Measurement {
+                wall_micros: Duration::from_secs(1),
+                exit_code: 0,
+                rusage: None,
+            }),
             afterscript_completion: None,
             postprocess_job_completion: Some(PostprocessCompletion::Success(PostprocessOutput {
                 short_output: String::from("short"),
@@ -81,7 +95,11 @@ fn test_filter_runs_for_afterscript_good_weather() {
     runs.insert(
         0,
         Some(Status {
-            completion: Completion::Success,
+            completion: Completion::Success(Measurement {
+                wall_micros: Duration::from_secs(1),
+                exit_code: 0,
+                rusage: None,
+            }),
             afterscript_completion: None,
             postprocess_job_completion: None,
         }),
@@ -89,7 +107,11 @@ fn test_filter_runs_for_afterscript_good_weather() {
     runs.insert(
         1,
         Some(Status {
-            completion: Completion::Success,
+            completion: Completion::Success(Measurement {
+                wall_micros: Duration::from_secs(1),
+                exit_code: 0,
+                rusage: None,
+            }),
             afterscript_completion: Some(PostprocessCompletion::Dormant),
             postprocess_job_completion: None,
         }),
@@ -105,7 +127,11 @@ fn test_filter_runs_for_afterscript_good_weather() {
     runs.insert(
         3,
         Some(Status {
-            completion: Completion::Success,
+            completion: Completion::Success(Measurement {
+                wall_micros: Duration::from_secs(1),
+                exit_code: 0,
+                rusage: None,
+            }),
             afterscript_completion: Some(PostprocessCompletion::Success(PostprocessOutput {
                 short_output: String::from("short"),
                 long_output: String::from("long"),
@@ -128,7 +154,11 @@ fn test_filter_runs_for_afterscript_bad_weather() {
     runs.insert(
         0,
         Some(Status {
-            completion: Completion::Success,
+            completion: Completion::Success(Measurement {
+                wall_micros: Duration::from_secs(1),
+                exit_code: 0,
+                rusage: None,
+            }),
             afterscript_completion: None,
             postprocess_job_completion: None,
         }),
@@ -219,13 +249,7 @@ fn test_add_label_to_run() {
         .expect("The test file could not be written.");
 
     let conf = Config::from_file(file_pb.as_path(), &fs).unwrap();
-    let exp = Experiment::from_config(
-        &conf,
-        crate::cli::process::Environment::Local,
-        chrono::Local::now(),
-        &fs,
-    )
-    .unwrap();
+    let exp = Experiment::from_config(&conf, chrono::Local::now(), &fs).unwrap();
     let mut labels = BTreeMap::new();
     assert!(conf.labels.is_some());
     add_label_to_run(0, &mut labels, &exp, dir.path().join("after.txt"), &fs)

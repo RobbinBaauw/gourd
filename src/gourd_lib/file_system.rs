@@ -40,8 +40,13 @@ pub trait FileOperations {
     /// Wirte a [String] to a file.
     fn write_utf8_truncate(&self, path: &Path, data: &str) -> Result<()>;
 
-    /// Create the file and all parent directories.
+    /// Truncates the file and then runs [FileOperations::canonicalize].
     fn truncate_and_canonicalize(&self, path: &Path) -> Result<PathBuf>;
+
+    /// Given a path try to canonicalize it.
+    ///
+    /// This will fail for files that do not exist.
+    fn canonicalize(&self, path: &Path) -> Result<PathBuf>;
 }
 
 impl FileOperations for FileSystemInteractor {
@@ -116,6 +121,10 @@ impl FileOperations for FileSystemInteractor {
            "Ensure that you have sufficient permissions",
         ))?;
 
+        self.canonicalize(path)
+    }
+
+    fn canonicalize(&self, path: &Path) -> Result<PathBuf> {
         path.canonicalize().with_context(ctx!(
           "Could not canonicalize {path:?}", ;
           "Ensure that your path is valid",

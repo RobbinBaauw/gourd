@@ -27,7 +27,7 @@ impl<T> StatusProvider<T> for FileBasedStatus
 where
     T: FileOperations,
 {
-    fn get_statuses(fs: T, experiment: &Experiment) -> Result<ExperimentStatus> {
+    fn get_statuses(fs: &mut T, experiment: &Experiment) -> Result<ExperimentStatus> {
         let mut statuses = BTreeMap::new();
 
         for (run_id, run) in experiment.runs.iter().enumerate() {
@@ -48,8 +48,8 @@ where
             let completion = match metrics {
                 Some(inner) => match inner {
                     Metrics::Done(metrics) => match metrics.exit_code {
-                        0 => Completion::Success,
-                        x => Completion::Fail(FailureReason::ExitStatus(x)),
+                        0 => Completion::Success(metrics),
+                        _ => Completion::Fail(FailureReason::ExitStatus(metrics)),
                     },
                     Metrics::Pending => Completion::Pending,
                 },
@@ -79,6 +79,7 @@ where
                 afterscript_completion,
                 postprocess_job_completion,
             };
+
             statuses.insert(run_id, Some(status));
         }
 

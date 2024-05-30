@@ -71,15 +71,8 @@ fn process() -> Result<()> {
     let fs = FileSystemInteractor { dry_run: false };
 
     let rc = match args.len() {
-        0..=2 => bail!("Slurm wrapper needs an experiment file path and a job id"),
-        3 => process_slurm_args(&args, &fs).with_context(ctx!(
-            "Could not process arguments (assuming slurm environment) {:?}", args;
-            "",
-        ))?,
-        _ => process_local_args(&args).with_context(ctx!(
-            "Could not process arguments (assuming local environment) {:?}", args;
-            "",
-        ))?,
+        4 => process_args(&args, &fs)?,
+        _ => bail!("Slurm wrapper needs an experiment file path and a job id"),
     };
 
     fs::write(
@@ -145,40 +138,38 @@ fn process() -> Result<()> {
     Ok(())
 }
 
-fn process_slurm_args(args: &[String], fs: &impl FileOperations) -> Result<RunConf> {
-    let exp_path: PathBuf = args[1]
+fn process_args(args: &[String], fs: &impl FileOperations) -> Result<RunConf> {
+    let exp_path: PathBuf = args[2]
         .parse()
         .context(format!("The experiment file path is invalid: {}", args[1]))?;
+
     let exp = fs.try_read_toml::<Experiment>(exp_path.as_path())?;
-    let id: usize = args[2]
-        .parse()
-        .with_context(ctx!(
-            "Could not parse the run id from the arguments {:?}", args;
-            "Ensure that Slurm is configured correctly",
-        ))
-        .unwrap();
+
+    let chunk_id: usize = args[1].parse().with_context(ctx!(
+        "Could not parse the chunk id from the arguments {:?}", args;
+        "Ensure that Slurm is configured correctly",
+    ))?;
+
+    let slurm_id: usize = args[3].parse().with_context(ctx!(
+        "Could not parse the run id from the arguments {:?}", args;
+        "Ensure that Slurm is configured correctly",
+    ))?;
+
+    let id = exp.chunks[chunk_id].runs[slurm_id];
+
+    let program = &exp.config.programs[&exp.runs[id].program];
+    let input = &exp.config.inputs[&exp.runs[id].input];
+
+    let mut additional_args = program.arguments.clone();
+    additional_args.append(&mut input.arguments.clone());
 
     Ok(RunConf {
-        binary_path: exp.config.programs[&exp.runs[id].program].binary.clone(),
-        input_path: exp.config.inputs[&exp.runs[id].input].input.clone(),
+        binary_path: program.binary.clone(),
+        input_path: input.input.clone(),
         output_path: exp.runs[id].output_path.clone(),
         result_path: exp.runs[id].metrics_path.clone(),
         err_path: exp.runs[id].err_path.clone(),
-        additional_args: vec![],
-    })
-}
-
-fn process_local_args(args: &[String]) -> Result<RunConf> {
-    if args.len() < 6 {
-        bail!("Wrapper needs at least 6 arguments");
-    }
-    Ok(RunConf {
-        binary_path: PathBuf::from(&args[1]),
-        input_path: Some(PathBuf::from(&args[2])),
-        output_path: PathBuf::from(&args[3]),
-        result_path: PathBuf::from(&args[4]),
-        err_path: PathBuf::from(&args[5]),
-        additional_args: args[6..].to_vec(),
+        additional_args,
     })
 }
 

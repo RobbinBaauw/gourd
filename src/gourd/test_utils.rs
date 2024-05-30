@@ -14,7 +14,6 @@ use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileSystemInteractor;
 use tempdir::TempDir;
 
-use crate::cli::process::Environment;
 use crate::experiments::ExperimentExt;
 
 pub const REAL_FS: FileSystemInteractor = FileSystemInteractor { dry_run: false };
@@ -59,7 +58,7 @@ pub fn create_sample_experiment(
     };
 
     (
-        Experiment::from_config(&conf, Environment::Local, Local::now(), &REAL_FS).unwrap(),
+        Experiment::from_config(&conf, Local::now(), &REAL_FS).unwrap(),
         conf,
     )
 }

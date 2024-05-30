@@ -30,7 +30,7 @@ pub struct Run {
     pub metrics_path: PathBuf,
 
     /// Slurm job id, if ran on slurm
-    pub job_id: Option<usize>,
+    pub slurm_id: Option<String>,
 
     /// The path to afterscript output, optionally.
     pub afterscript_output_path: Option<PathBuf>,
@@ -45,9 +45,11 @@ pub struct Experiment {
     /// The pairings of program-input for this experiment.
     pub runs: Vec<Run>,
 
-    /// The runtime data for running on Slurm.
-    /// Present if this is a Slurm experiment, absent otherwise.
-    pub slurm: Option<SlurmExperiment>,
+    /// Chunks scheduled for running on Slurm.
+    pub chunks: Vec<Chunk>,
+
+    /// Global resource limits that will apply to _newly created chunks_.
+    pub resource_limits: Option<ResourceLimits>,
 
     /// The time of creation of the experiment.
     pub creation_time: DateTime<Local>,
@@ -70,16 +72,6 @@ impl Experiment {
     }
 }
 
-/// Runtime data for running on Slurm, including scheduled chunks.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct SlurmExperiment {
-    /// Chunks scheduled for running on Slurm.
-    pub chunks: Vec<Chunk>,
-
-    /// Global resource limits that will apply to _newly created chunks_.
-    pub resource_limits: ResourceLimits,
-}
-
 /// Describes one chunk: a Slurm array of scheduled runs with common resource limits.
 /// Chunks are created at runtime; a run is in one chunk iff it has been scheduled.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
@@ -88,7 +80,10 @@ pub struct Chunk {
     pub runs: Vec<usize>,
 
     /// The resource limits of this chunk.
-    pub resource_limits: ResourceLimits,
+    pub resource_limits: Option<ResourceLimits>,
+
+    /// Whether this chunk already got scheduled.
+    pub scheduled: bool,
 }
 
 // this stays here as an idea to eventually implement,

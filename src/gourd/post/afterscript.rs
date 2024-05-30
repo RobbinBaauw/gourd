@@ -86,7 +86,7 @@ pub fn filter_runs_for_afterscript(runs: &BTreeMap<usize, Option<Status>>) -> Re
                 "",
             ))?;
 
-        if let (Completion::Success, Some(PostprocessCompletion::Dormant)) =
+        if let (Completion::Success(_), Some(PostprocessCompletion::Dormant)) =
             (status.completion, status.afterscript_completion)
         {
             filtered.push(run_id);

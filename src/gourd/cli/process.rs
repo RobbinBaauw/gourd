@@ -1,8 +1,6 @@
 use std::env;
 use std::io::stdout;
-use std::io::BufWriter;
 use std::process::exit;
-use std::thread::sleep;
 
 use anyhow::anyhow;
 use anyhow::Context;
@@ -15,7 +13,6 @@ use colog::formatter;
 use gourd_lib::config::Config;
 use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
-use gourd_lib::constants::STATUS_REFRESH_RATE;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
@@ -33,7 +30,6 @@ use crate::cli::def::Cli;
 use crate::cli::def::Command;
 use crate::cli::def::RunSubcommand;
 use crate::cli::def::StatusStruct;
-use crate::cli::printing::generate_progress_bar;
 use crate::cli::printing::print_version;
 use crate::experiments::ExperimentExt;
 use crate::local::run_local;
@@ -41,7 +37,8 @@ use crate::post::afterscript::run_afterscript;
 use crate::post::postprocess_job::schedule_post_jobs;
 use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::handler::SlurmHandler;
-use crate::slurm::interactor::SlurmCLI;
+use crate::slurm::interactor::SlurmCli;
+use crate::status::blocking_status;
 use crate::status::display_job;
 use crate::status::display_statuses;
 use crate::status::get_statuses;
@@ -85,7 +82,7 @@ pub async fn parse_command() {
 pub async fn process_command(cmd: &Cli) -> Result<()> {
     let progress = setup_logging(cmd)?;
 
-    let file_system = FileSystemInteractor { dry_run: cmd.dry };
+    let mut file_system = FileSystemInteractor { dry_run: cmd.dry };
 
     match cmd.command {
         Command::Run(args) => {
@@ -96,54 +93,21 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             debug!("Creating a new experiment");
             trace!("The config is: {config:#?}");
 
-            let mut experiment = Experiment::from_config(
-                &config,
-                match args.sub_command {
-                    RunSubcommand::Local { .. } => Environment::Local,
-                    RunSubcommand::Slurm { .. } => Environment::Slurm,
-                },
-                Local::now(),
-                &file_system,
-            )?;
+            let mut experiment = Experiment::from_config(&config, Local::now(), &file_system)?;
 
             let exp_path = experiment.save(&config.experiments_folder, &file_system)?;
-            debug!("Saving the experiment at {exp_path:?}");
+            debug!("Saved the experiment at {exp_path:?}");
 
             match args.sub_command {
                 RunSubcommand::Local { .. } => {
                     if cmd.dry {
                         info!("Would have ran the experiment (dry)");
                     } else {
-                        run_local(&experiment, &file_system).await?;
+                        run_local(&mut experiment, &exp_path, &file_system).await?;
+
                         info!("Experiment started");
 
-                        let mut complete = 0;
-                        let mut message = "".to_string();
-
-                        let bar =
-                            progress.add(generate_progress_bar(experiment.runs.len() as u64)?);
-
-                        while complete < experiment.runs.len() {
-                            let mut buf = BufWriter::new(Vec::new());
-
-                            let statuses = get_statuses(&experiment, file_system)?;
-                            complete = display_statuses(&mut buf, &experiment, &statuses)?;
-                            message = format!("{}\n", String::from_utf8(buf.into_inner()?)?);
-
-                            bar.set_prefix(message.clone());
-                            bar.set_position(complete as u64);
-
-                            sleep(STATUS_REFRESH_RATE);
-                        }
-
-                        bar.finish();
-                        progress.remove(&bar);
-                        progress.clear()?;
-
-                        let leftover = generate_progress_bar(experiment.runs.len() as u64)?;
-                        leftover.set_position(complete as u64);
-                        leftover.set_prefix(message);
-                        leftover.finish();
+                        blocking_status(&progress, &experiment, &mut file_system)?;
 
                         info!("Experiment finished");
                         println!();
@@ -151,16 +115,18 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                 }
 
                 RunSubcommand::Slurm { .. } => {
-                    let s: SlurmHandler<SlurmCLI> = SlurmHandler::default();
+                    let s: SlurmHandler<SlurmCli> = SlurmHandler::default();
                     s.check_version()?;
                     s.check_partition(&get_slurm_options_from_config(&config)?.partition)?;
 
                     if cmd.dry {
                         info!("Would have scheduled the experiment on slurm (dry)");
                     } else {
-                        s.run_experiment(&config, &mut experiment, exp_path)?;
+                        s.run_experiment(&config, &mut experiment, exp_path, file_system)?;
                         info!("Experiment started");
                     }
+
+                    experiment.save(&config.experiments_folder, &file_system)?;
                 }
             }
 
@@ -181,6 +147,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
         Command::Status(StatusStruct {
             experiment_id,
             run_id,
+            follow: blocking,
             ..
         }) => {
             debug!("Reading the config: {:?}", cmd.config);
@@ -202,7 +169,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
             debug!("Found the newest experiment with id: {}", experiment.seq);
 
-            let statuses = get_statuses(&experiment, file_system)?;
+            let statuses = get_statuses(&experiment, &mut file_system)?;
 
             // TODO: status should do something with these labels
             let _labels = run_afterscript(&statuses, &experiment, &file_system)?;
@@ -217,7 +184,11 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                         experiment.seq
                     );
 
-                    display_statuses(&mut stdout(), &experiment, &statuses)?;
+                    if blocking {
+                        blocking_status(&progress, &experiment, &mut file_system)?;
+                    } else {
+                        display_statuses(&mut stdout(), &experiment, &statuses)?;
+                    }
                 }
             }
         }
@@ -240,7 +211,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
             debug!("Found the newest experiment with id: {}", experiment.seq);
 
-            let mut statuses = get_statuses(&experiment, file_system)?;
+            let mut statuses = get_statuses(&experiment, &mut file_system)?;
 
             schedule_post_jobs(&mut experiment, &mut statuses, &file_system)?;
 

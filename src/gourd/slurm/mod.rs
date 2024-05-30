@@ -1,9 +1,9 @@
-use std::ops::Range;
 use std::path::Path;
 
 use anyhow::Result;
-use gourd_lib::config::ResourceLimits;
 use gourd_lib::config::SlurmConfig;
+use gourd_lib::experiment::Chunk;
+use gourd_lib::experiment::Experiment;
 
 /// Some checks when running on slurm to improve error handling
 pub mod checks;
@@ -24,12 +24,12 @@ pub trait SlurmInteractor {
     fn get_partitions(&self) -> Result<Vec<Vec<String>>>;
 
     /// actually running batch jobs. still not completely decided what this will do, more documentation soon™
-    fn schedule_array(
+    fn schedule_chunk(
         &self,
-        range: Range<usize>,
         slurm_config: &SlurmConfig,
-        resource_limits: &ResourceLimits,
-        wrapper_path: &str,
+        chunk: &mut Chunk,
+        chunk_id: usize,
+        experiment: &mut Experiment,
         exp_path: &Path,
     ) -> Result<()>;
 

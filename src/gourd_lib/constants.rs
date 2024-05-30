@@ -42,7 +42,7 @@ pub const INTERNAL_GLOB: &str = "_glob_";
 pub const INTERNAL_POST: &str = "_postprocess_";
 
 /// The amount between refreshes of the status screen, in ms.
-pub const STATUS_REFRESH_RATE: Duration = Duration::from_millis(50);
+pub const STATUS_REFRESH_PERIOD: Duration = Duration::from_millis(50);
 
 /// Create a style with a defined foreground color.
 pub const fn style_from_fg(color: AnsiColor) -> Style {

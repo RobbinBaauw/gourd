@@ -40,4 +40,8 @@ impl FileOperations for EmptyFilesystem {
     fn truncate_and_canonicalize(&self, _: &std::path::Path) -> Result<std::path::PathBuf> {
         bail!("File not found")
     }
+
+    fn canonicalize(&self, _: &std::path::Path) -> Result<std::path::PathBuf> {
+        bail!("File not found")
+    }
 }

@@ -101,6 +101,7 @@ pub struct Label {
 // 3. update the tests
 // 4. update the user documentation
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     //
     // Basic settings.

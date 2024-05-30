@@ -1,4 +1,3 @@
-use std::ops::Range;
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
@@ -6,36 +5,23 @@ use std::time::Duration;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
-use gourd_lib::config::ResourceLimits;
 use gourd_lib::config::SlurmConfig;
 use gourd_lib::constants::SLURM_VERSIONS;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
+use gourd_lib::experiment::Chunk;
+use gourd_lib::experiment::Experiment;
+use log::debug;
 use tempdir::TempDir;
 
 use super::handler::parse_optional_args;
 use crate::slurm::SlurmInteractor;
 
-/// An implementation of the SlurmInteractor trait for interacting with SLURM via the CLI.
-#[derive(Debug)]
-pub struct SlurmCLI {
-    /// Supported versions by this instance of the CLI interactor
-    pub versions: Vec<[u64; 2]>,
-}
-
-impl Default for SlurmCLI {
-    fn default() -> Self {
-        Self {
-            versions: SLURM_VERSIONS.to_vec(),
-        }
-    }
-}
-
 /// Creates a Slurm duration string.
 ///
 /// Converts a standard `std::time::Duration` to a Slurm duration in one of
 /// the following formats: {ss, mm:ss, hh:mm:ss, d-hh:mm:ss}
-fn format_slurm_duration(duration: Duration) -> String {
+pub fn format_slurm_duration(duration: Duration) -> String {
     let secs = duration.as_secs();
     let secs_rem = secs % 60;
 
@@ -65,10 +51,25 @@ fn format_slurm_duration(duration: Duration) -> String {
     )
 }
 
+/// An implementation of the SlurmInteractor trait for interacting with SLURM via the CLI.
+#[derive(Debug)]
+pub struct SlurmCli {
+    /// Supported versions by this instance of the CLI interactor
+    pub versions: Vec<[u64; 2]>,
+}
+
+impl Default for SlurmCli {
+    fn default() -> Self {
+        Self {
+            versions: SLURM_VERSIONS.to_vec(),
+        }
+    }
+}
+
 /// These are using functions specific to CLI version 21.8.x
 ///
 /// we don't know if other versions are supported.
-impl SlurmInteractor for SlurmCLI {
+impl SlurmInteractor for SlurmCli {
     /// Get the SLURM version from CLI output.
     fn get_version(&self) -> Result<[u64; 2]> {
         let s_info_out = Command::new("sinfo").arg("--version").output()?;
@@ -82,8 +83,10 @@ impl SlurmInteractor for SlurmCLI {
             .map(|x| x.parse::<u64>().unwrap())
             .collect::<Vec<u64>>();
         let mut buf = [0; 2];
+
         buf[0] = *version.first().ok_or(anyhow!("Invalid version received"))?;
         buf[1] = *version.get(1).ok_or(anyhow!("Invalid version received"))?;
+
         Ok(buf)
     }
 
@@ -106,14 +109,22 @@ impl SlurmInteractor for SlurmCLI {
     }
 
     /// Schedule a new job array on the cluster.
-    fn schedule_array(
+    fn schedule_chunk(
         &self,
-        range: Range<usize>,
         slurm_config: &SlurmConfig,
-        resource_limits: &ResourceLimits,
-        wrapper_path: &str,
+        chunk: &mut Chunk,
+        chunk_id: usize,
+        experiment: &mut Experiment,
         exp_path: &Path,
     ) -> Result<()> {
+        let resource_limits = chunk
+            .resource_limits
+            .clone()
+            .ok_or(anyhow!("Could not get slurm resource limits"))
+            .with_context(
+                ctx!("",;"Specyfing resource limits in the config is required for slurm runs",),
+            )?;
+
         let temp = TempDir::new("gourd-slurm")?;
         let batch_script = temp.path().join("batch.sh");
 
@@ -121,40 +132,62 @@ impl SlurmInteractor for SlurmCLI {
 
         let contents = format!(
             "#!/bin/bash
-#SBATCH --job-name={}
-#SBATCH --array={}-{}
+#SBATCH --job-name=\"{}\"
+#SBATCH --array=\"{}-{}\"
 #SBATCH --ntasks=1
-#SBATCH --partition={}
-#SBATCH --time={}
-#SBATCH --cpus-per-task={}
-#SBATCH --mem-per-cpu={}
-#SBATCH --account={}
+#SBATCH --partition=\"{}\"
+#SBATCH --time=\"{}\"
+#SBATCH --cpus-per-task=\"{}\"
+#SBATCH --mem-per-cpu=\"{}\"
+#SBATCH --account=\"{}\"
 {}
 
-{} {} $SLURM_ARRAY_TASK_ID
+{} {} {} $SLURM_ARRAY_TASK_ID
 ",
             slurm_config.experiment_name,
-            range.start,
-            range.end,
+            0,
+            &chunk.runs.len() - 1,
             slurm_config.partition,
             format_slurm_duration(resource_limits.time_limit),
             resource_limits.cpus,
             resource_limits.mem_per_cpu,
             slurm_config.account,
             optional_args,
-            wrapper_path,
+            experiment.config.wrapper,
+            chunk_id,
             exp_path.display()
         );
 
-        std::fs::write(&batch_script, contents)?;
+        std::fs::write(&batch_script, &contents)?;
 
-        let _ = Command::new("sbatch")
+        debug!("Sbatch file: {}", contents);
+
+        let proc = Command::new("sbatch")
+            .arg("--parsable")
             .arg(batch_script)
             .output()
             .with_context(ctx!(
               "Failed to submit batch job to SLURM", ;
               "Ensure that you have permissions to submit jobs to the cluster",
             ))?;
+
+        if !proc.status.success() {
+            return Err(anyhow!("Sbatch failed to run")).with_context(ctx!(
+                "Sbatch printed: {}", String::from_utf8(proc.stderr).unwrap();
+                "Please ensure that you are running on slurm",
+            ));
+        }
+
+        chunk.scheduled = true;
+
+        let batch_id = String::from_utf8(proc.stdout).with_context(ctx!(
+          "Could get sbatch output", ; "",
+        ))?;
+
+        for (job_subid, run_id) in chunk.runs.iter().enumerate() {
+            experiment.runs[*run_id].slurm_id = Some(format!("{}_{}", batch_id.trim(), job_subid))
+        }
+
         Ok(())
     }
 

@@ -1,11 +1,13 @@
 use std::collections::BTreeMap;
 use std::env;
 use std::fs;
+use std::path::PathBuf;
 
 use gourd_lib::config::Input;
 use gourd_lib::config::Program;
 
 use super::*;
+use crate::slurm::chunk::Chunkable;
 use crate::test_utils::create_sample_experiment;
 use crate::test_utils::get_compiled_example;
 use crate::test_utils::REAL_FS;
@@ -60,9 +62,12 @@ fn non_matching_arch() {
         },
     );
 
-    let (experiment, _) = create_sample_experiment(first, second);
+    let (mut experiment, _) = create_sample_experiment(first, second);
+    experiment.chunks = experiment
+        .create_chunks(usize::MAX, 1, 0..experiment.runs.len())
+        .unwrap();
 
-    match wrap(&experiment, "x86_64", &REAL_FS) {
+    match wrap(&experiment, &PathBuf::from("/"), "x86_64", &REAL_FS) {
         Err(err) => {
             assert!(format!("{}", err.root_cause()).contains("not match the expected architecture"))
         }
@@ -109,36 +114,25 @@ fn matching_arch() {
         },
     );
 
-    let (experiment, conf) = create_sample_experiment(first, second);
+    let (mut experiment, conf) = create_sample_experiment(first, second);
+    experiment.chunks = experiment
+        .create_chunks(usize::MAX, 1, 0..experiment.runs.len())
+        .unwrap();
 
-    let cmds = wrap(&experiment, env::consts::ARCH, &REAL_FS).unwrap();
+    let cmds = wrap(
+        &experiment,
+        &PathBuf::from("/"),
+        env::consts::ARCH,
+        &REAL_FS,
+    )
+    .unwrap();
 
     assert_eq!(1, cmds.len());
     assert_eq!(
         format!("{:?}", cmds[0]),
         format!(
             "{:?}",
-            Command::new(&conf.wrapper)
-                .arg(tmp.path().join("prog").canonicalize().unwrap())
-                .arg(input.canonicalize().unwrap())
-                .arg(
-                    conf.output_path
-                        .join("1/any/test1_output")
-                        .canonicalize()
-                        .unwrap()
-                )
-                .arg(
-                    conf.metrics_path
-                        .join("1/any/test1_metrics")
-                        .canonicalize()
-                        .unwrap()
-                )
-                .arg(
-                    conf.output_path
-                        .join("1/any/test1_error")
-                        .canonicalize()
-                        .unwrap()
-                )
+            Command::new(conf.wrapper).arg("0").arg("/").arg("0")
         )
     );
 }

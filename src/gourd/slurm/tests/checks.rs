@@ -1,8 +1,8 @@
-use std::ops::Range;
 use std::path::Path;
 
 use anyhow::Result;
-use gourd_lib::config::ResourceLimits;
+use gourd_lib::experiment::Chunk;
+use gourd_lib::experiment::Experiment;
 
 use super::*;
 #[test]
@@ -16,12 +16,12 @@ fn versioning_test() {
             Ok(vec![])
         }
 
-        fn schedule_array(
+        fn schedule_chunk(
             &self,
-            _range: Range<usize>,
             _slurm_config: &SlurmConfig,
-            _resource_limits: &ResourceLimits,
-            _wrapper_path: &str,
+            _chunk: &mut Chunk,
+            _chunk_id: usize,
+            _experiment: &mut Experiment,
             _exp_path: &Path,
         ) -> Result<()> {
             Ok(())
@@ -50,12 +50,12 @@ fn versioning_un_test() {
             Ok(vec![])
         }
 
-        fn schedule_array(
+        fn schedule_chunk(
             &self,
-            _range: Range<usize>,
             _slurm_config: &SlurmConfig,
-            _resource_limits: &ResourceLimits,
-            _wrapper_path: &str,
+            _chunk: &mut Chunk,
+            _chunk_id: usize,
+            _experiment: &mut Experiment,
             _exp_path: &Path,
         ) -> Result<()> {
             Ok(())

@@ -1,6 +1,9 @@
+use std::cmp::max;
 use std::collections::BTreeMap;
 use std::fmt::Display;
+use std::io::BufWriter;
 use std::io::Write;
+use std::thread::sleep;
 
 use anyhow::anyhow;
 use anyhow::Context;
@@ -9,13 +12,17 @@ use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::NAME_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
 use gourd_lib::constants::SHORTEN_STATUS_CUTOFF;
+use gourd_lib::constants::STATUS_REFRESH_PERIOD;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
+use gourd_lib::measurement::Measurement;
+use indicatif::MultiProgress;
 use log::info;
 
 use self::fs_based::FileBasedStatus;
+use crate::cli::printing::generate_progress_bar;
 
 /// File system based status information.
 pub mod fs_based;
@@ -24,7 +31,7 @@ pub mod fs_based;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FailureReason {
     /// The job retunrned a non zero exit status.
-    ExitStatus(i32),
+    ExitStatus(Measurement),
 
     /// Slurm killed the job.
     SlurmKill,
@@ -43,7 +50,7 @@ pub enum Completion {
     Pending,
 
     /// The job succeeded.
-    Success,
+    Success(Measurement),
 
     /// The job failed with the following exit status.
     Fail(FailureReason),
@@ -94,11 +101,14 @@ pub type ExperimentStatus = BTreeMap<usize, Option<Status>>;
 /// A struct that can attest the statuses or some or all running jobs.
 pub trait StatusProvider<T> {
     /// Try to get the statuses of jobs.
-    fn get_statuses(connection: T, experiment: &Experiment) -> Result<ExperimentStatus>;
+    fn get_statuses(connection: &mut T, experiment: &Experiment) -> Result<ExperimentStatus>;
 }
 
 /// Get the status of the provided experiment.
-pub fn get_statuses(experiment: &Experiment, fs: impl FileOperations) -> Result<ExperimentStatus> {
+pub fn get_statuses(
+    experiment: &Experiment,
+    fs: &mut impl FileOperations,
+) -> Result<ExperimentStatus> {
     // for now we do not support slurm.
 
     FileBasedStatus::get_statuses(fs, experiment)
@@ -107,9 +117,9 @@ pub fn get_statuses(experiment: &Experiment, fs: impl FileOperations) -> Result<
 impl Display for FailureReason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FailureReason::SlurmKill => write!(f, "slurm killed"),
+            FailureReason::SlurmKill => write!(f, "slurm killed the job"),
             FailureReason::UserForced => write!(f, "user killed the job"),
-            FailureReason::ExitStatus(exit) => write!(f, "exit code {exit}"),
+            FailureReason::ExitStatus(exit) => write!(f, "exit code {}", exit.exit_code),
         }
     }
 }
@@ -117,9 +127,28 @@ impl Display for FailureReason {
 impl Display for Completion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Completion::Dormant => write!(f, "?")?,
+            Completion::Dormant => write!(f, "dormant?")?,
             Completion::Pending => write!(f, "pending!")?,
-            Completion::Success => write!(f, "{}success{:#}", PRIMARY_STYLE, PRIMARY_STYLE)?,
+            Completion::Success(measurement) => {
+                if f.alternate() {
+                    write!(
+                        f,
+                        "{}success{:#} {NAME_STYLE}wall clock time{NAME_STYLE:#}: {}",
+                        PRIMARY_STYLE,
+                        PRIMARY_STYLE,
+                        humantime::Duration::from(measurement.wall_micros)
+                    )?
+                } else {
+                    write!(
+                        f,
+                        "{}success{:#}, took: {}",
+                        PRIMARY_STYLE,
+                        PRIMARY_STYLE,
+                        humantime::Duration::from(measurement.wall_micros)
+                    )?
+                }
+            }
+
             Completion::Fail(exit) => {
                 write!(f, "{}failed with {}{:#}", ERROR_STYLE, exit, ERROR_STYLE)?
             }
@@ -149,7 +178,7 @@ pub fn display_statuses(
     for run in 0..experiment.runs.len() {
         if let Some(stat) = &statuses[&run] {
             match stat.completion {
-                Completion::Success => {
+                Completion::Success(_) => {
                     finished += 1;
                 }
                 Completion::Fail(_) => {
@@ -178,7 +207,11 @@ fn long_status(
 
     let mut by_program: BTreeMap<String, Vec<usize>> = BTreeMap::new();
 
+    let mut longest_input: usize = 0;
+
     for (run_id, run_data) in runs.iter().enumerate() {
+        longest_input = max(longest_input, run_data.input.len());
+
         if let Some(for_this_prog) = by_program.get_mut(&run_data.program) {
             for_this_prog.push(run_id);
         } else {
@@ -195,16 +228,29 @@ fn long_status(
             let run = &experiment.runs[run_id];
 
             if let Some(status) = &statuses[&run_id] {
-                writeln!(
+                write!(
                     f,
-                    "  {}. with input {} ..... {}",
-                    run_id, run.input, status.completion
+                    "  {}. {:.<width$}.... {}",
+                    run_id,
+                    run.input,
+                    status.completion,
+                    width = longest_input
                 )?;
+
+                if let Completion::Dormant = status.completion {
+                    if let Some(slurm_id) = &run.slurm_id {
+                        write!(f, " scheduled on slurm as {}", slurm_id)?;
+                    }
+                }
+
+                writeln!(f)?;
             } else {
                 writeln!(
                     f,
-                    "  {}. with input {} ..... could not retrieve status ",
-                    run_id, run.input
+                    "  {}. {:.<width$}.... could not retrieve status ",
+                    run_id,
+                    run.input,
+                    width = longest_input
                 )?;
             }
         }
@@ -264,8 +310,28 @@ pub fn display_job(
             run.metrics_path
         )?;
 
+        if let Some(slurm_id) = &run.slurm_id {
+            writeln!(f, "scheduled on slurm as {}", slurm_id)?;
+        }
+
         if let Some(status) = &statuses[&id] {
-            writeln!(f, "{NAME_STYLE}status?{NAME_STYLE:#} {}", status.completion)?;
+            writeln!(
+                f,
+                "{NAME_STYLE}status?{NAME_STYLE:#} {:#}",
+                status.completion
+            )?;
+
+            if let Completion::Success(measruement) = status.completion {
+                if let Some(rusage) = measruement.rusage {
+                    writeln!(f, "{NAME_STYLE}metrics{NAME_STYLE:#}:\n{rusage}")?;
+                }
+            } else if let Completion::Fail(FailureReason::ExitStatus(measurement)) =
+                status.completion
+            {
+                if let Some(rusage) = measurement.rusage {
+                    writeln!(f, "{NAME_STYLE}metrics{NAME_STYLE:#}:\n{rusage}")?;
+                }
+            }
         } else {
             writeln!(f, "no status information available")?;
         }
@@ -277,6 +343,41 @@ pub fn display_job(
             "You can see the run ids by running {}gourd status{:#}", PRIMARY_STYLE, PRIMARY_STYLE
         ))
     }
+}
+/// Print status until all tasks are finished.
+pub fn blocking_status(
+    progress: &MultiProgress,
+    experiment: &Experiment,
+    fs: &mut impl FileOperations,
+) -> Result<()> {
+    let mut complete = 0;
+    let mut message = "".to_string();
+
+    let bar = progress.add(generate_progress_bar(experiment.runs.len() as u64)?);
+
+    while complete < experiment.runs.len() {
+        let mut buf = BufWriter::new(Vec::new());
+
+        let statuses = get_statuses(experiment, fs)?;
+        complete = display_statuses(&mut buf, experiment, &statuses)?;
+        message = format!("{}\n", String::from_utf8(buf.into_inner()?)?);
+
+        bar.set_prefix(message.clone());
+        bar.set_position(complete as u64);
+
+        sleep(STATUS_REFRESH_PERIOD);
+    }
+
+    bar.finish();
+    progress.remove(&bar);
+    progress.clear()?;
+
+    let leftover = generate_progress_bar(experiment.runs.len() as u64)?;
+    leftover.set_position(complete as u64);
+    leftover.set_prefix(message);
+    leftover.finish();
+
+    Ok(())
 }
 
 #[cfg(test)]
