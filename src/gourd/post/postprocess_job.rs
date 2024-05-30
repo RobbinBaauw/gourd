@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -14,14 +13,12 @@ use gourd_lib::experiment::Experiment;
 use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
 
-use crate::status::PostprocessCompletion;
-use crate::status::State;
-use crate::status::Status;
+use crate::status::ExperimentStatus;
 
 /// Schedules the postprocessing job for jobs that are completed and do not yet have a postprocess job output.
 pub fn schedule_post_jobs(
     experiment: &mut Experiment,
-    statuses: &mut BTreeMap<usize, Option<Status>>,
+    statuses: &mut ExperimentStatus,
     fs: &impl FileOperations,
 ) -> Result<()> {
     let runs = filter_runs_for_post_job(statuses)?;
@@ -69,28 +66,11 @@ pub fn schedule_post_jobs(
 }
 
 /// Finds the completed jobs where posprocess job did not run yet.
-pub fn filter_runs_for_post_job(runs: &mut BTreeMap<usize, Option<Status>>) -> Result<Vec<&usize>> {
-    Ok(runs
-        .iter_mut()
-        .map(|(run_id, status)| {
-            Ok((
-                run_id,
-                status
-                    .clone()
-                    .ok_or(anyhow!("Status does not exist"))
-                    .with_context(ctx!(
-                        "Could not find status of run {}", run_id;
-                        "",
-                    ))?,
-            ))
-        })
-        .map(|x: Result<(&usize, Status)>| x.unwrap())
-        .filter(|(_, status)| matches!(status.fs_state, State::Completed))
-        .filter(|(_, status)| {
-            status.postprocess_job_completion == Some(PostprocessCompletion::Dormant)
-        })
-        .map(|(run_id, _)| run_id)
-        .collect::<Vec<&usize>>())
+pub fn filter_runs_for_post_job(_: &mut ExperimentStatus) -> Result<Vec<&usize>> {
+    // As discussed.
+    // This function is stubbed for now.
+
+    Ok(Vec::new())
 }
 
 /// Schedules the postprocess job for given jobs.

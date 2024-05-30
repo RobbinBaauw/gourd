@@ -13,13 +13,13 @@ use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
 
 use crate::resources::run_script;
+use crate::status::ExperimentStatus;
 use crate::status::PostprocessCompletion;
-use crate::status::State;
-use crate::status::Status;
+use crate::status::RunState;
 
 /// Runs the afterscript on jobs that are completed and do not yet have an afterscript output.
 pub fn run_afterscript(
-    statuses: &BTreeMap<usize, Option<Status>>,
+    statuses: &ExperimentStatus,
     experiment: &Experiment,
     file_system: &impl FileOperations,
 ) -> Result<BTreeMap<usize, String>> {
@@ -74,21 +74,14 @@ pub fn run_afterscript(
 }
 
 /// Find the completed jobs where afterscript did not run yet.
-pub fn filter_runs_for_afterscript(runs: &BTreeMap<usize, Option<Status>>) -> Result<Vec<&usize>> {
+pub fn filter_runs_for_afterscript(runs: &ExperimentStatus) -> Result<Vec<&usize>> {
     let mut filtered = vec![];
 
     for (run_id, status) in runs {
-        let status = status
-            .clone()
-            .ok_or(anyhow!("Status does not exist"))
-            .with_context(ctx!(
-                "Could not find status of run {}", run_id;
-                "",
-            ))?;
-
-        if let (State::Completed, Some(PostprocessCompletion::Dormant)) =
-            (status.fs_state, status.afterscript_completion)
-        {
+        if let (&RunState::Completed, &Some(PostprocessCompletion::Dormant)) = (
+            &status.fs_status.completion,
+            &status.fs_status.afterscript_completion,
+        ) {
             filtered.push(run_id);
         }
     }

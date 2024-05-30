@@ -1,36 +1,30 @@
-use std::cmp::max;
 use std::collections::BTreeMap;
-use std::fmt::Display;
 use std::io::BufWriter;
-use std::io::Write;
 use std::thread::sleep;
 
-use anyhow::anyhow;
-use anyhow::Context;
 use anyhow::Result;
-use fs_based::get_fs_statuses;
-use gourd_lib::constants::ERROR_STYLE;
-use gourd_lib::constants::NAME_STYLE;
-use gourd_lib::constants::PRIMARY_STYLE;
-use gourd_lib::constants::SHORTEN_STATUS_CUTOFF;
+use gourd_lib::constants::SLURM_VERSIONS;
 use gourd_lib::constants::STATUS_REFRESH_PERIOD;
-use gourd_lib::ctx;
-use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
 use gourd_lib::measurement::Metrics;
 use indicatif::MultiProgress;
-use log::info;
-use slurm_based::get_slurm_statuses;
 
+use self::fs_based::FileBasedProvider;
+use self::printing::display_statuses;
+use self::slurm_based::SlurmBasedProvider;
 use crate::cli::printing::generate_progress_bar;
+use crate::slurm::interactor::SlurmCli;
 
 /// File system based status information.
 pub mod fs_based;
 
-/// Slurm based status information
+/// Slurm based status information.
 pub mod slurm_based;
+
+/// Printing status information.
+pub mod printing;
 
 /// The reasons for slurm to kill a job
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -67,7 +61,7 @@ pub enum SlurmKillReason {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FailureReason {
     /// The job returned a non zero exit status.
-    Failed,
+    Failed(i32),
 
     /// Slurm killed the job.
     SlurmKill(SlurmKillReason),
@@ -78,7 +72,7 @@ pub enum FailureReason {
 
 /// This possible status of a job.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum State {
+pub enum RunState {
     /// The job has not yet started.
     Pending,
 
@@ -90,6 +84,13 @@ pub enum State {
 
     /// The job failed with the following exit status.
     Fail(FailureReason),
+}
+
+impl RunState {
+    /// Check if this state means that the run is completed.
+    pub fn is_completed(&self) -> bool {
+        matches!(self, RunState::Completed | RunState::Fail(_))
+    }
 }
 
 /// This possible outcomes of a postprocessing.
@@ -122,10 +123,10 @@ pub struct PostprocessOutput {
 #[derive(Debug, Clone, PartialEq)]
 pub struct FileSystemBasedStatus {
     /// State of completion of the run
-    pub completion: State,
+    pub completion: RunState,
 
     /// Metrics of the run
-    pub metrics: Metrics,
+    pub metrics: Option<Metrics>,
 
     /// The completion of the afterscript, if there.
     pub afterscript_completion: Option<PostprocessCompletion>,
@@ -138,7 +139,7 @@ pub struct FileSystemBasedStatus {
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub struct SlurmBasedStatus {
     /// State of completion of the run
-    pub completion: State,
+    pub completion: RunState,
 
     /// Exit code of the program
     pub exit_code_program: isize,
@@ -150,285 +151,88 @@ pub struct SlurmBasedStatus {
 /// All possible postprocessing statuses of a run.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Status {
-    /// State of the run from file based status
-    pub fs_state: State,
+    /// Status retrieved from slurm.
+    pub slurm_status: Option<SlurmBasedStatus>,
 
-    /// State of the run from slurm based status
-    pub slurm_state: Option<State>,
+    /// Status retrieved from the filesystem.
+    pub fs_status: FileSystemBasedStatus,
+}
 
-    /// Metrics of the run
-    pub metrics: Metrics,
-
-    /// Exit code of the program from slurm based status
-    pub slurm_exit_code_slurm: Option<isize>,
-
-    /// Exit code of the slurm
-    pub slurm_exit_code_program: Option<isize>,
-
-    /// The completion of the afterscript, if there.
-    pub afterscript_completion: Option<PostprocessCompletion>,
-
-    /// The completion of the postprocess job, if there.
-    pub postprocess_job_completion: Option<PostprocessCompletion>,
+impl Status {
+    /// Check if we know this job to be completed based on the status.
+    ///
+    /// Completed also includes failed jobs.
+    pub fn is_completed(&self) -> bool {
+        if self.fs_status.completion.is_completed() {
+            true
+        } else {
+            self.slurm_status
+                .map(|x| x.completion.is_completed())
+                .unwrap_or(false)
+        }
+    }
 }
 
 /// This type maps between `run_id` and the [Status] of the run.
-pub type ExperimentStatus = BTreeMap<usize, Option<Status>>;
+pub type ExperimentStatus = BTreeMap<usize, Status>;
+
+/// A struct that can attest the statuses or some or all running jobs.
+pub trait StatusProvider<T, ST> {
+    /// Try to get the statuses of jobs.
+    fn get_statuses(connection: &mut T, experiment: &Experiment) -> Result<BTreeMap<usize, ST>>;
+}
 
 /// Get the status of the provided experiment.
 pub fn get_statuses(
     experiment: &Experiment,
     fs: &mut impl FileOperations,
 ) -> Result<ExperimentStatus> {
-    // for now we do not support slurm.
+    let fs_status = FileBasedProvider::get_statuses(fs, experiment)?;
 
-    let fs = get_fs_statuses(fs, experiment)?;
+    let mut slurm = SlurmCli {
+        versions: SLURM_VERSIONS.to_vec(),
+    };
 
-    let mut slurm = None;
+    let slurm_status = if experiment.env == Environment::Slurm {
+        Some(SlurmBasedProvider::get_statuses(&mut slurm, experiment)?)
+    } else {
+        None
+    };
 
-    if experiment.env == Environment::Slurm {
-        slurm = Some(get_slurm_statuses(experiment)?);
-    }
-
-    merge_statuses(fs, slurm)
+    merge_statuses(fs_status, slurm_status, 0..experiment.runs.len())
 }
 
-fn merge_statuses(
-    _fs: BTreeMap<usize, FileSystemBasedStatus>,
-    _slurm: Option<BTreeMap<usize, SlurmBasedStatus>>,
+/// A function that merges status providers outputs.
+pub fn merge_statuses(
+    fs: BTreeMap<usize, FileSystemBasedStatus>,
+    slurm: Option<BTreeMap<usize, SlurmBasedStatus>>,
+    jobs: impl Iterator<Item = usize>,
 ) -> Result<ExperimentStatus> {
-    todo!()
-}
+    let mut out = BTreeMap::<usize, Status>::new();
 
-impl Display for SlurmKillReason {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SlurmKillReason::BootFail => write!(f, "boot failed"),
-            SlurmKillReason::Cancelled => write!(f, "cancelled"),
-            SlurmKillReason::Deadline => write!(f, "deadline reached"),
-            SlurmKillReason::NodeFail => write!(f, "node failed"),
-            SlurmKillReason::OutOfMemory => write!(f, "out of memory"),
-            SlurmKillReason::Preempted => write!(f, "preempted"),
-            SlurmKillReason::Suspended => write!(f, "suspended"),
-            SlurmKillReason::Timeout => write!(f, "time out"),
-            _ => write!(f, "no reason"),
-        }
-    }
-}
-
-impl Display for FailureReason {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FailureReason::SlurmKill(reason) => write!(f, "slurm killed the job - {}", reason),
-            FailureReason::UserForced => write!(f, "user killed the job"),
-            FailureReason::Failed => write!(f, "failed"),
-        }
-    }
-}
-
-impl Display for State {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            State::Pending => write!(f, "pending?")?,
-            State::Running => write!(f, "running!")?,
-            State::Completed => write!(f, "success")?,
-            State::Fail(reason) => write!(f, "{}{}{:#}", ERROR_STYLE, reason, ERROR_STYLE)?,
-        };
-
-        Ok(())
-    }
-}
-
-/// Display the status of an experiment in a human readable from.
-///
-/// Returns how many jobs are finished.
-#[cfg(not(tarpaulin_include))] // We won't test stdout
-pub fn display_statuses(
-    f: &mut impl Write,
-    experiment: &Experiment,
-    statuses: &ExperimentStatus,
-) -> Result<usize> {
-    if experiment.runs.len() <= SHORTEN_STATUS_CUTOFF {
-        long_status(f, experiment, statuses)?;
-    } else {
-        short_status(experiment, statuses)?;
-    }
-
-    let mut finished = 0;
-
-    for run in 0..experiment.runs.len() {
-        if let Some(stat) = &statuses[&run] {
-            match stat.fs_state {
-                State::Completed => {
-                    finished += 1;
-                }
-                State::Fail(_) => {
-                    finished += 1;
-                }
-                _ => {}
-            }
-        }
-    }
-
-    Ok(finished)
-}
-
-#[cfg(not(tarpaulin_include))] // We can't test stdout
-fn short_status(_: &Experiment, _: &ExperimentStatus) -> Result<()> {
-    todo!()
-}
-
-#[cfg(not(tarpaulin_include))] // We can't test stdout
-fn long_status(
-    f: &mut impl Write,
-    experiment: &Experiment,
-    statuses: &ExperimentStatus,
-) -> Result<()> {
-    let runs = &experiment.runs;
-
-    let mut by_program: BTreeMap<String, Vec<usize>> = BTreeMap::new();
-
-    let mut longest_input: usize = 0;
-
-    for (run_id, run_data) in runs.iter().enumerate() {
-        longest_input = max(longest_input, run_data.input.len());
-
-        if let Some(for_this_prog) = by_program.get_mut(&run_data.program) {
-            for_this_prog.push(run_id);
+    for job_id in jobs {
+        if let Some(slurm_based) = slurm.as_ref() {
+            out.insert(
+                job_id,
+                Status {
+                    slurm_status: slurm_based.get(&job_id).copied(),
+                    fs_status: fs[&job_id].clone(),
+                },
+            );
         } else {
-            by_program.insert(run_data.program.clone(), vec![run_id]);
+            out.insert(
+                job_id,
+                Status {
+                    slurm_status: None,
+                    fs_status: fs[&job_id].clone(),
+                },
+            );
         }
     }
 
-    for (prog, prog_runs) in by_program {
-        writeln!(f)?;
-
-        writeln!(f, "For program {}:", prog)?;
-
-        for run_id in prog_runs {
-            let run = &experiment.runs[run_id];
-
-            if let Some(status) = &statuses[&run_id] {
-                write!(
-                    f,
-                    "  {}. {:.<width$}.... {}",
-                    run_id,
-                    run.input,
-                    status.fs_state,
-                    width = longest_input
-                )?;
-
-                if let Some(state) = status.slurm_state {
-                    if state == State::Pending {
-                        if let Some(slurm_id) = &run.slurm_id {
-                            write!(f, " scheduled on slurm as {}", slurm_id)?;
-                        }
-                    }
-                }
-
-                writeln!(f)?;
-            } else {
-                writeln!(
-                    f,
-                    "  {}. {:.<width$}.... could not retrieve status ",
-                    run_id,
-                    run.input,
-                    width = longest_input
-                )?;
-            }
-        }
-    }
-
-    Ok(())
+    Ok(out)
 }
 
-/// Display the status of an experiment in a human readable from.
-#[cfg(not(tarpaulin_include))] // We can't test stdout
-pub fn display_job(
-    f: &mut impl Write,
-    exp: &Experiment,
-    statuses: &ExperimentStatus,
-    id: usize,
-) -> Result<()> {
-    info!(
-        "Displaying the status of job {} in experiment {}",
-        id, exp.seq
-    );
-
-    writeln!(f)?;
-
-    if let Some(run) = exp.runs.get(id) {
-        let program = &exp.config.programs[&run.program];
-        let input = &exp.config.inputs[&run.input];
-
-        writeln!(f, "{NAME_STYLE}program{NAME_STYLE:#}: {}", run.program)?;
-        writeln!(
-            f,
-            "  {NAME_STYLE}binary{NAME_STYLE:#}: {:?}",
-            program.binary
-        )?;
-
-        writeln!(f, "{NAME_STYLE}input{NAME_STYLE:#}: {:?}", run.input)?;
-        writeln!(f, " {NAME_STYLE}file{NAME_STYLE:#}: {:?}", input.input)?;
-
-        let mut args = vec![];
-        args.append(&mut program.arguments.clone());
-        args.append(&mut input.arguments.clone());
-
-        writeln!(f, "{NAME_STYLE}arguments{NAME_STYLE:#}: {:?}\n", args)?;
-
-        writeln!(
-            f,
-            "{NAME_STYLE}output path{NAME_STYLE:#}: {:?}",
-            run.output_path
-        )?;
-        writeln!(
-            f,
-            "{NAME_STYLE}stderr path{NAME_STYLE:#}: {:?}",
-            run.err_path
-        )?;
-        writeln!(
-            f,
-            "{NAME_STYLE}metric path{NAME_STYLE:#}: {:?}\n",
-            run.metrics_path
-        )?;
-
-        if let Some(slurm_id) = &run.slurm_id {
-            writeln!(f, "scheduled on slurm as {}", slurm_id)?;
-        }
-
-        if let Some(status) = &statuses[&id] {
-            writeln!(
-                f,
-                "{NAME_STYLE}file status?{NAME_STYLE:#} {:#}",
-                status.fs_state
-            )?;
-
-            if let Some(slurm_state) = status.slurm_state {
-                writeln!(
-                    f,
-                    "{NAME_STYLE}slurm status?{NAME_STYLE:#} {:#}",
-                    slurm_state
-                )?;
-            }
-
-            if let Metrics::Done(measurement) = status.metrics {
-                if let Some(rusage) = measurement.rusage {
-                    writeln!(f, "{NAME_STYLE}metrics{NAME_STYLE:#}:\n{rusage}")?;
-                }
-            }
-        } else {
-            writeln!(f, "no status information available")?;
-        }
-
-        Ok(())
-    } else {
-        Err(anyhow!("A run with this id does not exist")).with_context(ctx!(
-            "", ;
-            "You can see the run ids by running {}gourd status{:#}", PRIMARY_STYLE, PRIMARY_STYLE
-        ))
-    }
-}
 /// Print status until all tasks are finished.
 pub fn blocking_status(
     progress: &MultiProgress,
@@ -464,7 +268,3 @@ pub fn blocking_status(
 
     Ok(())
 }
-
-#[cfg(test)]
-#[path = "tests/mod.rs"]
-mod tests;

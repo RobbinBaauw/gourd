@@ -40,9 +40,9 @@ use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::handler::SlurmHandler;
 use crate::slurm::interactor::SlurmCli;
 use crate::status::blocking_status;
-use crate::status::display_job;
-use crate::status::display_statuses;
 use crate::status::get_statuses;
+use crate::status::printing::display_job;
+use crate::status::printing::display_statuses;
 
 /// This function parses command that gourd was run with.
 pub async fn parse_command() {
@@ -84,7 +84,15 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             debug!("Creating a new experiment");
             trace!("The config is: {config:#?}");
 
-            let mut experiment = Experiment::from_config(&config, Local::now(), &file_system)?;
+            let mut experiment = Experiment::from_config(
+                &config,
+                Local::now(),
+                match args.sub_command {
+                    RunSubcommand::Local { .. } => Environment::Local,
+                    RunSubcommand::Slurm { .. } => Environment::Slurm,
+                },
+                &file_system,
+            )?;
 
             let exp_path = experiment.save(&config.experiments_folder, &file_system)?;
             debug!("Saved the experiment at {exp_path:?}");
@@ -94,7 +102,6 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     if cmd.dry {
                         info!("Would have ran the experiment (dry)");
                     } else {
-                        experiment.env = Environment::Local;
                         run_local(&mut experiment, &exp_path, &file_system).await?;
 
                         info!("Experiment started");
@@ -110,7 +117,6 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     let s: SlurmHandler<SlurmCli> = SlurmHandler::default();
                     s.check_version()?;
                     s.check_partition(&get_slurm_options_from_config(&config)?.partition)?;
-                    experiment.env = Environment::Slurm;
 
                     if cmd.dry {
                         info!("Would have scheduled the experiment on slurm (dry)");

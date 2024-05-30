@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -48,8 +47,6 @@ pub enum Environment {
 
     /// Slurm execution.
     Slurm,
-
-    Undefined,
 }
 
 /// Describes one experiment.
@@ -72,12 +69,6 @@ pub struct Experiment {
 
     /// The ID of this experiment.
     pub seq: usize,
-
-    /// Mapping of slurm job id to run id
-    pub id_map: Option<BTreeMap<String, usize>>,
-
-    /// Vector of slurm batch ids
-    pub batch_ids: Option<Vec<String>>,
 
     /// Enviroment of the experiment
     pub env: Environment,
@@ -104,8 +95,8 @@ pub struct Chunk {
     /// The resource limits of this chunk.
     pub resource_limits: Option<ResourceLimits>,
 
-    /// Whether this chunk already got scheduled.
-    pub scheduled: bool,
+    /// The slurm job id of this chunk.
+    pub slurm_id: Option<String>,
 }
 
 // this stays here as an idea to eventually implement,

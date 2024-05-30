@@ -1,5 +1,7 @@
+use std::io::Write;
 use std::path::Path;
 use std::process::Command;
+use std::process::Stdio;
 use std::time::Duration;
 
 use anyhow::anyhow;
@@ -12,10 +14,9 @@ use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Chunk;
 use gourd_lib::experiment::Experiment;
 use log::debug;
-use tempdir::TempDir;
 
 use super::handler::parse_optional_args;
-use super::SlurmStatus;
+use super::SacctOutput;
 use crate::slurm::SlurmInteractor;
 
 /// Creates a Slurm duration string.
@@ -126,9 +127,6 @@ impl SlurmInteractor for SlurmCli {
                 ctx!("",;"Specyfing resource limits in the config is required for slurm runs",),
             )?;
 
-        let temp = TempDir::new("gourd-slurm")?;
-        let batch_script = temp.path().join("batch.sh");
-
         let optional_args = parse_optional_args(slurm_config);
 
         let contents = format!(
@@ -159,18 +157,28 @@ impl SlurmInteractor for SlurmCli {
             exp_path.display()
         );
 
-        std::fs::write(&batch_script, &contents)?;
-
         debug!("Sbatch file: {}", contents);
 
-        let proc = Command::new("sbatch")
+        let mut cmd = Command::new("sbatch")
             .arg("--parsable")
-            .arg(batch_script)
-            .output()
+            .stdin(Stdio::piped())
+            .spawn()
             .with_context(ctx!(
               "Failed to submit batch job to SLURM", ;
               "Ensure that you have permissions to submit jobs to the cluster",
             ))?;
+
+        cmd.stdin
+            .as_mut()
+            .ok_or(anyhow!("Could not connect to sbatch"))
+            .context("")?
+            .write_all(contents.as_bytes())
+            .with_context(ctx!(
+                "Failed to submit batch job to SLURM", ;
+                "Tried submitting this script {contents}",
+            ))?;
+
+        let proc = cmd.wait_with_output().context("")?;
 
         if !proc.status.success() {
             return Err(anyhow!("Sbatch failed to run")).with_context(ctx!(
@@ -179,22 +187,15 @@ impl SlurmInteractor for SlurmCli {
             ));
         }
 
-        chunk.scheduled = true;
-
         let batch_id = String::from_utf8(proc.stdout).with_context(ctx!(
           "Could get sbatch output", ; "",
         ))?;
 
-        experiment
-            .batch_ids
-            .as_mut()
-            .unwrap()
-            .push(batch_id.clone());
+        chunk.slurm_id = Some(batch_id.clone());
 
         for (job_subid, run_id) in chunk.runs.iter().enumerate() {
             let job_id = format!("{}_{}", batch_id.trim(), job_subid);
             experiment.runs[*run_id].slurm_id = Some(job_id.clone());
-            experiment.id_map.as_mut().unwrap().insert(job_id, *run_id);
         }
 
         Ok(())
@@ -215,13 +216,15 @@ impl SlurmInteractor for SlurmCli {
     }
 
     /// Get accounting data of user's jobs
-    fn get_accounting_data(&self, job_id: &[String]) -> anyhow::Result<Vec<SlurmStatus>> {
+    fn get_accounting_data(&self, job_ids: Vec<String>) -> Result<Vec<SacctOutput>> {
         let sacct = Command::new("sacct")
             .arg("-p")
             .arg("--format=jobid,jobname,state,exitcode")
-            .arg(format!("--jobs={}", job_id.join(",")))
+            .arg(format!("--jobs={}", job_ids.join(",")))
             .output()?;
+
         let mut result = Vec::new();
+
         for job in String::from_utf8_lossy(&sacct.stdout)
             .trim()
             .split('\n')
@@ -229,7 +232,8 @@ impl SlurmInteractor for SlurmCli {
         {
             let fields = job.split('|').collect::<Vec<&str>>();
             let exit_codes = fields[3].split(':').collect::<Vec<&str>>();
-            result.push(SlurmStatus {
+
+            result.push(SacctOutput {
                 job_id: fields[0].to_string(),
                 job_name: fields[1].to_string(),
                 state: fields[2].to_string(),
@@ -237,6 +241,7 @@ impl SlurmInteractor for SlurmCli {
                 program_exit_code: exit_codes[1].parse().unwrap_or(0),
             });
         }
+
         Ok(result)
     }
 }

@@ -16,7 +16,7 @@ pub mod interactor;
 
 /// Structure of Slurm status
 #[derive(Debug, Clone)]
-pub struct SlurmStatus {
+pub struct SacctOutput {
     /// ID of the job
     pub job_id: String,
 
@@ -59,5 +59,5 @@ pub trait SlurmInteractor {
     fn get_supported_versions(&self) -> String;
 
     /// Get accounting data of user's jobs
-    fn get_accounting_data(&self, job_id: &[String]) -> anyhow::Result<Vec<SlurmStatus>>;
+    fn get_accounting_data(&self, job_id: Vec<String>) -> Result<Vec<SacctOutput>>;
 }

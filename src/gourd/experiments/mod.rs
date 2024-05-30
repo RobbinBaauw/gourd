@@ -21,7 +21,12 @@ pub trait ExperimentExt {
     ///
     /// Creates a new experiment by matching all algorithms to all inputs.
     /// The experiment is created in the provided `env` and with `time` as the timestamp.
-    fn from_config(conf: &Config, time: DateTime<Local>, fs: &impl FileOperations) -> Result<Self>
+    fn from_config(
+        conf: &Config,
+        time: DateTime<Local>,
+        env: Environment,
+        fs: &impl FileOperations,
+    ) -> Result<Self>
     where
         Self: Sized;
 
@@ -41,7 +46,12 @@ pub trait ExperimentExt {
 }
 
 impl ExperimentExt for Experiment {
-    fn from_config(conf: &Config, time: DateTime<Local>, fs: &impl FileOperations) -> Result<Self> {
+    fn from_config(
+        conf: &Config,
+        time: DateTime<Local>,
+        env: Environment,
+        fs: &impl FileOperations,
+    ) -> Result<Self> {
         let mut runs = Vec::new();
 
         let seq = Self::latest_id_from_folder(&conf.experiments_folder)
@@ -91,9 +101,7 @@ impl ExperimentExt for Experiment {
             config: conf.clone(),
             chunks: vec![],
             resource_limits: conf.resource_limits.clone(),
-            id_map: None,
-            batch_ids: None,
-            env: Environment::Undefined,
+            env,
         })
     }
 

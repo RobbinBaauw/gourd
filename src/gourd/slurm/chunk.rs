@@ -67,7 +67,7 @@ impl Chunkable for Experiment {
             Chunk {
                 runs: Vec::new(),
                 resource_limits: resource_limits.clone(),
-                scheduled: false,
+                slurm_id: None,
             }
         }
 
@@ -122,7 +122,7 @@ impl Chunkable for Experiment {
                             Chunk {
                                 runs: vec![id],
                                 resource_limits: Some(limit),
-                                scheduled: false,
+                                slurm_id: None,
                             },
                         );
                     }
@@ -134,7 +134,7 @@ impl Chunkable for Experiment {
                         Chunk {
                             runs: vec![id],
                             resource_limits: Some(limit),
-                            scheduled: false,
+                            slurm_id: None,
                         },
                     )
                 }
