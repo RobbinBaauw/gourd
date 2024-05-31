@@ -5,6 +5,7 @@ use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use gourd_lib::config::Input;
+use gourd_lib::constants::INTERNAL_POST;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
@@ -54,7 +55,6 @@ pub fn schedule_post_jobs(
 
         post_job_for_run(
             format!("{}_{}", run.program, run.input),
-            run.program.clone(),
             postprocess,
             &res_path,
             &post_output,
@@ -86,8 +86,7 @@ pub fn filter_runs_for_post_job(runs: &mut ExperimentStatus) -> Result<Vec<&usiz
 
 /// Schedules the postprocess job for given jobs.
 pub fn post_job_for_run(
-    _name: String,
-    original_name: String,
+    name: String,
     postprocess_name: String,
     postprocess_input: &PathBuf,
     postprocess_out: &Path,
@@ -95,9 +94,7 @@ pub fn post_job_for_run(
     fs: &impl FileOperations,
 ) -> Result<()> {
     // let prog_name = format!("{}{}", INTERNAL_POST, name);
-    // let input_name = format!("{}{}", INTERNAL_POST, name);
-
-    let input_name = original_name.clone() + "_output_as_input_for" + postprocess_name.as_str();
+    let input_name = format!("{}{}", INTERNAL_POST, name);
 
     experiment.config.inputs.insert(
         input_name.clone(),

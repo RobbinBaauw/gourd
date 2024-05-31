@@ -22,6 +22,10 @@ Furthermore, if at least one program has an afterscript, a path to a folder that
 needs to be specified (once for the entire experiment, analogous to metrics and output). The afterscript can be used 
 to assign labels to runs as a means of specifying custom status.
 
+An afterscript should take two arguments - the path to the input file and the path to a folder for output. The output 
+folder is created and is empty. It is the responsibility of the afterscript to create and write to any files in that 
+directory.
+
 \subsubsection{Postprocessing Slurm jobs}
 A postprocesing Slurm job (further called "postprocessing job") is optional and specified per program. To indicate 
 the use of a postprocessing job, a program needs to be specified under "postprocessing programs" in gourd.toml. 
@@ -30,6 +34,10 @@ program needs to be specified in the gourd.toml under the chosen regular program
 postprocessing used. Multiple programs can use the same postprocessing program. Furthermore, if at least one program 
 has a postprocessing job, a path to a folder that will store the postprocesing job output needs to be specified 
 (once for the entire experiment, analogous to metrics and output). 
+
+A postprocess binary should take two arguments - the path to the input file and the path to a folder for output. The 
+output folder is created and is empty. It is the responsibility of the postprocess program to create and write to any 
+files in that directory.
 
 \subsubsection{Example gourd.toml with postprocessing}
 
