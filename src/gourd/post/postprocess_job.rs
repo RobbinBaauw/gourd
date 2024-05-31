@@ -5,8 +5,6 @@ use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use gourd_lib::config::Input;
-use gourd_lib::config::Program;
-use gourd_lib::constants::INTERNAL_POST;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
@@ -56,7 +54,8 @@ pub fn schedule_post_jobs(
 
         post_job_for_run(
             format!("{}_{}", run.program, run.input),
-            &postprocess,
+            run.program.clone(),
+            postprocess,
             &res_path,
             &post_output,
             experiment,
@@ -87,29 +86,21 @@ pub fn filter_runs_for_post_job(runs: &mut ExperimentStatus) -> Result<Vec<&usiz
 
 /// Schedules the postprocess job for given jobs.
 pub fn post_job_for_run(
-    name: String,
-    postprocess: &Path,
+    _name: String,
+    original_name: String,
+    postprocess_name: String,
     postprocess_input: &PathBuf,
     postprocess_out: &Path,
     experiment: &mut Experiment,
     fs: &impl FileOperations,
 ) -> Result<()> {
-    let prog_name = format!("{}{}", INTERNAL_POST, name);
-    let input_name = format!("{}{}", INTERNAL_POST, name);
+    // let prog_name = format!("{}{}", INTERNAL_POST, name);
+    // let input_name = format!("{}{}", INTERNAL_POST, name);
 
-    experiment.config.programs.insert(
-        prog_name.clone(),
-        Program {
-            binary: postprocess.to_path_buf(),
-            arguments: vec![],
-            afterscript: None,
-            postprocess_job: None,
-            resource_limits: None, // for now, all of these should be discussed
-        },
-    );
+    let input_name = original_name.clone() + "_output_as_input_for" + postprocess_name.as_str();
 
     experiment.config.inputs.insert(
-        prog_name.clone(),
+        input_name.clone(),
         Input {
             input: Some(postprocess_input.clone()),
             arguments: vec![],
@@ -117,7 +108,7 @@ pub fn post_job_for_run(
     );
 
     experiment.runs.push(Run {
-        program: prog_name,
+        program: postprocess_name,
         input: input_name,
         err_path: fs.truncate_and_canonicalize(
             &postprocess_out.join(format!("error_{:?}", postprocess_input)),
@@ -132,7 +123,7 @@ pub fn post_job_for_run(
             &postprocess_out.join(format!("output_{:?}", postprocess_input)),
         )?,
         afterscript_output_path: None,
-        post_job_output_path: None,
+        post_job_output_path: None, // these two can be updated to allow pipelining
         slurm_id: None,
     });
 

@@ -49,7 +49,7 @@ pub struct Program {
 
     /// The path to the postprocess job, if there is one.
     #[serde(default = "POSTPROCESS_JOB_DEFAULT")]
-    pub postprocess_job: Option<PathBuf>,
+    pub postprocess_job: Option<String>,
 
     /// Resource limits to optionally overwrite default resource limits.
     #[serde(default = "PROGRAM_RESOURCES_DEFAULT")]

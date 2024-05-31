@@ -18,15 +18,16 @@ pub const AFTERSCRIPT_DEFAULT: fn() -> Option<PathBuf> = || None;
 /// The default path to the output of an afterscript.
 pub const AFTERSCRIPT_OUTPUT_DEFAULT: fn() -> Option<PathBuf> = || None;
 
-/// The default path to the postprocess job program.
-pub const POSTPROCESS_JOB_DEFAULT: fn() -> Option<PathBuf> = || None;
+/// The default postprocess job name.
+pub const POSTPROCESS_JOB_DEFAULT: fn() -> Option<String> = || None;
 
 /// The default path to the output of a postprocess job.
 pub const POSTPROCESS_JOB_OUTPUT_DEFAULT: fn() -> Option<PathBuf> = || None;
 
-/// The default path to the output of a postprocess job.
+/// The default list of postprocess programs.
 pub const POSTPROCESS_JOBS_DEFAULT: fn() -> Option<BTreeMap<String, Program>> = || None;
 
+/// The default value of resource limits for a program.
 pub const PROGRAM_RESOURCES_DEFAULT: fn() -> Option<ResourceLimits> = || None;
 
 /// The default arguments for an input.
