@@ -7,6 +7,33 @@
 
 This section explains each part of the application's modular layout and the technologies used.
 
+
+\subsection{Postprocessing}
+note: should be in user docs.
+To postprocess the output of the runs, there are two options available: afterscipts and Slurm postprocessing jobs. 
+Afterscripts are scripts that run locally and are thus meant for quick and non-complicated 
+postprocessing. On the contrary, for long and complicated postprocessing, there are Slurm postprocessing jobs.
+A run can have both an afterscript and a postprocessing Slurm job.
+
+\subsubsection{Afterscripts}
+An afterscript is optional and specified per program. To indicate the use of an afterscript, the path to the script 
+file needs to be specified in the gourd.toml under the chosen program. Multiple programs can use the same script.
+Furthermore, if at least one program has an afterscript, a path to a folder that will store the afterscript output 
+needs to be specified (once for the entire experiment, analogous to metrics and output). The afterscript can be used 
+to assign labels to runs as a means of specifying custom status.
+
+\subsubsection{Postprocessing Slurm jobs}
+A postprocesing Slurm job (further called "postprocessing job") is optional and specified per program. To indicate 
+the use of a postprocessing job, a program needs to be specified under "postprocessing programs" in gourd.toml. 
+That program will have the path to the postprocessing binary file. In addition, the name of this new postprocesing 
+program needs to be specified in the gourd.toml under the chosen regular program to indicate that this is the 
+postprocessing used. Multiple programs can use the same postprocessing program. Furthermore, if at least one program 
+has a postprocessing job, a path to a folder that will store the postprocesing job output needs to be specified 
+(once for the entire experiment, analogous to metrics and output). 
+
+\subsubsection{Example gourd.toml with postprocessing}
+
+
 \subsection{Labels}
 note: this is going to be moved to user docs.
 I am temporarily putting it here just so the documentation exists.
