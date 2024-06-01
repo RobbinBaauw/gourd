@@ -34,7 +34,8 @@ impl Display for SlurmKillReason {
             SlurmKillReason::Preempted => write!(f, "preempted"),
             SlurmKillReason::Suspended => write!(f, "suspended"),
             SlurmKillReason::Timeout => write!(f, "time out"),
-            _ => write!(f, "no reason"),
+            SlurmKillReason::ExitCode(code) => write!(f, "it exited with {code}"),
+            SlurmKillReason::SlurmFail => write!(f, "unknown slurm failure"),
         }
     }
 }

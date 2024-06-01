@@ -53,6 +53,9 @@ pub enum SlurmKillReason {
     /// Job reached the time limit
     Timeout,
 
+    /// Failed by virtue of exit code.
+    ExitCode(isize),
+
     /// Unspecified by the account reason to fail
     SlurmFail,
 }

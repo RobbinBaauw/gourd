@@ -14,6 +14,7 @@ use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Chunk;
 use gourd_lib::experiment::Experiment;
 use log::debug;
+use log::trace;
 
 use super::handler::parse_optional_args;
 use super::SacctOutput;
@@ -162,6 +163,7 @@ impl SlurmInteractor for SlurmCli {
         let mut cmd = Command::new("sbatch")
             .arg("--parsable")
             .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
             .spawn()
             .with_context(ctx!(
               "Failed to submit batch job to SLURM", ;
@@ -187,14 +189,18 @@ impl SlurmInteractor for SlurmCli {
             ));
         }
 
-        let batch_id = String::from_utf8(proc.stdout).with_context(ctx!(
-          "Could get sbatch output", ; "",
-        ))?;
+        let batch_id = String::from_utf8(proc.stdout)
+            .with_context(ctx!(
+              "Could not decode sbatch output", ; "",
+            ))?
+            .trim()
+            .to_string();
 
+        trace!("This chunk was scheduled with id: {batch_id}");
         chunk.slurm_id = Some(batch_id.clone());
 
         for (job_subid, run_id) in chunk.runs.iter().enumerate() {
-            let job_id = format!("{}_{}", batch_id.trim(), job_subid);
+            let job_id = format!("{}_{}", batch_id, job_subid);
             experiment.runs[*run_id].slurm_id = Some(job_id.clone());
         }
 
@@ -217,11 +223,18 @@ impl SlurmInteractor for SlurmCli {
 
     /// Get accounting data of user's jobs
     fn get_accounting_data(&self, job_ids: Vec<String>) -> Result<Vec<SacctOutput>> {
-        let sacct = Command::new("sacct")
+        let mut sacct_cmd = Command::new("sacct");
+        sacct_cmd
             .arg("-p")
             .arg("--format=jobid,jobname,state,exitcode")
-            .arg(format!("--jobs={}", job_ids.join(",")))
-            .output()?;
+            .arg(format!("--jobs={}", job_ids.join(",")));
+
+        trace!("Gathering slurm status with: {sacct_cmd:?}");
+
+        let sacct = sacct_cmd.output().with_context(ctx!(
+          "Could not get accounting data", ;
+          "Make sure that the `sacct` program is accessible",
+        ))?;
 
         let mut result = Vec::new();
 

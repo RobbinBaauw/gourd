@@ -10,8 +10,26 @@ use super::SlurmBasedStatus;
 use super::SlurmKillReason::*;
 use super::StatusProvider;
 use crate::slurm::interactor::SlurmCli;
-use crate::slurm::SacctOutput;
 use crate::slurm::SlurmInteractor;
+
+/// Structure of Sacct output.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SacctOutput {
+    /// ID of the job
+    pub job_id: String,
+
+    /// Name of the job
+    pub job_name: String,
+
+    /// Current state of the job
+    pub state: String,
+
+    /// Exit code of slurm
+    pub slurm_exit_code: isize,
+
+    /// Exit code of the program
+    pub program_exit_code: isize,
+}
 
 /// Provide job status information based on the files system information.
 #[derive(Debug, Clone, Copy)]
@@ -19,6 +37,7 @@ pub struct SlurmBasedProvider {}
 
 impl StatusProvider<SlurmCli, SlurmBasedStatus> for SlurmBasedProvider {
     /// Function to gather status using slurm job accounting data
+    #[cfg(not(tarpaulin_include))]
     fn get_statuses(
         connection: &mut SlurmCli,
         experiment: &Experiment,
@@ -55,8 +74,8 @@ impl StatusProvider<SlurmCli, SlurmBasedStatus> for SlurmBasedProvider {
                 "DEADLINE" => RunState::Fail(SlurmKill(Deadline)),
                 "DL" => RunState::Fail(SlurmKill(Deadline)),
 
-                "FAILED" => RunState::Fail(SlurmKill(SlurmFail)),
-                "F" => RunState::Fail(SlurmKill(SlurmFail)),
+                "FAILED" => RunState::Fail(SlurmKill(ExitCode(job.slurm_exit_code))),
+                "F" => RunState::Fail(SlurmKill(ExitCode(job.slurm_exit_code))),
 
                 "NODE_FAIL" => RunState::Fail(SlurmKill(NodeFail)),
                 "NF" => RunState::Fail(SlurmKill(NodeFail)),
@@ -111,12 +130,12 @@ fn flatten_job_id(jobs: Vec<SacctOutput>) -> Vec<SacctOutput> {
 
     for job in jobs {
         let range = Regex::new(r"([0-9]+_)\[([0-9]+)-([0-9]+)\]$").unwrap(); // Match job ids in form NUMBER_[NUMBER-NUMBER]
-        let solo = Regex::new(r"[0-9]+_[0-9]+$").unwrap(); // Match job ids in form NUMBER_NUMBER
+        let solo = Regex::new(r"([0-9]+_)\[?([0-9]+)\]?$").unwrap(); // Match job ids in form NUMBER_NUMBER
 
         if let Some(captures) = range.captures(&job.job_id) {
-            let batch_id = &captures[0];
-            let begin = captures[1].parse::<usize>().unwrap();
-            let end = captures[2].parse::<usize>().unwrap();
+            let batch_id = &captures[1];
+            let begin = captures[2].parse::<usize>().unwrap();
+            let end = captures[3].parse::<usize>().unwrap();
 
             for i in begin..=end {
                 result.push(SacctOutput {
@@ -129,10 +148,23 @@ fn flatten_job_id(jobs: Vec<SacctOutput>) -> Vec<SacctOutput> {
             }
         }
 
-        if solo.is_match(&job.job_id) {
-            result.push(job);
+        if let Some(captures) = solo.captures(&job.job_id) {
+            let batch_id = &captures[1];
+            let run_id = captures[2].parse::<usize>().unwrap();
+
+            result.push(SacctOutput {
+                job_id: format!("{}{}", batch_id, run_id),
+                job_name: job.job_name.clone(),
+                state: job.state.clone(),
+                slurm_exit_code: job.slurm_exit_code,
+                program_exit_code: job.program_exit_code,
+            })
         }
     }
 
     result
 }
+
+#[cfg(test)]
+#[path = "tests/slurm_based.rs"]
+mod tests;

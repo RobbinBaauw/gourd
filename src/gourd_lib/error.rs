@@ -30,7 +30,9 @@ where
 
 impl<A: Display, B: Display> Display for Ctx<A, B> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}caused by:{:#} {}", ERROR_STYLE, ERROR_STYLE, self.0)?;
+        if !format!("{}", self.0).is_empty() {
+            writeln!(f, "{}caused by:{:#} {}", ERROR_STYLE, ERROR_STYLE, self.0)?;
+        }
 
         if !format!("{}", self.1).is_empty() {
             writeln!(f, "\n{}help:{:#} {}", HELP_STYLE, HELP_STYLE, self.1)?;
