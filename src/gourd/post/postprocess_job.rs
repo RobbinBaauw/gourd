@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::path::PathBuf;
 
 use anyhow::anyhow;
 use anyhow::Context;
@@ -11,6 +10,7 @@ use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
+use log::debug;
 
 use crate::status::ExperimentStatus;
 use crate::status::PostprocessCompletion;
@@ -53,6 +53,8 @@ pub fn schedule_post_jobs(
                 "",
             ))?;
 
+        debug!("The string we are dealing with is {}", postprocess);
+
         post_job_for_run(
             format!("{}_{}", run.program, run.input),
             postprocess,
@@ -88,7 +90,7 @@ pub fn filter_runs_for_post_job(runs: &mut ExperimentStatus) -> Result<Vec<&usiz
 pub fn post_job_for_run(
     name: String,
     postprocess_name: String,
-    postprocess_input: &PathBuf,
+    postprocess_input: &Path,
     postprocess_out: &Path,
     experiment: &mut Experiment,
     fs: &impl FileOperations,
@@ -99,25 +101,25 @@ pub fn post_job_for_run(
     experiment.config.inputs.insert(
         input_name.clone(),
         Input {
-            input: Some(postprocess_input.clone()),
+            input: Some(postprocess_input.to_path_buf()),
             arguments: vec![],
         },
     );
 
     experiment.runs.push(Run {
-        program: postprocess_name,
+        program: postprocess_name.clone(),
         input: input_name,
         err_path: fs.truncate_and_canonicalize(
-            &postprocess_out.join(format!("error_{:?}", postprocess_input)),
+            &postprocess_out.join(format!("error_{}", postprocess_name)),
         )?,
         metrics_path: fs.truncate_and_canonicalize(
             &experiment
                 .config
                 .metrics_path
-                .join(format!("metrics_{:?}", postprocess_input)),
+                .join(format!("metrics_{}", postprocess_name)),
         )?,
         output_path: fs.truncate_and_canonicalize(
-            &postprocess_out.join(format!("output_{:?}", postprocess_input)),
+            &postprocess_out.join(format!("output_{}", postprocess_name)),
         )?,
         afterscript_output_path: None,
         post_job_output_path: None, // these two can be updated to allow pipelining
