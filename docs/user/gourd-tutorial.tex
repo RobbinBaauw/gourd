@@ -11,17 +11,14 @@
 
 \usepackage{xspace}
 
-
-
 \newcommand{\thecmd}{gourd}
-\newcommand{\thecommand}{GOURD}
-\newcommand{\mansection}{1}
+\newcommand{\thecommand}{GOURD-TUTORIAL}
+\newcommand{\mansection}{7}
 \newcommand{\mansectionname}{DelftBlue Tools Manual}
 \newcommand{\mandate}{5 MAY 2024}
 \setDate{5 MAY 2024}
 \setVersionWord{Version:}
 \setVersion{1.29}
-
 
 \input{latex2man_styling.tex}
 
@@ -32,14 +29,22 @@
 \begin{document}
     \pagestyle{fancy}
 
-
-%	\begin{adjustwidth}
-
-    \begin{Name}{1}{gourd-tutorial}{gourd-tutorial}{DelftBlue Tools Manual}{Gourd Tutorial}
+    \begin{Name}{7}{gourd-tutorial}{gourd-tutorial}{DelftBlue Tools Manual}{Gourd Tutorial}
+%@% IF LATEX %@%
+\begin{adjustwidth}{18pt}{0pt}
+%@% END-IF %@%
 
         \Prog{gourd-tutorial} - A step-by-step walkthrough for the Gourd experiment scheduler.
 
+%@% IF LATEX %@%
+\end{adjustwidth}
+%@% END-IF %@%
     \end{Name}
+
+%@% IF LATEX %@%
+\begin{adjustwidth}{18pt}{0pt}
+%@% END-IF %@%
+
     \section{INTRODUCTION}
 
     Welcome to \Prog{gourd-tutorial}!
@@ -93,7 +98,7 @@
 3  |                                                                   |
 4  | [programs.my-other-program]                                       |
 5  | binary = "/bin/bash"                                              |
-6  | args = "./my_other_program.sh"                                     |
+6  | args = "./my_other_program.sh"                                    |
 7  |                                                                   |
 …  /_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_/
    \___________________________________________________________________\
@@ -173,8 +178,11 @@
     \section{AUTHORS}
     Lukáš Chládek <\Email{l@chla.cz}>\\[0.1cm]\MANbr
     Rūta Giedrytė <\Email{r.giedryte@student.tudelft.nl}>\\[0.1cm]\MANbr
-    Andreas Tsatsanis <\Email{a.tsatsanis@student.tudelft.nl}>\\[0.1cm]\MANbr
+    Ανδρέας Τσατσάνης <\Email{a.tsatsanis@student.tudelft.nl}>\\[0.1cm]\MANbr
     Mikołaj Gazeel <\Email{m.j.gazeel@student.tudelft.nl}>\\[0.1cm]\MANbr
     Jan Piotrowski <\Email{j.p.piotrowski@student.tudelft.nl}>
+%@% IF LATEX %@%
+\end{adjustwidth}
+%@% END-IF %@%
 
 \end{document}

@@ -33,13 +33,22 @@
     \pagestyle{fancy}
 
 
-%	\begin{adjustwidth}
-
     \begin{Name}{1}{gourd}{gourd}{DelftBlue Tools Manual}{Gourd}
+%@% IF LATEX %@%
+\begin{adjustwidth}{18pt}{0pt}
+%@% END-IF %@%
 
         \Prog{gourd} - A tool for scheduling parallel runs for algorithm comparisons.
 
+%@% IF LATEX %@%
+\end{adjustwidth}
+%@% END-IF %@%
     \end{Name}
+
+
+%@% IF LATEX %@%
+\begin{adjustwidth}{18pt}{0pt}
+%@% END-IF %@%
     \section{SYNOPSIS}
 
         \Prog{gourd} \Arg{command}
@@ -98,7 +107,7 @@
             \item[\Prog{gourd} \Arg{status}]
             Display the status of a running or completed experiment.
             \item[\Prog{gourd} \Arg{continue}]
-            Run part of an experiment that did not finish completely.
+            Schedule the rest of the experiment if the Slurm job limit prevented that.
             \item[\Prog{gourd} \Arg{analyse}]
             Output metrics of completed runs.
             \item[\Prog{gourd} \Arg{version}]
@@ -271,8 +280,16 @@
             \subsubsection{Summary}
                 The \Prog{gourd} \Arg{continue} command schedules runs that are part of an existing
                 experiment, but have not yet been scheduled.
-                For example, an experiment with 30,000 distinct runs can be scheduled in three batches
-                of 10,000 each if that is the maximum number of queued supercomputer jobs.
+                For example, if the Slurm job limit is 10000 (as is the case on DelftBlue), an
+                experiment with 10 programs and 3000 inputs will need 3 batches to fully execute.
+
+                \Prog{gourd} \Arg{continue} when ran reports on the status of the exeperiment:
+                \begin{verbatim}
+                  > gourd continue
+                  Continuing experiment... 1500 new jobs scheduled, 1500 left (75\% scheduled)
+                  >
+                \end{verbatim}
+
 
 %            \subsubsection{Synopsis}
 %                \emph{TBD.}
@@ -324,9 +341,12 @@
     \section{AUTHORS}
     Lukáš Chládek <\Email{l@chla.cz}>\\[0.1cm]\MANbr
     Rūta Giedrytė <\Email{r.giedryte@student.tudelft.nl}>\\[0.1cm]\MANbr
-    Andreas Tsatsanis <\Email{a.tsatsanis@student.tudelft.nl}>\\[0.1cm]\MANbr
+    Ανδρέας Τσατσάνης <\Email{a.tsatsanis@student.tudelft.nl}>\\[0.1cm]\MANbr
     Mikołaj Gazeel <\Email{m.j.gazeel@student.tudelft.nl}>\\[0.1cm]\MANbr
     Jan Piotrowski <\Email{j.p.piotrowski@student.tudelft.nl}>
+%@% IF LATEX %@%
+\end{adjustwidth}
+%@% END-IF %@%
 
 
 \end{document}
