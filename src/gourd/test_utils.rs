@@ -10,6 +10,7 @@ use gourd_lib::config::Config;
 use gourd_lib::config::Input;
 use gourd_lib::config::Program;
 use gourd_lib::constants::style_from_fg;
+use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileSystemInteractor;
 use tempdir::TempDir;
@@ -58,7 +59,7 @@ pub fn create_sample_experiment(
     };
 
     (
-        Experiment::from_config(&conf, Local::now(), &REAL_FS).unwrap(),
+        Experiment::from_config(&conf, Local::now(), Environment::Local, &REAL_FS).unwrap(),
         conf,
     )
 }

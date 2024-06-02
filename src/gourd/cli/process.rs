@@ -15,6 +15,7 @@ use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
+use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileSystemInteractor;
 use indicatif::MultiProgress;
@@ -39,19 +40,9 @@ use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::handler::SlurmHandler;
 use crate::slurm::interactor::SlurmCli;
 use crate::status::blocking_status;
-use crate::status::display_job;
-use crate::status::display_statuses;
 use crate::status::get_statuses;
-
-/// An enum to distinguish the run context.
-#[derive(Clone, Copy, Debug)]
-pub enum Environment {
-    /// Local execution.
-    Local,
-
-    /// Slurm execution.
-    Slurm,
-}
+use crate::status::printing::display_job;
+use crate::status::printing::display_statuses;
 
 /// This function parses command that gourd was run with.
 pub async fn parse_command() {
@@ -93,7 +84,15 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             debug!("Creating a new experiment");
             trace!("The config is: {config:#?}");
 
-            let mut experiment = Experiment::from_config(&config, Local::now(), &file_system)?;
+            let mut experiment = Experiment::from_config(
+                &config,
+                Local::now(),
+                match args.sub_command {
+                    RunSubcommand::Local { .. } => Environment::Local,
+                    RunSubcommand::Slurm { .. } => Environment::Slurm,
+                },
+                &file_system,
+            )?;
 
             let exp_path = experiment.save(&config.experiments_folder, &file_system)?;
             debug!("Saved the experiment at {exp_path:?}");

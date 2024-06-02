@@ -11,23 +11,25 @@ use gourd_lib::file_system::FileOperations;
 use gourd_lib::measurement::Metrics;
 use log::trace;
 
-use super::Completion;
-use super::ExperimentStatus;
-use super::FailureReason;
+use super::FileSystemBasedStatus;
 use super::PostprocessCompletion;
 use super::PostprocessOutput;
-use super::Status;
 use super::StatusProvider;
+use crate::status::FsState;
 
 /// Provide job status information based on the files system information.
 #[derive(Debug, Clone, Copy)]
-pub struct FileBasedStatus {}
+pub struct FileBasedProvider {}
 
-impl<T> StatusProvider<T> for FileBasedStatus
+impl<T> StatusProvider<T, FileSystemBasedStatus> for FileBasedProvider
 where
     T: FileOperations,
 {
-    fn get_statuses(fs: &mut T, experiment: &Experiment) -> Result<ExperimentStatus> {
+    /// Function to gather status using file system
+    fn get_statuses(
+        fs: &mut T,
+        experiment: &Experiment,
+    ) -> Result<BTreeMap<usize, FileSystemBasedStatus>> {
         let mut statuses = BTreeMap::new();
 
         for (run_id, run) in experiment.runs.iter().enumerate() {
@@ -47,91 +49,91 @@ where
 
             let completion = match metrics {
                 Some(inner) => match inner {
-                    Metrics::Done(metrics) => match metrics.exit_code {
-                        0 => Completion::Success(metrics),
-                        _ => Completion::Fail(FailureReason::ExitStatus(metrics)),
-                    },
-                    Metrics::Pending => Completion::Pending,
+                    Metrics::Done(metrics) => FsState::Completed(metrics),
+                    Metrics::NotCompleted => FsState::Running,
                 },
-                None => Completion::Dormant,
+                None => FsState::Pending,
             };
 
             let mut afterscript_completion = None;
             let mut postprocess_job_completion = None;
 
             if run.afterscript_output_path.is_some() {
-                afterscript_completion = Some(get_afterscript_status(run).with_context(ctx!(
-                    "Could not determine the afterscript status", ;
-                    "",
-                ))?);
+                afterscript_completion =
+                    Some(Self::get_afterscript_status(run).with_context(ctx!(
+                        "Could not determine the afterscript status", ;
+                        "",
+                    ))?);
             }
 
             if run.post_job_output_path.is_some() {
                 postprocess_job_completion =
-                    Some(get_postprocess_job_status(run).with_context(ctx!(
+                    Some(Self::get_postprocess_job_status(run).with_context(ctx!(
                         "Could not determine the postprocess job status", ;
                         "",
                     ))?);
             }
 
-            let status = Status {
+            let status = FileSystemBasedStatus {
                 completion,
                 afterscript_completion,
                 postprocess_job_completion,
             };
 
-            statuses.insert(run_id, Some(status));
+            statuses.insert(run_id, status);
         }
 
         Ok(statuses)
     }
 }
 
-/// Get the completion of an afterscript.
-pub fn get_afterscript_status(run: &Run) -> Result<PostprocessCompletion> {
-    let mut postprocess_completion = PostprocessCompletion::Dormant;
-    let dir = run
-        .afterscript_output_path
-        .clone()
-        .ok_or(anyhow!("Could not get the afterscript information"))
-        .with_context(ctx!(
-            "Could not get the postprocessing information", ;
-            "",
-        ))?;
+impl FileBasedProvider {
+    /// Get the completion of an afterscript.
+    pub fn get_afterscript_status(run: &Run) -> Result<PostprocessCompletion> {
+        let mut postprocess_completion = PostprocessCompletion::Dormant;
+        let dir = run
+            .afterscript_output_path
+            .clone()
+            .ok_or(anyhow!("Could not get the afterscript information"))
+            .with_context(ctx!(
+                "Could not get the postprocessing information", ;
+                "",
+            ))?;
 
-    let is_empty = dir.read_dir()?.next().is_none();
+        let is_empty = dir.read_dir()?.next().is_none();
 
-    // TODO adding meaningful postprocess outputs
-    if !is_empty {
-        postprocess_completion = PostprocessCompletion::Success(PostprocessOutput {
-            short_output: String::from("gg"),
-            long_output: String::from("gg"),
-        });
+        // TODO adding meaningful postprocess outputs
+        if !is_empty {
+            postprocess_completion = PostprocessCompletion::Success(PostprocessOutput {
+                short_output: String::from("gg"),
+                long_output: String::from("gg"),
+            });
+        }
+
+        Ok(postprocess_completion)
     }
 
-    Ok(postprocess_completion)
-}
+    /// Get the completion of a postprocess job.
+    pub fn get_postprocess_job_status(run: &Run) -> Result<PostprocessCompletion> {
+        let mut postprocess_completion = PostprocessCompletion::Dormant;
+        let dir = run
+            .post_job_output_path
+            .clone()
+            .ok_or(anyhow!("Could not get the postprocess job information"))
+            .with_context(ctx!(
+                "Could not get the postprocessing information", ;
+                "",
+            ))?;
 
-/// Get the completion of a postprocess job.
-pub fn get_postprocess_job_status(run: &Run) -> Result<PostprocessCompletion> {
-    let mut postprocess_completion = PostprocessCompletion::Dormant;
-    let dir = run
-        .post_job_output_path
-        .clone()
-        .ok_or(anyhow!("Could not get the postprocess job information"))
-        .with_context(ctx!(
-            "Could not get the postprocessing information", ;
-            "",
-        ))?;
+        let is_empty = dir.read_dir()?.next().is_none();
 
-    let is_empty = dir.read_dir()?.next().is_none();
+        if !is_empty {
+            postprocess_completion = PostprocessCompletion::Success(PostprocessOutput {
+                short_output: String::from("gg"),
+                long_output: String::from("gg"),
+            });
+        }
 
-    if !is_empty {
-        postprocess_completion = PostprocessCompletion::Success(PostprocessOutput {
-            short_output: String::from("gg"),
-            long_output: String::from("gg"),
-        });
+        Ok(postprocess_completion)
     }
-
-    Ok(postprocess_completion)
 }

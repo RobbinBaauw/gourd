@@ -39,6 +39,16 @@ pub struct Run {
     pub post_job_output_path: Option<PathBuf>,
 }
 
+/// An enum to distinguish the run context.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+pub enum Environment {
+    /// Local execution.
+    Local,
+
+    /// Slurm execution.
+    Slurm,
+}
+
 /// Describes one experiment.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Experiment {
@@ -59,6 +69,9 @@ pub struct Experiment {
 
     /// The ID of this experiment.
     pub seq: usize,
+
+    /// Enviroment of the experiment
+    pub env: Environment,
 }
 
 impl Experiment {
@@ -82,8 +95,8 @@ pub struct Chunk {
     /// The resource limits of this chunk.
     pub resource_limits: Option<ResourceLimits>,
 
-    /// Whether this chunk already got scheduled.
-    pub scheduled: bool,
+    /// The slurm job id of this chunk.
+    pub slurm_id: Option<String>,
 }
 
 // this stays here as an idea to eventually implement,

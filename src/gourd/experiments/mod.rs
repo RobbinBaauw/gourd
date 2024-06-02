@@ -10,6 +10,7 @@ use chrono::Local;
 use gourd_lib::config::Config;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
+use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
@@ -20,7 +21,12 @@ pub trait ExperimentExt {
     ///
     /// Creates a new experiment by matching all algorithms to all inputs.
     /// The experiment is created in the provided `env` and with `time` as the timestamp.
-    fn from_config(conf: &Config, time: DateTime<Local>, fs: &impl FileOperations) -> Result<Self>
+    fn from_config(
+        conf: &Config,
+        time: DateTime<Local>,
+        env: Environment,
+        fs: &impl FileOperations,
+    ) -> Result<Self>
     where
         Self: Sized;
 
@@ -40,7 +46,12 @@ pub trait ExperimentExt {
 }
 
 impl ExperimentExt for Experiment {
-    fn from_config(conf: &Config, time: DateTime<Local>, fs: &impl FileOperations) -> Result<Self> {
+    fn from_config(
+        conf: &Config,
+        time: DateTime<Local>,
+        env: Environment,
+        fs: &impl FileOperations,
+    ) -> Result<Self> {
         let mut runs = Vec::new();
 
         let seq = Self::latest_id_from_folder(&conf.experiments_folder)
@@ -56,17 +67,17 @@ impl ExperimentExt for Experiment {
                     err_path: fs.truncate_and_canonicalize(
                         &conf
                             .output_path
-                            .join(format!("{}/{}/{}_error", seq, prog_name, input_name)),
+                            .join(format!("{}/{}/error_{}", seq, prog_name, input_name)),
                     )?,
                     metrics_path: fs.truncate_and_canonicalize(
                         &conf
                             .metrics_path
-                            .join(format!("{}/{}/{}_metrics", seq, prog_name, input_name)),
+                            .join(format!("{}/{}/metrics_{}", seq, prog_name, input_name)),
                     )?,
                     output_path: fs.truncate_and_canonicalize(
                         &conf
                             .output_path
-                            .join(format!("{}/{}/{}_output", seq, prog_name, input_name)),
+                            .join(format!("{}/{}/output_{}", seq, prog_name, input_name)),
                     )?,
                     afterscript_output_path: conf.afterscript_output_folder.as_ref().map(
                         |out_path| {
@@ -90,6 +101,7 @@ impl ExperimentExt for Experiment {
             config: conf.clone(),
             chunks: vec![],
             resource_limits: conf.resource_limits.clone(),
+            env,
         })
     }
 
@@ -159,10 +171,11 @@ pub fn get_afterscript_info(
     let postprocessing = &config.programs[prog_name].afterscript;
 
     if let Some(path) = postprocessing {
-        let afterscript_output_path = fs.truncate_and_canonicalize(&path.clone().join(format!(
-            "{}/algo_{}/afterscript_{}",
-            seq, prog_name, input_name
-        )))?;
+        let afterscript_output_path = fs.truncate_and_canonicalize(
+            &path
+                .clone()
+                .join(format!("{}/{}/afterscript_{}", seq, prog_name, input_name)),
+        )?;
 
         Ok(Some(afterscript_output_path))
     } else {

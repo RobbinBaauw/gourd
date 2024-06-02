@@ -20,22 +20,22 @@ fn config_correct_slurm() {
 
     let time = Local::now();
 
-    let result = Experiment::from_config(&config, time, &REAL_FS);
+    let result = Experiment::from_config(&config, time, Environment::Local, &REAL_FS);
     assert!(result.is_ok());
 
     let runs = vec![Run {
         program: "a".to_string(),
         input: "b".to_string(),
         err_path: PathBuf::from(tempdir.path())
-            .join("1/a/b_error")
+            .join("1/a/error_b")
             .canonicalize()
             .unwrap(),
         output_path: PathBuf::from(tempdir.path())
-            .join("1/a/b_output")
+            .join("1/a/output_b")
             .canonicalize()
             .unwrap(),
         metrics_path: PathBuf::from(tempdir.path())
-            .join("1/a/b_metrics")
+            .join("1/a/metrics_b")
             .canonicalize()
             .unwrap(),
         slurm_id: None,
@@ -54,6 +54,7 @@ fn config_correct_slurm() {
         creation_time: time,
         config,
         seq: 1,
+        env: Environment::Local,
     };
 
     assert_eq!(result.unwrap(), test_experiment);
@@ -73,7 +74,7 @@ fn config_correct_local() {
 
     let time = Local::now();
 
-    let result = Experiment::from_config(&config, time, &REAL_FS);
+    let result = Experiment::from_config(&config, time, Environment::Local, &REAL_FS);
     assert!(result.is_ok());
 
     let runs = vec![
@@ -81,15 +82,15 @@ fn config_correct_local() {
             program: "b".to_string(),
             input: "d".to_string(),
             err_path: PathBuf::from(tempdir.path())
-                .join("1/b/d_error")
+                .join("1/b/error_d")
                 .canonicalize()
                 .unwrap(),
             output_path: PathBuf::from(tempdir.path())
-                .join("1/b/d_output")
+                .join("1/b/output_d")
                 .canonicalize()
                 .unwrap(),
             metrics_path: PathBuf::from(tempdir.path())
-                .join("1/b/d_metrics")
+                .join("1/b/metrics_d")
                 .canonicalize()
                 .unwrap(),
             slurm_id: None,
@@ -100,15 +101,15 @@ fn config_correct_local() {
             program: "b".to_string(),
             input: "e".to_string(),
             err_path: PathBuf::from(tempdir.path())
-                .join("1/b/e_error")
+                .join("1/b/error_e")
                 .canonicalize()
                 .unwrap(),
             output_path: PathBuf::from(tempdir.path())
-                .join("1/b/e_output")
+                .join("1/b/output_e")
                 .canonicalize()
                 .unwrap(),
             metrics_path: PathBuf::from(tempdir.path())
-                .join("1/b/e_metrics")
+                .join("1/b/metrics_e")
                 .canonicalize()
                 .unwrap(),
             slurm_id: None,
@@ -119,15 +120,15 @@ fn config_correct_local() {
             program: "c".to_string(),
             input: "d".to_string(),
             err_path: PathBuf::from(tempdir.path())
-                .join("1/c/d_error")
+                .join("1/c/error_d")
                 .canonicalize()
                 .unwrap(),
             output_path: PathBuf::from(tempdir.path())
-                .join("1/c/d_output")
+                .join("1/c/output_d")
                 .canonicalize()
                 .unwrap(),
             metrics_path: PathBuf::from(tempdir.path())
-                .join("1/c/d_metrics")
+                .join("1/c/metrics_d")
                 .canonicalize()
                 .unwrap(),
             slurm_id: None,
@@ -138,15 +139,15 @@ fn config_correct_local() {
             program: "c".to_string(),
             input: "e".to_string(),
             err_path: PathBuf::from(tempdir.path())
-                .join("1/c/e_error")
+                .join("1/c/error_e")
                 .canonicalize()
                 .unwrap(),
             output_path: PathBuf::from(tempdir.path())
-                .join("1/c/e_output")
+                .join("1/c/output_e")
                 .canonicalize()
                 .unwrap(),
             metrics_path: PathBuf::from(tempdir.path())
-                .join("1/c/e_metrics")
+                .join("1/c/metrics_e")
                 .canonicalize()
                 .unwrap(),
             slurm_id: None,
@@ -162,6 +163,7 @@ fn config_correct_local() {
         creation_time: time,
         config,
         seq: 1,
+        env: Environment::Local,
     };
 
     assert_eq!(result.unwrap(), test_experiment);
@@ -189,8 +191,8 @@ fn latest_id_correct() {
     config.metrics_path = PathBuf::from(tempdir.path());
     config.experiments_folder = PathBuf::from(tempdir.path());
 
-    Experiment::from_config(&config, Local::now(), &REAL_FS).unwrap();
-    Experiment::from_config(&config, Local::now(), &REAL_FS).unwrap();
+    Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
+    Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
 
     let id = Experiment::latest_id_from_folder(tempdir.path()).unwrap();
     assert_eq!(id, Some(2));

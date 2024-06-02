@@ -1,3 +1,4 @@
+use std::process;
 use std::process::Command;
 
 use anyhow::Result;
@@ -12,7 +13,7 @@ pub async fn run_locally(tasks: Vec<Command>) -> Result<()> {
     tokio::spawn(async {
         let task_futures: Vec<_> = tasks
             .into_iter()
-            .map(|mut cmd| spawn_blocking(move || cmd.status()))
+            .map(|mut cmd| spawn_blocking(move || cmd.output()))
             .collect();
 
         // Run all commands concurrently and collect their results
@@ -21,15 +22,22 @@ pub async fn run_locally(tasks: Vec<Command>) -> Result<()> {
         for result in results.into_iter() {
             if let Ok(join) = result {
                 if let Ok(exit) = join {
-                    if !exit.success() {
-                        error!("Failed to run gourd wrapper: {exit:?}");
+                    if !exit.status.success() {
+                        error!("Failed to run gourd wrapper: {:?}", exit.status);
+                        error!(
+                            "Wrapper returned: {}",
+                            String::from_utf8(exit.stderr).unwrap()
+                        );
+                        process::exit(1);
                     }
                 } else {
-                    error!("Could not retieve the wrappers exit status {join:?}");
+                    error!("Couldn't start the wrapper: {join:?}");
                     error!("Ensure that the wrapper is accesible. (see man gourd)");
+                    process::exit(1);
                 }
             } else {
                 error!("Could not join the child in the multithreaded runtime");
+                process::exit(1);
             }
         }
 

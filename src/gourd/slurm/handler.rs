@@ -60,7 +60,7 @@ where
         experiment.save(&config.experiments_folder, &fs)?;
 
         for (chunk_id, chunk) in chunks_to_iterate.iter_mut().enumerate() {
-            if chunk.scheduled {
+            if chunk.slurm_id.is_some() {
                 continue;
             }
 
