@@ -44,10 +44,11 @@ impl<'de> Deserialize<'de> for Regex {
         struct RegexVisitor;
 
         impl<'de> Visitor<'de> for RegexVisitor {
+            // see: https://serde.rs/impl-deserialize.html
             type Value = Regex;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a string")
+                formatter.write_str("a valid regex string")
             }
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>

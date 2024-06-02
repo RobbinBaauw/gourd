@@ -8,9 +8,6 @@ use anyhow::Result;
 use serde::Deserialize;
 use serde::Serialize;
 
-use self::maps::InputMap;
-use self::maps::ProgramMap;
-use crate::config::regex::Regex;
 use crate::constants::AFTERSCRIPT_DEFAULT;
 use crate::constants::AFTERSCRIPT_OUTPUT_DEFAULT;
 use crate::constants::EMPTY_ARGS;
@@ -26,8 +23,13 @@ use crate::error::ctx;
 use crate::error::Ctx;
 use crate::file_system::FileOperations;
 
-pub mod maps;
-pub mod regex;
+mod duration;
+mod maps;
+mod regex;
+
+pub use maps::InputMap;
+pub use maps::ProgramMap;
+pub use regex::Regex;
 
 /// A pair of a path to a binary and cli arguments.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Hash, Eq)]
@@ -223,6 +225,7 @@ pub struct SBatchArg {
 #[derive(Debug, Clone, PartialEq, Hash, Eq, Serialize, Deserialize)]
 pub struct ResourceLimits {
     /// Maximum time allowed _for each_ job.
+    #[serde(deserialize_with = "duration::deserialize_human_time_duration")]
     pub time_limit: Duration,
 
     /// CPUs to use per job
