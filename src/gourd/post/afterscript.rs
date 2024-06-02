@@ -6,7 +6,6 @@ use std::process::ExitStatus;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
-use gourd_lib::config::Config;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
@@ -143,7 +142,7 @@ fn add_label_to_run(
 
         for l in keys {
             let label = &label_map[l];
-            if Config::check_regex(l, label)?.is_match(&text) {
+            if label.regex.is_match(&text) {
                 labels.insert(run_id, l.clone());
                 break;
             }

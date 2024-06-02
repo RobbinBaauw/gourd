@@ -1,23 +1,19 @@
 use std::collections::BTreeMap;
-use std::collections::HashSet;
-use std::mem::swap;
 use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
-use glob::glob;
 use serde::Deserialize;
 use serde::Serialize;
 
+use self::maps::InputMap;
+use self::maps::ProgramMap;
+use crate::config::regex::Regex;
 use crate::constants::AFTERSCRIPT_DEFAULT;
 use crate::constants::AFTERSCRIPT_OUTPUT_DEFAULT;
 use crate::constants::EMPTY_ARGS;
-use crate::constants::GLOB_ESCAPE;
-use crate::constants::INTERNAL_GLOB;
-use crate::constants::INTERNAL_POST;
 use crate::constants::POSTPROCESS_JOB_CPUS;
 use crate::constants::POSTPROCESS_JOB_DEFAULT;
 use crate::constants::POSTPROCESS_JOB_MEM;
@@ -30,8 +26,11 @@ use crate::error::ctx;
 use crate::error::Ctx;
 use crate::file_system::FileOperations;
 
+pub mod maps;
+pub mod regex;
+
 /// A pair of a path to a binary and cli arguments.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Hash, Eq)]
 pub struct Program {
     /// The path to the executable.
     pub binary: PathBuf,
@@ -82,7 +81,7 @@ pub struct Input {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
 pub struct Label {
     /// The regex to run over the afterscript output. If there's a match, this label is assigned.
-    pub regex: String,
+    pub regex: Regex,
 
     /// The priority of the label. Higher numbers mean higher priority, and if label is
     /// present it will override lower priority labels, even if they are also present.
@@ -116,12 +115,12 @@ pub struct Config {
     pub experiments_folder: PathBuf,
 
     /// The list of tested algorithms.
-    pub programs: BTreeMap<String, Program>,
+    pub programs: ProgramMap,
 
     /// The list of inputs for each of them.
     ///
     /// The name of an input cannot contain `glob|`.
-    pub inputs: BTreeMap<String, Input>,
+    pub inputs: InputMap,
 
     /// If running on a SLURM cluster, the job configurations
     pub slurm: Option<SlurmConfig>,
@@ -242,8 +241,8 @@ impl Default for Config {
             metrics_path: PathBuf::from("run-metrics"),
             experiments_folder: PathBuf::from("experiments"),
             wrapper: WRAPPER_DEFAULT(),
-            programs: BTreeMap::new(),
-            inputs: BTreeMap::new(),
+            programs: ProgramMap::default(),
+            inputs: InputMap::default(),
             slurm: None,
             resource_limits: None,
             afterscript_output_folder: AFTERSCRIPT_OUTPUT_DEFAULT(),
@@ -257,141 +256,13 @@ impl Config {
     /// Load a `Config` struct instance from a TOML file at the provided path.
     /// Returns a valid `Config` or an explanatory `GourdError::ConfigLoadError`.
     pub fn from_file<F: FileOperations>(path: &Path, fs: &F) -> Result<Config> {
-        let mut initial: Config = toml::from_str(&fs.read_utf8(path)?).with_context(ctx!(
+        toml::from_str(&fs.read_utf8(path)?).with_context(ctx!(
           "Could not parse {path:?}", ;
           "More help and examples can be found with {PRIMARY_STYLE}man gourd.toml{PRIMARY_STYLE:#}",
-        ))?;
-
-        for name in initial.inputs.keys() {
-            Self::disallow_substring(name, INTERNAL_GLOB)?;
-            Self::disallow_substring(name, INTERNAL_POST)?;
-        }
-
-        for name in initial.programs.keys() {
-            Self::disallow_substring(name, INTERNAL_GLOB)?;
-            Self::disallow_substring(name, INTERNAL_POST)?;
-        }
-        if let Some(labels) = &initial.labels {
-            for (label_name, label) in labels {
-                Self::check_regex(label_name, label)?;
-            }
-        }
-
-        initial.inputs = Self::expand_globs(initial.inputs)?;
-
-        Ok(initial)
-    }
-
-    fn disallow_substring(name: &String, disallowed: &'static str) -> Result<()> {
-        if name.contains(disallowed) {
-            Err(anyhow!("Failed to include the input {name}")).with_context(ctx!(
-              "The input name contained `{disallowed}`, not allowed", ;
-              "Do not include `{disallowed}` in the name of your inputs",
-            ))
-        } else {
-            Ok(())
-        }
-    }
-
-    /// Takes the set of all inputs and expands the globbed arguments.
-    ///
-    /// # Examples
-    /// ```toml
-    /// [inputs.test_input]
-    /// arguments = [ "=glob=/test/**/*.jpg" ]
-    /// ```
-    ///
-    /// May get expanded to:
-    ///
-    /// ```toml
-    /// [inputs.test_input_glob_0]
-    /// arguments = [ "/test/a/a.jpg" ]
-    ///
-    /// [inputs.test_input_glob_1]
-    /// arguments = [ "/test/a/b.jpg" ]
-    ///
-    /// [inputs.test_input_glob_2]
-    /// arguments = [ "/test/b/b.jpg" ]
-    /// ```
-    fn expand_globs(inputs: BTreeMap<String, Input>) -> Result<BTreeMap<String, Input>> {
-        let mut result = BTreeMap::new();
-
-        for (original, input) in inputs {
-            let mut globset = HashSet::new();
-            globset.insert(input.clone());
-
-            let mut is_glob = false;
-
-            for arg_index in 0..input.arguments.len() {
-                let mut next_globset = HashSet::new();
-
-                for input_instance in &globset {
-                    is_glob |= Self::explode_globset(input_instance, arg_index, &mut next_globset)?;
-                }
-
-                swap(&mut globset, &mut next_globset);
-            }
-
-            if is_glob {
-                for (idx, glob) in globset.iter().enumerate() {
-                    result.insert(
-                        format!("{}{}{}", original, INTERNAL_GLOB, idx),
-                        glob.clone(),
-                    );
-                }
-            } else {
-                result.insert(original, input);
-            }
-        }
-
-        Ok(result)
-    }
-
-    /// Given a `input` and `arg_index` expand the glob at that
-    /// argument and put the results in `fill`.
-    fn explode_globset(input: &Input, arg_index: usize, fill: &mut HashSet<Input>) -> Result<bool> {
-        let arg = &input.arguments[arg_index];
-        let no_escape = arg.strip_prefix(GLOB_ESCAPE);
-
-        if let Some(globbed) = no_escape {
-            for path in glob(globbed).with_context(ctx!(
-              "Failed to expand glob {globbed}", ;
-              "Any arguments starting with `{GLOB_ESCAPE}` are considered globs, \
-              remove it if you wish just to pass an argument",
-            ))? {
-                let mut glob_instance = input.clone();
-
-                glob_instance.arguments[arg_index] = path
-                    .with_context(ctx!(
-                      "The glob failed to evaluate at {no_escape:?}", ;
-                      "Make sure you have permissions to read the file",
-                    ))?
-                    .to_str()
-                    .ok_or(anyhow!("Failed to stringify {no_escape:?}"))
-                    .context("")?
-                    .to_string();
-
-                fill.insert(glob_instance);
-            }
-            Ok(true)
-        } else {
-            fill.insert(input.clone());
-            Ok(false)
-        }
-    }
-
-    /// Check that the labels the user gave contain valid regular expressions
-    /// for finding them in the afterscript output.
-    pub fn check_regex(label_name: &String, label: &Label) -> Result<regex_lite::Regex> {
-        regex_lite::Regex::new(&label.regex).with_context(ctx!(
-          "Could not compile regex for label {label_name:?}", ;
-          "Ensure that `{}` is valid regex.
-           Check https://en.wikipedia.org/wiki/Regular_expression#Syntax for syntax help",
-            label.regex,
         ))
     }
 }
 
 #[cfg(test)]
-#[path = "tests/config.rs"]
+#[path = "tests/mod.rs"]
 mod tests;
