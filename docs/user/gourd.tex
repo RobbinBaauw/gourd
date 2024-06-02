@@ -30,140 +30,181 @@
 \setmathfont(Digits,Greek,Latin)[Numbers=OldStyle, FakeBold=1]{Linux Libertine O}
 
 \begin{document}
-	\pagestyle{fancy}
+    \pagestyle{fancy}
 
 
-%  \begin{adjustwidth}
+%	\begin{adjustwidth}
 
-  \begin{Name}{1}{gourd}{Test}{DelftBlue Tools Manual}{Gourd - Pumpkin}
+    \begin{Name}{1}{gourd}{Test}{DelftBlue Tools Manual}{Gourd}
 
-      \Prog{gourd} - A tool for scheduling parallel runs for algorithm comparisons.
+        \Prog{gourd} - A tool for scheduling parallel runs for algorithm comparisons.
 
-  \end{Name}
-  \section{SYNOPSIS}
+    \end{Name}
+    \section{SYNOPSIS}
 
-    \Prog{gourd} \oArg{command} \oOptArg{-c}{ filename} \oOpt{-d} \oOpt{-h} \oOpt{-s} \oOpt{-v|-vv}
+        \Prog{gourd} \oArg{command} \oOptArg{-c}{ filename} \oOpt{-d} \oOpt{-h} \oOpt{-s} \oOpt{-v|-vv}
 
-  \section{DESCRIPTION}
+    \section{DESCRIPTION}
 
-    \Prog{gourd} is a tool that schedules parallel runs for algorithm comparisons.
-    Given the parameters of the experiment, a number of test datasets, and algorithm implementations to compare,
-    \Prog{gourd} runs the experiment in parallel and provides many options for processing its results.
-    While originally envisioned for the DelftBlue supercomputer at Delft University of Technology,
-    \Prog{gourd} can replicate the experiment on any cluster computer with the \Prog{Slurm} scheduler,
-    on any UNIX-like system, and on Microsoft Windows.
+        \Prog{gourd} is a tool that schedules parallel runs for algorithm comparisons.
+        Given the parameters of the experiment, a number of test datasets, and algorithm implementations to compare,
+        \Prog{gourd} runs the experiment in parallel and provides many options for processing its results.
+        While originally envisioned for the DelftBlue supercomputer at Delft University of Technology,
+        \Prog{gourd} can replicate the experiment on any cluster computer with the \Prog{Slurm} scheduler,
+        on any UNIX-like system, and on Microsoft Windows.
+
+        New to \Prog{gourd}? Go directly to the \Prog{gourd-tutorial}(1) manual.
 
     \section{OPTIONS}
 
-    The following options apply to all \Prog{gourd} commands.
+        The following options apply to all \Prog{gourd} commands.
 
-    \begin{Description}[Options]\setlength{\itemsep}{0cm}
-    \item[\OptArg{-c}{ filename}, \OptArg{--config}{ filename}]
-    Tell \Prog{gourd} to use the given filename as \File{gourd.toml}, the configuration
-    file that defines the experimental setup.
-    By default, the file is expected in the current working directory at \File{./gourd.toml}.
-    \item[\Opt{-d}, \Opt{--dry-run}]
-    Run \Prog{gourd} in dry-run mode, printing all operations (such as writing to files or scheduling runs)
-    without executing them.
-    \item[\Opt{-h}, \Opt{--help}]
-    Display usage instructions for the \Prog{gourd} utility or any of its commands.
-    \item[\Opt{-s}, \Opt{--script}]
-    Tell \Prog{gourd} to use a script-friendly interface, that is, one that does not use
-    interactive user prompts.
-    \item[\Opt{-v}, \Opt{-vv}, \Opt{--verbose}]
-    Run \Prog{gourd} with verbose output, where \Opt{-vv} enables even more logging.
-    \end{Description}
+        \begin{Description}[Options]
+            \item[\oOptArg{-c}{ filename}, \OptArg{--config}{ filename}]
+            Tell \Prog{gourd} to use the given filename as \File{gourd.toml}, the configuration
+            file that defines the experimental setup.
+            By default, the file is expected in the current working directory at \File{./gourd.toml}.
+            \item[\Opt{-d}, \Opt{--dry-run}]
+            Run \Prog{gourd} in dry-run mode, printing all operations (such as writing to files or scheduling runs)
+            without executing them.
+            \item[\Opt{-h}, \Opt{--help}]
+            Display usage instructions for the \Prog{gourd} utility or any of its commands.
+            \item[\Opt{-s}, \Opt{--script}]
+            Tell \Prog{gourd} to use a script-friendly interface, that is, one that does not use
+            interactive user prompts.
+            \item[\Opt{-v}, \Opt{-vv}, \Opt{--verbose}]
+            Run \Prog{gourd} with verbose output, where \Opt{-vv} enables even more logging.
+        \end{Description}
 
     \section{COMMANDS}
 
-    Using \Prog{gourd} is as simple as invoking one of its commands, such as `gourd status'.
-    The following is a summary of available commands.
+        Using \Prog{gourd} is as simple as invoking one of its commands, such as `gourd status'.
+        The following is a summary of available commands.
 
-    \begin{Description}[Commands]\setlength{\itemsep}{0cm}
-        \item[\Prog{gourd} \Arg{run}]
-        Create an experiment from configuration and runs it on \Prog{Slurm} or the local machine.
-        \item[\Prog{gourd} \Arg{init}]
-        Set up a template of an experiment configuration.
-        \item[\Prog{gourd} \Arg{status}]
-        Display the status of an experiment that was run.
-        \item[\Prog{gourd} \Arg{postprocess}]
-        Run postprocessing jobs.
-        \item[\Prog{gourd} \Arg{analyse}]
-        Output metrics of completed runs.
-        \item[\Prog{gourd} \Arg{version}]
-        Show the software version.
-    \end{Description}
-
-    \subsection{GOURD RUN}
-
-        \subsubsection{Summary}
-        The \Prog{gourd} \Arg{run} command uses the provided configuration and
-        runs an experiment.
-        Using either \Arg{local} or \Arg{slurm}, it is possible for the execution
-        to run on the local machine, or be scheduled using Slurm on a cluster computer.
-        Using Slurm, additional configuration arguments are required; see \Prog{gourd.toml}(5).
-
-        \subsubsection{Synopsis}
-        \Prog{gourd} \Arg{run} \Arg{slurm}|\Arg{local} \oOptArg{-c}{ filename} \oOpt{-h} \oOpt{-s} \oOpt{-v|-vv}
-
-    \subsection{GOURD INIT}
-
-        \subsubsection{Summary}
-        The \Prog{gourd} \Arg{init} command creates an experimental configuration.
-        Configurations are represented as TOML files.
-        A template configuration, \File{gourd.toml}, is placed in a Git repository.
-
-        \subsubsection{Synopsis}
-        \Prog{gourd} \Arg{init} \oOpt{-d} \oOptArg{-D}{ directory} \oOpt{-h} \oOpt{-s} \oOpt{-v|-vv}
-
-        \subsubsection{Options}
-        \begin{Description}[Options]\setlength{\itemsep}{0cm}
-        \item[\OptArg{-D}{ directory}]
-        Uses the given directory name as the repository root.
+        \begin{Description}[Commands]
+            \item[\Prog{gourd} \Arg{run}]
+            Create an experiment from configuration and run it on \Prog{Slurm} or the local machine.
+            \item[\Prog{gourd} \Arg{init}]
+            Set up a template of an experiment configuration.
+            \item[\Prog{gourd} \Arg{status}]
+            Display the status of a running or completed experiment.
+            \item[\Prog{gourd} \Arg{continue}]
+            Run part of an experiment that did not finish completely.
+            \item[\Prog{gourd} \Arg{analyse}]
+            Output metrics of completed runs.
+            \item[\Prog{gourd} \Arg{version}]
+            Show the software version.
         \end{Description}
 
-    \subsection{GOURD STATUS}
+        \subsection{GOURD RUN}
 
-    \subsubsection{Summary}
-    The \Prog{gourd} \Arg{status} command displays the status of an existing experiment,
-    that is, one that has been created by \Prog{gourd} \Arg{run}, but not necessarily
-    one that has fully executed.
-    This command can also display detailed status of an individual job using the \Opt{-i} flag.
+            \subsubsection{Summary}
+                The \Prog{gourd} \Arg{run} command uses the provided configuration and
+                runs an experiment.
+                Using either \Arg{local} or \Arg{slurm}, it is possible for the execution
+                to run on the local machine, or be scheduled using Slurm on a cluster computer.
+                Using Slurm, additional configuration arguments are required; see \Prog{gourd.toml}(5).
 
-    \subsubsection{Synopsis}
-    \Prog{gourd} \Arg{status} \oArg{experiment_id} \oOpt{-d} \oOpt{-h} \oOptArg{-i}{ run_id} \oOpt{-s} \oOpt{-v|-vv}
+            \subsubsection{Synopsis}
+                \Prog{gourd} \Arg{run} \Arg{slurm}|\Arg{local} \oOptArg{-c}{ filename} \oOpt{-h} \oOpt{-s} \oOpt{-v|-vv}
 
-    \subsubsection{Options}
-    \begin{Description}[Options]\setlength{\itemsep}{0cm}
-    \item[\Arg{experiment_id}]
-    The ID of an experiment to show the status of. By default, this is the most recent experiment.
-    \item[\OptArg{-i}{ run_id}]
-    The ID of a run to show detailed information of.
-    \end{Description}
+        \subsection{GOURD INIT}
+
+            \subsubsection{Summary}
+                The \Prog{gourd} \Arg{init} command creates an experimental configuration.
+                Configurations are represented as TOML files.
+                A template configuration, \File{gourd.toml}, is placed in a Git repository.
+
+            \subsubsection{Synopsis}
+                \Prog{gourd} \Arg{init} \oOpt{-d} \oOptArg{-D}{ directory} \oOpt{-h} \oOpt{-s} \oOpt{-v|-vv}
+
+            \subsubsection{Options}
+                \begin{Description}[Options]
+                \item[\OptArg{-D}{ directory}]
+                Uses the given directory name as the repository root.
+                \end{Description}
+
+        \subsection{GOURD STATUS}
+
+            \subsubsection{Summary}
+                The \Prog{gourd} \Arg{status} command displays the status of an existing experiment,
+                that is, one that has been created by \Prog{gourd} \Arg{run}, but not necessarily
+                one that has fully executed.
+                This command can also display detailed status of an individual run using the \Opt{-i} flag.
+
+            \subsubsection{Synopsis}
+                \Prog{gourd} \Arg{status} \oArg{experiment_id} \oOpt{-d} \oOpt{-h} \oOptArg{-i}{ run_id} \oOpt{-s} \oOpt{-v|-vv}
+
+            \subsubsection{Options}
+                \begin{Description}[Options]}
+                \item[\Arg{experiment_id}]
+                The ID of an experiment to show the status of. By default, this is the most recent experiment.
+                \item[\OptArg{-i}{ run_id}]
+                The ID of a run to show detailed information of.
+                \end{Description}
+
+        \subsection{GOURD CONTINUE}
+
+            \subsubsection{Summary}
+                The \Prog{gourd} \Arg{continue} command schedules runs that are part of an existing
+                experiment, but have not yet been scheduled.
+                For example, an experiment with 30,000 distinct runs can be scheduled in three batches
+                of 10,000 each if that is the maximum number of queued supercomputer jobs.
+
+            \subsubsection{Synopsis}
+                \emph{TBD.}
+
+            \subsubsection{Options}
+                \emph{TBD.}
 
 
-  \section{FILES}
+        \subsection{GOURD ANALYSE}
 
-    \begin{Description}[Files]\setlength{\itemsep}{0cm}
-        \item[\File{gourd.toml}] A configuration file containing the experiment details. See \Prog{gourd.toml}(5).
-        \item[\File{<experiment-dir>/<experiment-number>.lock}] A file containing the runtime data of the experiment.
-    \end{Description}
+            \subsubsection{Summary}
+                The \Prog{gourd} \Arg{analyse} command collects and processes metrics generated
+                when an experiment was run.
+                The command is not yet implemented.
 
-  \section{SEE ALSO}
+        \subsection{GOURD VERSION}
 
-      \Prog{gourd.toml}(5)
+            \subsubsection{Summary}
+                \Prog{gourd} \Arg{version} outputs the software version and exits.
 
-  \section{AUTHORS}
+            \subsubsection{Synopsis}
+                \Prog{gourd} \Arg{version} \oOpt{-v}
+
+
+    \section{EXAMPLES}
+
+        This section contains some common examples of using \Prog{gourd}.
+        For a more detailed walkthrough with more focus on examples, use the \Prog{gourd-tutorial}(1) manual.
+
+
+
+
+    \section{FILES}
+
+        \begin{Description}[Files]\setlength{\itemsep}{0cm}
+            \item[\File{gourd.toml}] A configuration file containing the experiment details. See \Prog{gourd.toml}(5).
+            \item[\File{<experiment-dir>/<experiment-number>.lock}] A file containing the runtime data of the experiment.
+        \end{Description}
+
+    \section{SEE ALSO}
+
+        \Prog{gourd-tutorial}(1)
+        \Prog{gourd.toml}(5)
+
+    \section{AUTHORS}
     Lukáš Chládek <\Email{l@chla.cz}>\\[0.1cm]\MANbr
     Rūta Giedrytė <\Email{r.giedryte@student.tudelft.nl}>\\[0.1cm]\MANbr
     Andreas Tsatsanis <\Email{a.tsatsanis@student.tudelft.nl}>\\[0.1cm]\MANbr
     Mikołaj Gazeel <\Email{m.j.gazeel@student.tudelft.nl}>\\[0.1cm]\MANbr
     Jan Piotrowski <\Email{j.p.piotrowski@student.tudelft.nl}>
 
-%  \section{KNOWN ISSUES}
+%	\section{KNOWN ISSUES}
 %
 %      The functionality of this software is not yet implemented.
 
-%  \end{adjustwidth}
+%	\end{adjustwidth}
 
 \end{document}
