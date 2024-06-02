@@ -8,7 +8,7 @@ use gourd_lib::constants::STATUS_REFRESH_PERIOD;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
-use gourd_lib::measurement::Metrics;
+use gourd_lib::measurement::Measurement;
 use indicatif::MultiProgress;
 
 use self::fs_based::FileBasedProvider;
@@ -28,7 +28,16 @@ pub mod printing;
 
 /// The reasons for slurm to kill a job
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum SlurmKillReason {
+pub enum SlurmState {
+    /// The job has not yet started.
+    Pending,
+
+    /// The job is still running.
+    Running,
+
+    /// The job completed successfully.
+    Success,
+
     /// Job terminated due to launch failure, typically due to a hardware failure (e.g. unable to boot the node or block and the job can not be requeued).
     BootFail,
 
@@ -53,46 +62,34 @@ pub enum SlurmKillReason {
     /// Job reached the time limit
     Timeout,
 
-    /// Failed by virtue of exit code.
-    ExitCode(isize),
-
     /// Unspecified by the account reason to fail
     SlurmFail,
 }
 
-/// The reasons for a job failing.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum FailureReason {
-    /// The job returned a non zero exit status.
-    Failed(i32),
-
-    /// Slurm killed the job.
-    SlurmKill(SlurmKillReason),
-
-    /// User marked.
-    UserForced,
+impl SlurmState {
+    /// Check if this state means that the run is completed.
+    pub fn is_completed(&self) -> bool {
+        !matches!(self, SlurmState::Pending | SlurmState::Running)
+    }
 }
 
-/// This possible status of a job.
+/// This possible status of a job, reported by the file system.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum RunState {
+pub enum FsState {
     /// The job has not yet started.
     Pending,
 
     /// The job is still running.
     Running,
 
-    /// The job completed successfully.
-    Completed,
-
-    /// The job failed with the following exit status.
-    Fail(FailureReason),
+    /// The job completed.
+    Completed(Measurement),
 }
 
-impl RunState {
+impl FsState {
     /// Check if this state means that the run is completed.
     pub fn is_completed(&self) -> bool {
-        matches!(self, RunState::Completed | RunState::Fail(_))
+        matches!(self, FsState::Completed(_))
     }
 }
 
@@ -109,7 +106,7 @@ pub enum PostprocessCompletion {
     Success(PostprocessOutput),
 
     /// The postprocessing job failed with the following exit status.
-    Fail(FailureReason),
+    Failed,
 }
 
 /// The results of a postprocessing.
@@ -126,10 +123,7 @@ pub struct PostprocessOutput {
 #[derive(Debug, Clone, PartialEq)]
 pub struct FileSystemBasedStatus {
     /// State of completion of the run
-    pub completion: RunState,
-
-    /// Metrics of the run
-    pub metrics: Option<Metrics>,
+    pub completion: FsState,
 
     /// The completion of the afterscript, if there.
     pub afterscript_completion: Option<PostprocessCompletion>,
@@ -142,7 +136,7 @@ pub struct FileSystemBasedStatus {
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub struct SlurmBasedStatus {
     /// State of completion of the run
-    pub completion: RunState,
+    pub completion: SlurmState,
 
     /// Exit code of the program
     pub exit_code_program: isize,
@@ -218,7 +212,7 @@ pub fn merge_statuses(
             out.insert(
                 job_id,
                 Status {
-                    slurm_status: slurm_based.get(&job_id).copied(),
+                    slurm_status: slurm_based.get(&job_id).cloned(),
                     fs_status: fs[&job_id].clone(),
                 },
             );

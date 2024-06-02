@@ -13,90 +13,97 @@ use gourd_lib::constants::SHORTEN_STATUS_CUTOFF;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
-use gourd_lib::measurement::Metrics;
 use log::info;
 
 use super::ExperimentStatus;
-use super::FailureReason;
-use super::RunState;
-use super::SlurmBasedStatus;
-use super::SlurmKillReason;
+use super::FsState;
+use super::SlurmState;
 use super::Status;
 
-impl Display for SlurmKillReason {
+impl Display for SlurmState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SlurmKillReason::BootFail => write!(f, "boot failed"),
-            SlurmKillReason::Cancelled => write!(f, "cancelled"),
-            SlurmKillReason::Deadline => write!(f, "deadline reached"),
-            SlurmKillReason::NodeFail => write!(f, "node failed"),
-            SlurmKillReason::OutOfMemory => write!(f, "out of memory"),
-            SlurmKillReason::Preempted => write!(f, "preempted"),
-            SlurmKillReason::Suspended => write!(f, "suspended"),
-            SlurmKillReason::Timeout => write!(f, "time out"),
-            SlurmKillReason::ExitCode(code) => write!(f, "it exited with {code}"),
-            SlurmKillReason::SlurmFail => write!(f, "unknown slurm failure"),
+            SlurmState::BootFail => write!(f, "boot failed"),
+            SlurmState::Cancelled => write!(f, "cancelled"),
+            SlurmState::Deadline => write!(f, "deadline reached"),
+            SlurmState::NodeFail => write!(f, "node failed"),
+            SlurmState::OutOfMemory => write!(f, "out of memory"),
+            SlurmState::Preempted => write!(f, "preempted"),
+            SlurmState::Suspended => write!(f, "suspended"),
+            SlurmState::Timeout => write!(f, "time out"),
+            SlurmState::SlurmFail => write!(f, "{ERROR_STYLE}job failed{ERROR_STYLE:#}"),
+            SlurmState::Success => write!(f, "{PRIMARY_STYLE}job finished!{PRIMARY_STYLE:#}"),
+            SlurmState::Pending => write!(f, "pending.."),
+            SlurmState::Running => write!(f, "running.."),
         }
     }
 }
 
-impl Display for FailureReason {
+impl Display for FsState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FailureReason::SlurmKill(reason) => write!(f, "slurm killed the job, {}", reason),
-            FailureReason::UserForced => write!(f, "user killed the job"),
-            FailureReason::Failed(status) => write!(f, "exit status {}", status),
-        }
-    }
-}
-
-impl Display for SlurmBasedStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.completion {
-            RunState::Pending => write!(f, "reports pending")?,
-            RunState::Running => write!(f, "reports running")?,
-            RunState::Completed => write!(f, "reports finished")?,
-            RunState::Fail(reason) => {
-                write!(f, "{}failed, {}{:#}", ERROR_STYLE, reason, ERROR_STYLE)?
-            }
-        };
-
-        Ok(())
-    }
-}
-
-impl Display for Status {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.fs_status.completion {
-            RunState::Pending => write!(f, "pending?")?,
-            RunState::Running => write!(f, "running!")?,
-            RunState::Completed => {
-                if let Some(Metrics::Done(measure)) = self.fs_status.metrics {
+            FsState::Pending => write!(f, "pending?"),
+            FsState::Running => write!(f, "running!"),
+            FsState::Completed(metrics) => {
+                if metrics.exit_code == 0 {
                     if f.alternate() {
                         write!(
                             f,
                             "{}success{:#} {NAME_STYLE}wall clock time{NAME_STYLE:#}: {}",
                             PRIMARY_STYLE,
                             PRIMARY_STYLE,
-                            humantime::Duration::from(measure.wall_micros)
-                        )?
+                            humantime::Duration::from(metrics.wall_micros)
+                        )
                     } else {
                         write!(
                             f,
                             "{}success{:#}, took: {}",
                             PRIMARY_STYLE,
                             PRIMARY_STYLE,
-                            humantime::Duration::from(measure.wall_micros)
-                        )?
+                            humantime::Duration::from(metrics.wall_micros)
+                        )
                     }
                 } else {
-                    write!(f, "{}success{:#}?", PRIMARY_STYLE, PRIMARY_STYLE)?
+                    write!(
+                        f,
+                        "{}failed, code: {}{:#}",
+                        ERROR_STYLE, metrics.exit_code, ERROR_STYLE
+                    )
                 }
             }
-            RunState::Fail(reason) => {
-                write!(f, "{}failed, {}{:#}", ERROR_STYLE, reason, ERROR_STYLE)?
+        }
+    }
+}
+
+impl Display for Status {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if f.alternate() {
+            // Long status.
+            writeln!(
+                f,
+                "{NAME_STYLE}file status?{NAME_STYLE:#} {:#}",
+                self.fs_status.completion
+            )?;
+
+            if let Some(slurm) = &self.slurm_status {
+                writeln!(
+                    f,
+                    "{NAME_STYLE}slurm status?{NAME_STYLE:#} {:#} with exit code {}",
+                    slurm.completion, slurm.exit_code_slurm
+                )?;
             }
-        };
+
+            if let FsState::Completed(measurement) = self.fs_status.completion {
+                if let Some(rusage) = measurement.rusage {
+                    write!(f, "{NAME_STYLE}metrics{NAME_STYLE:#}:\n{rusage}")?;
+                }
+            }
+        } else {
+            // Short summary.
+            write!(f, "{}", self.fs_status.completion)?;
+
+            // TODO: Incorporate slurm status here.
+        }
 
         Ok(())
     }
@@ -175,11 +182,9 @@ fn long_status(
                 width = longest_input
             )?;
 
-            if let Some(state) = status.slurm_status {
-                if state.completion == RunState::Pending {
-                    if let Some(slurm_id) = &run.slurm_id {
-                        write!(f, " scheduled on slurm as {}", slurm_id)?;
-                    }
+            if status.fs_status.completion == FsState::Pending {
+                if let Some(slurm_id) = &run.slurm_id {
+                    write!(f, " scheduled on slurm as {}", slurm_id)?;
                 }
             }
 
@@ -247,17 +252,7 @@ pub fn display_job(
 
         let status = &statuses[&id];
 
-        writeln!(f, "{NAME_STYLE}file status?{NAME_STYLE:#} {:#}", status)?;
-
-        if let Some(slurm) = status.slurm_status {
-            writeln!(f, "{NAME_STYLE}slurm status?{NAME_STYLE:#} {:#}", slurm)?;
-        }
-
-        if let Some(Metrics::Done(measurement)) = status.fs_status.metrics {
-            if let Some(rusage) = measurement.rusage {
-                writeln!(f, "{NAME_STYLE}metrics{NAME_STYLE:#}:\n{rusage}")?;
-            }
-        }
+        writeln!(f, "{status:#}")?;
 
         Ok(())
     } else {

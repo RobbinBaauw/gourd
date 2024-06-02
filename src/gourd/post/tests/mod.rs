@@ -8,29 +8,27 @@ use gourd_lib::config::Config;
 use gourd_lib::experiment::Environment;
 use gourd_lib::file_system::FileSystemInteractor;
 use gourd_lib::measurement::Measurement;
-use gourd_lib::measurement::Metrics;
 use tempdir::TempDir;
 
 use super::*;
 use crate::experiments::ExperimentExt;
 use crate::post::afterscript::run_afterscript_for_run;
-use crate::status::FailureReason;
 use crate::status::FileSystemBasedStatus;
 use crate::status::PostprocessOutput;
 use crate::status::Status;
 
 const PREPROGRAMMED_SH_SCRIPT: &str = r#"
- #!/bin/sh
- tr '[a-z]' '[A-Z]' <$1 >$2
- "#;
+#!/bin/sh
+tr '[a-z]' '[A-Z]' <$1 >$2
+"#;
 
 const PREPROGRAMMED_RESULTS: &str = r#"[package]
- name = "gourd"
- version = "0.1.5-alpha"
- edition = "2021"
+name = "gourd"
+version = "0.1.5-alpha"
+edition = "2021"
 
- [dependencies]
- "#;
+[dependencies]
+"#;
 
 // STUBBED FUNCTION FIX BY RUTA
 // #[test]
@@ -102,12 +100,11 @@ fn test_filter_runs_for_afterscript_good_weather() {
         0,
         Status {
             fs_status: FileSystemBasedStatus {
-                completion: RunState::Completed,
-                metrics: Some(Metrics::Done(Measurement {
+                completion: FsState::Completed(Measurement {
                     wall_micros: Duration::from_secs(1),
                     exit_code: 0,
                     rusage: None,
-                })),
+                }),
                 afterscript_completion: None,
                 postprocess_job_completion: None,
             },
@@ -119,12 +116,11 @@ fn test_filter_runs_for_afterscript_good_weather() {
         1,
         Status {
             fs_status: FileSystemBasedStatus {
-                completion: RunState::Completed,
-                metrics: Some(Metrics::Done(Measurement {
+                completion: FsState::Completed(Measurement {
                     wall_micros: Duration::from_secs(1),
                     exit_code: 0,
                     rusage: None,
-                })),
+                }),
                 afterscript_completion: None,
                 postprocess_job_completion: None,
             },
@@ -136,12 +132,11 @@ fn test_filter_runs_for_afterscript_good_weather() {
         2,
         Status {
             fs_status: FileSystemBasedStatus {
-                completion: RunState::Fail(FailureReason::UserForced),
-                metrics: Some(Metrics::Done(Measurement {
+                completion: FsState::Completed(Measurement {
                     wall_micros: Duration::from_secs(1),
-                    exit_code: 0,
+                    exit_code: 1,
                     rusage: None,
-                })),
+                }),
                 afterscript_completion: None,
                 postprocess_job_completion: None,
             },
@@ -153,12 +148,11 @@ fn test_filter_runs_for_afterscript_good_weather() {
         3,
         Status {
             fs_status: FileSystemBasedStatus {
-                completion: RunState::Fail(FailureReason::UserForced),
-                metrics: Some(Metrics::Done(Measurement {
+                completion: FsState::Completed(Measurement {
                     wall_micros: Duration::from_secs(1),
                     exit_code: 0,
                     rusage: None,
-                })),
+                }),
                 afterscript_completion: Some(PostprocessCompletion::Success(PostprocessOutput {
                     short_output: String::from("short"),
                     long_output: String::from("long"),

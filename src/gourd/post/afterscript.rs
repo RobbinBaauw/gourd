@@ -14,8 +14,8 @@ use gourd_lib::file_system::FileOperations;
 
 use crate::resources::run_script;
 use crate::status::ExperimentStatus;
+use crate::status::FsState;
 use crate::status::PostprocessCompletion;
-use crate::status::RunState;
 
 /// Runs the afterscript on jobs that are completed and do not yet have an afterscript output.
 pub fn run_afterscript(
@@ -78,7 +78,7 @@ pub fn filter_runs_for_afterscript(runs: &ExperimentStatus) -> Result<Vec<&usize
     let mut filtered = vec![];
 
     for (run_id, status) in runs {
-        if let (&RunState::Completed, &Some(PostprocessCompletion::Dormant)) = (
+        if let (&FsState::Completed(_), &Some(PostprocessCompletion::Dormant)) = (
             &status.fs_status.completion,
             &status.fs_status.afterscript_completion,
         ) {

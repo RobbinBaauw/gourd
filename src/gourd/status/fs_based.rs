@@ -11,12 +11,11 @@ use gourd_lib::file_system::FileOperations;
 use gourd_lib::measurement::Metrics;
 use log::trace;
 
-use super::FailureReason;
 use super::FileSystemBasedStatus;
 use super::PostprocessCompletion;
 use super::PostprocessOutput;
 use super::StatusProvider;
-use crate::status::RunState;
+use crate::status::FsState;
 
 /// Provide job status information based on the files system information.
 #[derive(Debug, Clone, Copy)]
@@ -50,13 +49,10 @@ where
 
             let completion = match metrics {
                 Some(inner) => match inner {
-                    Metrics::Done(metrics) => match metrics.exit_code {
-                        0 => RunState::Completed,
-                        code => RunState::Fail(FailureReason::Failed(code)),
-                    },
-                    Metrics::NotCompleted => RunState::Running,
+                    Metrics::Done(metrics) => FsState::Completed(metrics),
+                    Metrics::NotCompleted => FsState::Running,
                 },
-                None => RunState::Pending,
+                None => FsState::Pending,
             };
 
             let mut afterscript_completion = None;
@@ -80,7 +76,6 @@ where
 
             let status = FileSystemBasedStatus {
                 completion,
-                metrics,
                 afterscript_completion,
                 postprocess_job_completion,
             };
