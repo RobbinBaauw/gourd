@@ -27,12 +27,14 @@ fn get_unscheduled_runs_test() {
             (String::from("Prog1"), prog.clone()),
             (String::from("Prog2"), prog.clone()),
             (String::from("Prog3"), prog),
-        ]),
+        ])
+        .into(),
         BTreeMap::from([
             (String::from("Inp1"), input.clone()),
             (String::from("Inp2"), input.clone()),
             (String::from("Inp3"), input),
-        ]),
+        ])
+        .into(),
     );
 
     let resource_limits = ResourceLimits {
@@ -73,12 +75,14 @@ fn create_chunks_basic_test() {
             (String::from("Prog1"), prog.clone()),
             (String::from("Prog2"), prog.clone()),
             (String::from("Prog3"), prog),
-        ]),
+        ])
+        .into(),
         BTreeMap::from([
             (String::from("Inp1"), input.clone()),
             (String::from("Inp2"), input.clone()),
             (String::from("Inp3"), input),
-        ]),
+        ])
+        .into(),
     );
 
     let resource_limits = ResourceLimits {
@@ -150,7 +154,8 @@ fn create_chunks_greedy_test() {
         BTreeMap::from([
             (String::from("Prog_A"), prog_a.clone()),
             (String::from("Prog_B"), prog_b.clone()),
-        ]),
+        ])
+        .into(),
         {
             let mut inputs = BTreeMap::new();
             for i in 0..5 {
@@ -159,7 +164,7 @@ fn create_chunks_greedy_test() {
             for i in 0..5 {
                 _ = inputs.insert(format!("Input_B_{}", i), input_b.clone())
             }
-            inputs
+            inputs.into()
         },
     );
 

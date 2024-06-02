@@ -10,8 +10,7 @@ array_size_limit = 1
 account = "test account"
 
 [resource_limits]
-time_limit.secs = 60
-time_limit.nanos = 0
+time_limit = "1 minute"
 cpus = 1
 mem_per_cpu = 512
 

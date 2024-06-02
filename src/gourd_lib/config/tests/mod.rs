@@ -12,6 +12,8 @@ use std::path::PathBuf;
 
 use tempdir::TempDir;
 
+use crate::config::maps::InputMap;
+use crate::config::maps::ProgramMap;
 use crate::config::Config;
 use crate::config::Input;
 use crate::test_utils::REAL_FS;
@@ -27,8 +29,8 @@ fn breaking_changes_config_struct() {
         metrics_path: PathBuf::from(""),
         experiments_folder: PathBuf::from(""),
         wrapper: "".to_string(),
-        inputs: BTreeMap::new(),
-        programs: BTreeMap::new(),
+        inputs: InputMap::default(),
+        programs: ProgramMap::default(),
         slurm: None,
         resource_limits: None,
         afterscript_output_folder: None,
@@ -67,8 +69,8 @@ fn breaking_changes_config_file_all_values() {
             metrics_path: PathBuf::from("./vulfpeck"),
             experiments_folder: PathBuf::from("./parcels/"),
             wrapper: "gourd_wrapper".to_string(),
-            inputs: BTreeMap::new(),
-            programs: BTreeMap::new(),
+            inputs: InputMap::default(),
+            programs: ProgramMap::default(),
             slurm: None,
             resource_limits: None,
             afterscript_output_folder: Some(PathBuf::from("./after/")),
@@ -106,8 +108,8 @@ fn breaking_changes_config_file_required_values() {
             metrics_path: PathBuf::from("./vulfpeck"),
             experiments_folder: PathBuf::from(""),
             wrapper: "gourd_wrapper".to_string(),
-            inputs: BTreeMap::new(),
-            programs: BTreeMap::new(),
+            inputs: InputMap::default(),
+            programs: ProgramMap::default(),
             slurm: None,
             resource_limits: None,
             afterscript_output_folder: None,
@@ -233,7 +235,7 @@ fn test_globs() {
     file.write_all(config_contents.as_bytes())
         .expect("The test file could not be written.");
 
-    let mut inputs = BTreeMap::new();
+    let mut inputs = InputMap::default();
 
     inputs.insert(
         "test_blob_glob_0".to_string(),
@@ -250,7 +252,7 @@ fn test_globs() {
             experiments_folder: PathBuf::from(""),
             wrapper: "gourd_wrapper".to_string(),
             inputs,
-            programs: BTreeMap::new(),
+            programs: ProgramMap::default(),
             slurm: None,
             resource_limits: None,
             afterscript_output_folder: None,
@@ -283,7 +285,7 @@ fn test_globs_invalid_pattern() {
 
     assert!(
         format!("{:?}", Config::from_file(file_pathbuf.as_path(), &REAL_FS))
-            .contains("Failed to expand")
+            .contains("could not expand")
     );
 }
 

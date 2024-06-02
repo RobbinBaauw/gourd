@@ -7,8 +7,8 @@ use anstyle::Color;
 use anstyle::Style;
 use chrono::Local;
 use gourd_lib::config::Config;
-use gourd_lib::config::Input;
-use gourd_lib::config::Program;
+use gourd_lib::config::InputMap;
+use gourd_lib::config::ProgramMap;
 use gourd_lib::constants::style_from_fg;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
@@ -40,10 +40,7 @@ pub fn get_compiled_example(
     (out, tmp)
 }
 
-pub fn create_sample_experiment(
-    prog: BTreeMap<String, Program>,
-    inputs: BTreeMap<String, Input>,
-) -> (Experiment, Config) {
+pub fn create_sample_experiment(prog: ProgramMap, inputs: InputMap) -> (Experiment, Config) {
     let conf = Config {
         output_path: TempDir::new("output").unwrap().into_path(),
         metrics_path: TempDir::new("metrics").unwrap().into_path(),

@@ -62,7 +62,7 @@ fn non_matching_arch() {
         },
     );
 
-    let (mut experiment, _) = create_sample_experiment(first, second);
+    let (mut experiment, _) = create_sample_experiment(first.into(), second.into());
     experiment.chunks = experiment
         .create_chunks(usize::MAX, 1, 0..experiment.runs.len())
         .unwrap();
@@ -114,7 +114,7 @@ fn matching_arch() {
         },
     );
 
-    let (mut experiment, conf) = create_sample_experiment(first, second);
+    let (mut experiment, conf) = create_sample_experiment(first.into(), second.into());
     experiment.chunks = experiment
         .create_chunks(usize::MAX, 1, 0..experiment.runs.len())
         .unwrap();
