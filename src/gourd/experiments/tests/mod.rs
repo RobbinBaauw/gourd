@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 use gourd_lib::config::ResourceLimits;
@@ -24,8 +25,8 @@ fn config_correct_slurm() {
     assert!(result.is_ok());
 
     let runs = vec![Run {
-        program: "a".to_string(),
-        input: "b".to_string(),
+        program: ProgramRef::Regular("a".to_string()),
+        input: InputRef::Regular("b".to_string()),
         err_path: PathBuf::from(tempdir.path())
             .join("1/a/error_b")
             .canonicalize()
@@ -55,6 +56,7 @@ fn config_correct_slurm() {
         config,
         seq: 1,
         env: Environment::Local,
+        postprocess_inputs: BTreeMap::new(),
     };
 
     assert_eq!(result.unwrap(), test_experiment);
@@ -79,8 +81,8 @@ fn config_correct_local() {
 
     let runs = vec![
         Run {
-            program: "b".to_string(),
-            input: "d".to_string(),
+            program: ProgramRef::Regular("b".to_string()),
+            input: InputRef::Regular("d".to_string()),
             err_path: PathBuf::from(tempdir.path())
                 .join("1/b/error_d")
                 .canonicalize()
@@ -98,8 +100,8 @@ fn config_correct_local() {
             post_job_output_path: None,
         },
         Run {
-            program: "b".to_string(),
-            input: "e".to_string(),
+            program: ProgramRef::Regular("b".to_string()),
+            input: InputRef::Regular("e".to_string()),
             err_path: PathBuf::from(tempdir.path())
                 .join("1/b/error_e")
                 .canonicalize()
@@ -117,8 +119,8 @@ fn config_correct_local() {
             post_job_output_path: None,
         },
         Run {
-            program: "c".to_string(),
-            input: "d".to_string(),
+            program: ProgramRef::Regular("c".to_string()),
+            input: InputRef::Regular("d".to_string()),
             err_path: PathBuf::from(tempdir.path())
                 .join("1/c/error_d")
                 .canonicalize()
@@ -136,8 +138,8 @@ fn config_correct_local() {
             post_job_output_path: None,
         },
         Run {
-            program: "c".to_string(),
-            input: "e".to_string(),
+            program: ProgramRef::Regular("c".to_string()),
+            input: InputRef::Regular("e".to_string()),
             err_path: PathBuf::from(tempdir.path())
                 .join("1/c/error_e")
                 .canonicalize()
@@ -164,6 +166,7 @@ fn config_correct_local() {
         config,
         seq: 1,
         env: Environment::Local,
+        postprocess_inputs: BTreeMap::new(),
     };
 
     assert_eq!(result.unwrap(), test_experiment);

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -8,17 +10,55 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::config::Config;
+use crate::config::Input;
+use crate::config::Program;
 use crate::config::ResourceLimits;
 use crate::file_system::FileOperations;
+
+/// Differentiating between regular and postprocess programs.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum ProgramRef {
+    Regular(String),
+    Postprocess(String),
+}
+
+impl Display for ProgramRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            ProgramRef::Regular(name) => name,
+            ProgramRef::Postprocess(name) => name,
+        };
+
+        write!(f, "{}", name)
+    }
+}
+
+/// Differentiating between regular and postprocess inputs.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum InputRef {
+    Regular(String),
+    Postprocess(String),
+}
+
+impl Display for InputRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            InputRef::Regular(name) => name,
+            InputRef::Postprocess(name) => name,
+        };
+
+        write!(f, "{}", name)
+    }
+}
 
 /// Describes a matching between an algorithm and an input.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Run {
     /// The unique name of the program to run.
-    pub program: String,
+    pub program: ProgramRef,
 
     /// The unique name of the input to run with.
-    pub input: String,
+    pub input: InputRef,
 
     /// The path to the stderr output.
     pub err_path: PathBuf,
@@ -72,6 +112,9 @@ pub struct Experiment {
 
     /// Enviroment of the experiment
     pub env: Environment,
+
+    /// The inputs for postprocessing programs.
+    pub postprocess_inputs: BTreeMap<String, Input>,
 }
 
 impl Experiment {
@@ -82,6 +125,23 @@ impl Experiment {
         fs.try_write_toml(&saving_path, &self)?;
 
         Ok(saving_path)
+    }
+
+    /// Gets the program by checking of it is a postprocess or a regular program.
+    pub fn get_program(&self, run: &Run) -> Result<Program> {
+        match &run.program {
+            ProgramRef::Regular(name) => Ok(self.config.programs[name].clone()),
+            ProgramRef::Postprocess(name) => {
+                Ok(self.config.postprocess_programs.clone().unwrap()[name].clone())
+            }
+        }
+    }
+
+    pub fn get_input(&self, run: &Run) -> Result<Input> {
+        match &run.input {
+            InputRef::Regular(name) => Ok(self.config.inputs[name].clone()),
+            InputRef::Postprocess(name) => Ok(self.postprocess_inputs[name].clone()),
+        }
     }
 }
 

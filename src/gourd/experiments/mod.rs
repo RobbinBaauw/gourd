@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -12,6 +13,8 @@ use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
+use gourd_lib::experiment::InputRef;
+use gourd_lib::experiment::ProgramRef;
 use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
 
@@ -62,8 +65,8 @@ impl ExperimentExt for Experiment {
         for prog_name in conf.programs.keys() {
             for input_name in conf.inputs.keys() {
                 runs.push(Run {
-                    program: prog_name.clone(),
-                    input: input_name.clone(),
+                    program: ProgramRef::Regular(prog_name.clone()),
+                    input: InputRef::Regular(input_name.clone()),
                     err_path: fs.truncate_and_canonicalize(
                         &conf
                             .output_path
@@ -98,6 +101,7 @@ impl ExperimentExt for Experiment {
             chunks: vec![],
             resource_limits: conf.resource_limits.clone(),
             env,
+            postprocess_inputs: BTreeMap::new(),
         })
     }
 

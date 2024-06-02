@@ -121,7 +121,7 @@ pub fn parse_optional_args(slurm_config: &SlurmConfig) -> String {
 
 /// Get resource limits depending on if it is a regular program or postprocessing program
 pub fn get_limits(run: &Run, experiment: &Experiment) -> Result<ResourceLimits> {
-    let program = &experiment.config.programs[&run.program];
+    let program = experiment.get_program(run)?;
 
     // If there are program-specific limits, those overwrite defaults
     if program.resource_limits.is_some() {
@@ -135,40 +135,27 @@ pub fn get_limits(run: &Run, experiment: &Experiment) -> Result<ResourceLimits> 
             ));
     }
 
-    if experiment.config.programs.contains_key(&run.program) {
-        // Defaults of regular programs
-        experiment
-            .config
-            .resource_limits
-            .clone()
-            .ok_or(anyhow!("Could not get the resource limits"))
-            .with_context(ctx!(
-                "Could not get the resource limits of the program", ;
-                "Please ensure that the resource limits are specified for the experiment",
-            ))
-    } else if experiment.config.postprocess_programs.is_some()
-        && experiment
-            .config
-            .postprocess_programs
-            .clone()
-            .unwrap()
-            .contains_key(&run.program)
-    {
-        // Defaults of postprocess programs
-        experiment
-            .config
-            .postprocess_resource_limits
-            .clone()
-            .ok_or(anyhow!("Could not get the resource limits"))
-            .with_context(ctx!(
-                "Could not get the resource limits of the program", ;
-                "Please ensure that the resource limits are specified for the experiment",
-            ))
-    } else {
-        Err(anyhow!(
-            "The program is not a regular algorithm and not a postprocess program"
+    // Defaults of regular programs
+    experiment
+        .config
+        .resource_limits
+        .clone()
+        .ok_or(anyhow!("Could not get the resource limits"))
+        .with_context(ctx!(
+            "Could not get the resource limits of the program", ;
+            "Please ensure that the resource limits are specified for the experiment",
         ))
-    }
+
+    // // Defaults of postprocess programs
+    // experiment
+    //     .config
+    //     .postprocess_resource_limits
+    //     .clone()
+    //     .ok_or(anyhow!("Could not get the resource limits"))
+    //     .with_context(ctx!(
+    //         "Could not get the resource limits of the program", ;
+    //         "Please ensure that the resource limits are specified for the experiment",
+    //     ))
 }
 
 #[cfg(test)]

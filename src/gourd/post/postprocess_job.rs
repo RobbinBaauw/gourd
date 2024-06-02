@@ -8,6 +8,8 @@ use gourd_lib::constants::INTERNAL_POST;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
+use gourd_lib::experiment::InputRef;
+use gourd_lib::experiment::ProgramRef;
 use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
 use log::debug;
@@ -42,7 +44,7 @@ pub fn schedule_post_jobs(
                 "",
             ))?;
 
-        let program = &experiment.config.programs[&run.program];
+        let program = &experiment.get_program(run)?;
 
         let postprocess = program
             .postprocess_job
@@ -55,8 +57,13 @@ pub fn schedule_post_jobs(
 
         debug!("The string we are dealing with is {}", postprocess);
 
+        let prog_name = match &run.program {
+            ProgramRef::Regular(name) => name.clone(),
+            ProgramRef::Postprocess(name) => name.clone(),
+        };
+
         post_job_for_run(
-            format!("{}_{}", run.program, run.input),
+            format!("{}_{}", prog_name, run.input),
             postprocess,
             &res_path,
             &post_output,
@@ -98,7 +105,7 @@ pub fn post_job_for_run(
     // let prog_name = format!("{}{}", INTERNAL_POST, name);
     let input_name = format!("{}{}", INTERNAL_POST, name);
 
-    experiment.config.inputs.insert(
+    experiment.postprocess_inputs.insert(
         input_name.clone(),
         Input {
             input: Some(postprocess_input.to_path_buf()),
@@ -106,17 +113,16 @@ pub fn post_job_for_run(
         },
     );
 
+    experiment.save(&experiment.config.experiments_folder, fs)?;
+
     experiment.runs.push(Run {
-        program: postprocess_name.clone(),
-        input: input_name,
+        program: ProgramRef::Postprocess(postprocess_name.clone()),
+        input: InputRef::Postprocess(input_name),
         err_path: fs.truncate_and_canonicalize(
             &postprocess_out.join(format!("error_{}", postprocess_name)),
         )?,
         metrics_path: fs.truncate_and_canonicalize(
-            &experiment
-                .config
-                .metrics_path
-                .join(format!("metrics_{}", postprocess_name)),
+            &postprocess_out.join(format!("metrics_{}", postprocess_name)),
         )?,
         output_path: fs.truncate_and_canonicalize(
             &postprocess_out.join(format!("output_{}", postprocess_name)),

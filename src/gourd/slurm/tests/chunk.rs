@@ -4,6 +4,8 @@ use std::time::Duration;
 
 use gourd_lib::config::Input;
 use gourd_lib::config::Program;
+use gourd_lib::experiment::InputRef;
+use gourd_lib::experiment::ProgramRef;
 
 use super::*;
 use crate::test_utils::create_sample_experiment;
@@ -198,8 +200,12 @@ fn create_chunks_greedy_test() {
     // - use limits_A for combination of input_A and program_A
     // - use limits_B for everything else
     let f = |r: &Run, _: &Experiment| {
-        if r.input.starts_with("Input_A") && r.program == "Prog_A" {
-            return Ok(resource_limits_a.clone());
+        if let InputRef::Regular(name) = r.input.clone() {
+            if name.starts_with("Input_A")
+                && r.program == ProgramRef::Regular(String::from("Prog_A"))
+            {
+                return Ok(resource_limits_a.clone());
+            }
         }
         Ok(resource_limits_b.clone())
     };

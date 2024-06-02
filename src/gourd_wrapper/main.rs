@@ -157,8 +157,9 @@ fn process_args(args: &[String], fs: &impl FileOperations) -> Result<RunConf> {
 
     let id = exp.chunks[chunk_id].runs[slurm_id];
 
-    let program = &exp.config.programs[&exp.runs[id].program];
-    let input = &exp.config.inputs[&exp.runs[id].input];
+    let program = &exp.get_program(&exp.runs[id])?;
+
+    let input = &exp.get_input(&exp.runs[id])?;
 
     let mut additional_args = program.arguments.clone();
     additional_args.append(&mut input.arguments.clone());

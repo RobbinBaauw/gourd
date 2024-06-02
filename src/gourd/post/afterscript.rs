@@ -42,7 +42,7 @@ pub fn run_afterscript(
                 "",
             ))?;
 
-        let program = &experiment.config.programs[&run.program];
+        let program = &experiment.get_program(run)?;
 
         let afterscript = program
             .afterscript
