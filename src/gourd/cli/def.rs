@@ -46,14 +46,14 @@ pub struct Cli {
     pub(crate) dry: bool,
 }
 
-/// Structure of Run subcommand.
+/// Arguments supplied with the `run` command.
 #[derive(Args, Debug, Clone, Copy)]
 pub struct RunStruct {
     #[command(subcommand)]
-    pub(crate) sub_command: RunSubcommand,
+    pub(crate) subcommand: RunSubcommand,
 }
 
-/// Enum for subcommands of Run subcommand.
+/// Enum for subcommands of the `run` subcommand.
 #[derive(Subcommand, Debug, Copy, Clone)]
 pub enum RunSubcommand {
     /// Subcommand for running locally.
@@ -65,7 +65,7 @@ pub enum RunSubcommand {
     Slurm {},
 }
 
-/// Structure of status subcommand.
+/// Arguments supplied with the `status` command.
 #[derive(Args, Debug, Clone, Copy)]
 pub struct StatusStruct {
     #[arg(short, long, help = "Rerun failed jobs")]
@@ -89,7 +89,7 @@ pub struct StatusStruct {
     pub(crate) follow: bool,
 }
 
-/// Structure of init subcommand.
+/// Arguments supplied with the `init` command.
 #[derive(Args, Debug)]
 pub struct InitStruct {
     /// Flag used to point to directory in which to set up a new experiment.
@@ -102,11 +102,11 @@ pub struct InitStruct {
     directory: Option<String>,
 }
 
-/// Structure of anal subcommand.
+/// Arguments supplied with the `analyse` command.
 #[derive(Args, Debug, Clone, Copy)]
-pub struct AnalStruct {}
+pub struct AnalyseStruct {}
 
-/// Enum for subcommands of main command.
+/// Enum for root-level `gourd` commands.
 #[derive(Subcommand, Debug)]
 pub enum Command {
     /// Subcommand for scheduling a run.
@@ -117,9 +117,9 @@ pub enum Command {
     #[command(about = "Display the status of a run")]
     Status(StatusStruct),
 
-    /// Subcommand for analyzing results of a run.
-    #[command(about = "Analyze a run")]
-    Anal(AnalStruct),
+    /// Subcommand for analysing results of a run.
+    #[command(about = "Analyse a run")]
+    Analyse(AnalyseStruct),
 
     /// Subcommand for initializing new experiment.
     #[command(about = "Initialize a new experiment")]

@@ -87,7 +87,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             let mut experiment = Experiment::from_config(
                 &config,
                 Local::now(),
-                match args.sub_command {
+                match args.subcommand {
                     RunSubcommand::Local { .. } => Environment::Local,
                     RunSubcommand::Slurm { .. } => Environment::Slurm,
                 },
@@ -97,7 +97,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             let exp_path = experiment.save(&config.experiments_folder, &file_system)?;
             debug!("Saved the experiment at {exp_path:?}");
 
-            match args.sub_command {
+            match args.subcommand {
                 RunSubcommand::Local { .. } => {
                     if cmd.dry {
                         info!("Would have ran the experiment (dry)");
@@ -194,7 +194,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
         Command::Init(_) => panic!("Gourd Init has not been implemented yet"),
 
-        Command::Anal(_) => panic!("Analyze has not been implemented yet"),
+        Command::Analyse(_) => panic!("Analyse has not been implemented yet"),
 
         Command::Version => print_version(cmd.script),
 
@@ -246,6 +246,9 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 }
 
 /// Prepare the log levels for the application.
+///
+/// Sets up a Colog logger with verbosity based on the flags provided by the user.
+/// Valid verbosities are 0, 1, or 2 (for example, 2 is denoted by "-vv").
 fn setup_logging(cmd: &Cli) -> Result<MultiProgress> {
     let mut log_build = default_builder();
     log_build.format(formatter(LogTokens));
