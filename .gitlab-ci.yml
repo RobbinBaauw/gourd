@@ -160,3 +160,5 @@ user_docs:
     - gourd.man
     - gourd.toml.pdf
     - gourd.toml.man
+    - gourd-tutorial.pdf
+    - gourd-tutorial.man

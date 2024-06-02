@@ -11,6 +11,8 @@
 
 \usepackage{xspace}
 
+
+
 \newcommand{\thecmd}{gourd}
 \newcommand{\thecommand}{GOURD-TUTORIAL}
 \newcommand{\mansection}{7}
@@ -19,6 +21,7 @@
 \setDate{5 MAY 2024}
 \setVersionWord{Version:}
 \setVersion{1.29}
+
 
 \input{latex2man_styling.tex}
 
@@ -77,14 +80,14 @@
     a complete list is in the manual.
 
     For example, type:
-    \Prog{gourd}~\Arg{init}~\Arg{--example}~\Arg{a-simple-program}~\Arg{myexample}
+    \Prog{gourd}~\Arg{init}~\Arg{--example}~\Arg{a-simple-experiment}~\Arg{myexample}
 
     The \Prog{gourd}~\Arg{init} command will set up the \File{myexample} folder to match
     the example below!
     Make sure to use \Prog{cd} to enter the folder if you're following along.
 
 
-    \section{A SIMPLE PROGRAM}
+    \section{A SIMPLE EXPERIMENT}
 
     In \Prog{gourd}, each experimental setup is defined using a \File{gourd.toml} file.
     To make one, let's open \File{gourd.toml} in an editor and start by defining a pair
@@ -162,8 +165,9 @@
     The inputs above are combined with the programs in a \textbf{cross product}
     to create \emph{runs}.
     This means that each program and each input are combined together.
-    There is one run in our new experiment that combines \File{my-other-program} and
-    \File{one-two}, and it translates into the following program call:
+    Therefore, exactly one run in our new experiment that combines
+    \File{my-other-program} and \File{one-two}, and it translates into the following
+    program call:
     \begin{itemize}
     \item Run \File{/bin/bash} with \File{./my-other-program.sh~2} as arguments and
     the contents of \File{./input-one} as input.

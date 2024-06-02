@@ -54,4 +54,12 @@
 \oldsection*{#1}%
 \begin{adjustwidth}{18pt}{0pt}%
 }
+\let\oldsubsection\subsection
+\renewcommand{\subsection}[1]{%
+\oldsubsection*{#1}%
+}
+\let\oldsubsubsection\subsubsection
+\renewcommand{\subsubsection}[1]{%
+\oldsubsubsection*{#1}%
+}
 %@% END-IF %@%

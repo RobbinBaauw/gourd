@@ -30,12 +30,12 @@
 \begin{document}
   \pagestyle{fancy}
 
-  \begin{Name}{5}{gourd.toml}{Test}{File Formats Manual}{Gourd toml}
+  \begin{Name}{5}{gourd.toml}{Test}{File Formats Manual}{gourd.toml}
 %@% IF LATEX %@%
 \begin{adjustwidth}{18pt}{0pt}
 %@% END-IF %@%
 
-      \Prog{gourd.toml}, the gourd configuration file.
+      \Prog{gourd.toml} \- An experimental setup file for the Gourd experiment scheduler.
 
 %@% IF LATEX %@%
 \end{adjustwidth}
@@ -48,12 +48,11 @@
 
   \section{DESCRIPTION}
 
-      \noindent \Prog{gourd.toml} is a declarative configuration file that, when provided to \Prog{gourd}, can be used to create a new \emph{experiment}.
-      The rules for typesetting the file follow the standard toml format.
+      \noindent \Prog{gourd.toml} is a declarative configuration file that,
+      when provided to \Prog{gourd}, can be used to create a new \emph{experiment}.
+      The rules for typesetting the file follow the standard TOML format.
 
-      \begin{Description}[Files]\setlength{\itemsep}{0cm}
-          \item[\File{gourd.toml}] By default, the config file is assumed to be named \texttt{gourd.toml}.
-      \end{Description}
+      By default, the filename is \File{gourd.toml}.
 
   \section{VALUE TYPES}
 
@@ -69,58 +68,84 @@
     Options surrounded by brackets are optional and can be omitted, the default value is show in brackets in the description.
 
     \begin{Description}[Options]\setlength{\itemsep}{0cm}
-        \item[\Opt{output\_path} = path] Where to store the stdout files from the \emph{programs}.
-        \item[\Opt{metrics\_path} = path] Where to store the metrics for \texttt{gourd status}.
-        \item[\Opt{experiments\_folder} = path] Where to store state of previously ran experiments.
-        \item[\oOpt{wrapper} = string] Defines the path to the \texttt{gourd-wrapper} binary. [\texttt{gourd-wrapper}]
+        \item[\Opt{output\_path} = path]
+            Where to store the stdout files from the \emph{programs}.
+        \item[\Opt{metrics\_path} = path]
+            Where to store the metrics for \Prog{gourd} \Arg{status}.
+        \item[\Opt{experiments\_folder} = path]
+            Where to store state of previously ran experiments.
+        \item[\oOpt{wrapper} = string]
+            Defines the path to the \File{gourd-wrapper} binary.
+            The default value is \Arg{gourd-wrapper}.
     \end{Description}
 
 
-    \section{SLURM}
-
-      An optional subsection of the config file which can be started with \texttt{[slurm]}.
-
-      \begin{Description}[Options]\setlength{\itemsep}{0cm}
-          \item[\Opt{experiment\_name} = string] The SLURM internal experiment name.
-          \item[TODO] TODO.
-      \end{Description}
+%    \section{SLURM}
+%
+%      An optional subsection of the config file, beginning with the \Arg{[slurm]} header.
+%
+%      \begin{Description}[Options]\setlength{\itemsep}{0cm}
+%          \item[\Opt{experiment\_name} = string] The SLURM internal experiment name.
+%          \item[TODO] TODO.
+%      \end{Description}
 
 
     \section{PROGRAMS}
 
-      Multiple programs can be specified. Each one can be started with \texttt{[programs.name]} where \texttt{name} can be any unique name.
+      Multiple programs can be specified.
+      A program represents a compiled algorithm and is a combination of a binary file and parameters.
+      Each program begins with \Arg{[programs.program-name]}, where \Arg{program-name} can be any unique name.
 
       \begin{Description}[Options]\setlength{\itemsep}{0cm}
-          \item[\Opt{binary} = path] Path to the program executable.
-          \item[\oOpt{arguments} = list of string] Arguments to be passed to the executable. [empty list]
-          \item[\oOpt{afterscript} = see afterscript] The configuration for running a short script after program completion.
+          \item[\Opt{binary} = path]
+            Path to the program executable.
+          \item[\oOpt{arguments} = list of string]
+            Arguments to be passed to the executable.
+            The default is no arguments.
+          \item[\oOpt{afterscript} = see afterscript]
+            The configuration for running a short script after program completion.
       \end{Description}
 
     \section{INPUTS}
 
-      Multiple inputs can be specified. Each one can be started with \texttt{[inputs.name]} where \texttt{name} can be any unique name.
-      \textbf{The name cannot contain the string} \texttt{\_glob\_} \textbf{under no circumstances}
+      A \Prog{gourd} experiment consists of a cross-product mapping between programs
+      and inputs.
+      The experiment created from a \File{gourd.toml} file runs every combination
+      of program and input in the file.
+
+      Multiple inputs can be specified.
+      Each input begins with \Arg{[inputs.input-name]} where \Arg{input-name} can be any unique name.
+      \textbf{The string} \Arg{\_glob\_} \textbf{is reserved and cannot be used.}
+      Each input contains the following keys:
 
       \begin{Description}[Options]\setlength{\itemsep}{0cm}
-          \item[\oOpt{input} = path] Path to the file to be piped to the programs inputs. [nothing is piped]
-          \item[\oOpt{arguments} = list of string] Arguments to be passed to the executable. [empty list]
-            Please see Globs for further explanation.
+          \item[\oOpt{input} = path]
+            Path to a file, the contents of which are passed to the program as standard input.
+            By default, no standard input is provided.
+          \item[\oOpt{arguments} = list of string]
+            Additional command-line arguments to be passed to the program.
+            The input arguments are appended to the programs arguments.
+            By default, no additional arguments.
       \end{Description}
 
 
       \subsection{GLOBS}
 
-      If an argument starts with \texttt{=glob=} the rest of the argument will be treated as a glob.
-      The input will be instantiated for every combination of glob match.
+        Globs can be applied to arguments and conveniently reference multiple files.
 
-      \noindent For example consider:
+          If an argument starts with \Arg{glob|}, it will be treated as a glob.
+          The input will be instantiated for every match of the provided glob.
+
+            Example:
 
       \begin{verbatim}
 [inputs.testrun1]
 arguments = ["-f1", "=glob=./inputs/*.in", "-f2", "=glob=./input2/*.in"]
       \end{verbatim}
 
-      \noindent With the folders containing \texttt{input/1.in}, \texttt{input/2.in}, \texttt{input2/test.in}. This yields:
+            Given that the current directory contains the files
+            \File{input/1.in}, \File{input/2.in}, \File{input2/test.in}, the glob
+            expands to the following experiment inputs:
 
       \begin{verbatim}
 [inputs.testrun1_glob_0]
