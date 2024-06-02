@@ -26,7 +26,7 @@ where
     T: SlurmInteractor,
 {
     /// The way of interaction with slurm. (May be cli or library based).
-    pub(crate) internal: T,
+    pub internal: T,
 }
 
 impl<T> Default for SlurmHandler<T>
@@ -40,6 +40,7 @@ where
     }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl<T> SlurmHandler<T>
 where
     T: SlurmInteractor,

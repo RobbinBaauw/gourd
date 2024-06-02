@@ -12,12 +12,15 @@ use colog::default_builder;
 use colog::formatter;
 use gourd_lib::bailc;
 use gourd_lib::config::Config;
+use gourd_lib::constants::CMD_HELP_STYLE;
 use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
+use gourd_lib::constants::TERTIARY_STYLE;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
+use gourd_lib::file_system::FileOperations;
 use gourd_lib::file_system::FileSystemInteractor;
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
@@ -29,6 +32,7 @@ use log::LevelFilter;
 use super::def::ContinueStruct;
 use super::log::LogTokens;
 use super::printing::get_styles;
+use crate::cli::def::CancelStruct;
 use crate::cli::def::Cli;
 use crate::cli::def::Command;
 use crate::cli::def::RunSubcommand;
@@ -42,6 +46,7 @@ use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::chunk::Chunkable;
 use crate::slurm::handler::SlurmHandler;
 use crate::slurm::interactor::SlurmCli;
+use crate::slurm::SlurmInteractor;
 use crate::status::blocking_status;
 use crate::status::chunks::print_scheduling;
 use crate::status::get_statuses;
@@ -79,7 +84,32 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
     let mut file_system = FileSystemInteractor { dry_run: cmd.dry };
 
-    match cmd.command {
+    /// Read the experiment from the filesystem.
+    fn read_experiment(
+        experiment_id: &Option<usize>,
+        cmd: &Cli,
+        file_system: &impl FileOperations,
+    ) -> Result<(Experiment, Config)> {
+        debug!("Reading the config: {:?}", cmd.config);
+
+        let config = Config::from_file(&cmd.config, file_system)?;
+
+        let experiment = match experiment_id {
+            Some(id) => {
+                Experiment::experiment_from_folder(*id, &config.experiments_folder, file_system)?
+            }
+
+            None => {
+                Experiment::latest_experiment_from_folder(&config.experiments_folder, file_system)?
+            }
+        };
+
+        debug!("Found the newest experiment with id: {}", experiment.seq);
+
+        Ok((experiment, config))
+    }
+
+    match &cmd.command {
         Command::Run(args) => {
             debug!("Reading the config: {:?}", cmd.config);
 
@@ -160,7 +190,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
             let experiment = match experiment_id {
                 Some(id) => Experiment::experiment_from_folder(
-                    id,
+                    *id,
                     &config.experiments_folder,
                     &file_system,
                 )?,
@@ -180,7 +210,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
             match run_id {
                 Some(id) => {
-                    display_job(&mut stdout(), &experiment, &statuses, id)?;
+                    display_job(&mut stdout(), &experiment, &statuses, *id)?;
                 }
                 None => {
                     info!(
@@ -188,12 +218,84 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                         experiment.seq
                     );
 
-                    if blocking {
+                    if *blocking {
                         blocking_status(&progress, &experiment, &mut file_system)?;
                     } else {
                         display_statuses(&mut stdout(), &experiment, &statuses)?;
                     }
                 }
+            }
+        }
+
+        Command::Cancel(CancelStruct {
+            experiment_id,
+            run_ids,
+            all,
+        }) => {
+            let s: SlurmHandler<SlurmCli> = SlurmHandler::default();
+            let (experiment, _) = read_experiment(experiment_id, cmd, &file_system)?;
+
+            let id_list = if *all {
+                s.internal.get_scheduled_jobs()?
+            } else if let Some(ids) = run_ids {
+                // verify that every id has a slurm id in the experiment
+                ids.iter()
+                    .map(|id| {
+                        experiment
+                            .runs
+                            .get(*id)
+                            .ok_or(anyhow!(
+                                "Could not find a run with id {id} in experiment {}",
+                                experiment.seq
+                            ))
+                            .with_context(ctx!(
+                                "",;
+                                "Experiment {} has runs with ids 0-{}",
+                                experiment.seq, experiment.runs.len() - 1
+                            ))
+                            .and_then(|x| {
+                                x.slurm_id
+                                    .clone()
+                                    .ok_or(anyhow!("Could not find run {} on Slurm", id))
+                                    .with_context(ctx!(
+                                        "", ;
+                                        "You can only cancel runs that have been scheduled on Slurm.
+                                        Run {CMD_HELP_STYLE}gourd status {}{CMD_HELP_STYLE:#} \
+                                        to check which runs have been scheduled.",experiment.seq
+                                    ))
+                            })
+                    })
+                    .collect::<Result<Vec<String>>>()?
+            } else {
+                // get all slurm ids from the experiment
+                experiment
+                    .runs
+                    .iter()
+                    .filter_map(|run| run.slurm_id.clone())
+                    .collect::<Vec<String>>()
+            };
+
+            if id_list.is_empty() {
+                bailc!(
+                    "No runs to cancel", ;
+                    "You can only cancel runs that have been scheduled on Slurm.\
+                     Run {CMD_HELP_STYLE}gourd status {}{CMD_HELP_STYLE:#} to check \
+                     which runs have been scheduled.", experiment.seq;
+                    "",
+                );
+            }
+
+            if cmd.dry {
+                info!(
+                    "Would have cancelled {TERTIARY_STYLE}[{}]{TERTIARY_STYLE:#}",
+                    id_list.join(", ")
+                );
+            } else {
+                info!(
+                    "Cancelling runs {TERTIARY_STYLE}[{}]{TERTIARY_STYLE:#}",
+                    id_list.join(", ")
+                );
+                s.internal.cancel_jobs(id_list)?;
             }
         }
 
@@ -210,7 +312,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
             let mut experiment = match experiment_id {
                 Some(id) => Experiment::experiment_from_folder(
-                    id,
+                    *id,
                     &config.experiments_folder,
                     &file_system,
                 )?,

@@ -10,6 +10,8 @@ use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::NAME_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
 use gourd_lib::constants::SHORTEN_STATUS_CUTOFF;
+use gourd_lib::constants::TERTIARY_STYLE;
+use gourd_lib::constants::WARNING_STYLE;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
@@ -23,18 +25,18 @@ use super::Status;
 impl Display for SlurmState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SlurmState::BootFail => write!(f, "boot failed"),
-            SlurmState::Cancelled => write!(f, "cancelled"),
-            SlurmState::Deadline => write!(f, "deadline reached"),
-            SlurmState::NodeFail => write!(f, "node failed"),
-            SlurmState::OutOfMemory => write!(f, "out of memory"),
-            SlurmState::Preempted => write!(f, "preempted"),
-            SlurmState::Suspended => write!(f, "suspended"),
-            SlurmState::Timeout => write!(f, "time out"),
+            SlurmState::BootFail => write!(f, "{ERROR_STYLE}boot failed{ERROR_STYLE:#}"),
+            SlurmState::Cancelled => write!(f, "{WARNING_STYLE}cancelled{WARNING_STYLE:#}"),
+            SlurmState::Deadline => write!(f, "{ERROR_STYLE}deadline reached{ERROR_STYLE:#}"),
+            SlurmState::NodeFail => write!(f, "{ERROR_STYLE}node failed{ERROR_STYLE:#}"),
+            SlurmState::OutOfMemory => write!(f, "{WARNING_STYLE}out of memory{WARNING_STYLE:#}"),
+            SlurmState::Preempted => write!(f, "{ERROR_STYLE}preempted{ERROR_STYLE:#}"),
+            SlurmState::Suspended => write!(f, "{ERROR_STYLE}suspended{ERROR_STYLE:#}"),
+            SlurmState::Timeout => write!(f, "{WARNING_STYLE}timed out{WARNING_STYLE:#}"),
             SlurmState::SlurmFail => write!(f, "{ERROR_STYLE}job failed{ERROR_STYLE:#}"),
             SlurmState::Success => write!(f, "{PRIMARY_STYLE}job finished!{PRIMARY_STYLE:#}"),
-            SlurmState::Pending => write!(f, "pending.."),
-            SlurmState::Running => write!(f, "running.."),
+            SlurmState::Pending => write!(f, "{TERTIARY_STYLE}pending..{TERTIARY_STYLE:#}"),
+            SlurmState::Running => write!(f, "{TERTIARY_STYLE}running...{TERTIARY_STYLE:#}"),
         }
     }
 }
@@ -118,7 +120,9 @@ pub fn display_statuses(
     experiment: &Experiment,
     statuses: &ExperimentStatus,
 ) -> Result<usize> {
-    if experiment.runs.len() <= SHORTEN_STATUS_CUTOFF {
+    if experiment.runs.len() <= SHORTEN_STATUS_CUTOFF
+        || experiment.env == gourd_lib::experiment::Environment::Local
+    {
         long_status(f, experiment, statuses)?;
     } else {
         short_status(f, experiment, statuses)?;
@@ -234,8 +238,8 @@ fn long_status(
             )?;
 
             if status.fs_status.completion == FsState::Pending {
-                if let Some(slurm_id) = &run.slurm_id {
-                    write!(f, " scheduled on slurm as {}", slurm_id)?;
+                if let Some(ss) = &status.slurm_status {
+                    write!(f, " on slurm: {}", ss.completion)?;
                 }
             }
 

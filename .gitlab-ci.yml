@@ -129,7 +129,7 @@ documentation:
     - mv target/release/manpages/* documentation/
   artifacts:
     when: on_success
-    name: maintainer documentation
-    expose_as: maintainer documentation
+    name: documentation
+    expose_as: documentation
     paths:
       - documentation/

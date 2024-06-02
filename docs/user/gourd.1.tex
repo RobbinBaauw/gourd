@@ -108,6 +108,8 @@
             Display the status of a running or completed experiment.
             \item[\Prog{gourd} \Arg{continue}]
             Schedule the incomplete part of a partial experiment.
+            \item[\Prog{gourd} \Arg{cancel}]
+            Cancel scheduled runs.
             \item[\Prog{gourd} \Arg{analyse}]
             Output metrics of completed runs.
             \item[\Prog{gourd} \Arg{version}]
@@ -289,6 +291,36 @@
 %
 %            \subsubsection{Options}
 %                \emph{TBD.}
+
+
+    \subsection{GOURD CANCEL}
+
+        \subsubsection{Summary}
+            The \Prog{gourd}~\Arg{cancel} command cancels runs that have been scheduled on \Prog{Slurm}.
+            By default, it cancels all scheduled runs in the most recent experiment.
+            This command can cancel an individual run using the \Opt{-i} flag.
+
+        \subsubsection{Synopsis}
+            \Prog{gourd}\Arg{cancel}
+            \oArg{experiment-id}
+            \oOptArg{-i}{ run-ids}
+            \oOpt{-a}
+            \oOpt{-v|-vv}
+
+        \subsubsection{Options}
+            \begin{Description}[Options]
+                \item[\Arg{experiment-id}]
+                The ID of an experiment to cancel.
+                By default, this is the most recent experiment.
+                \item[\OptArg{-i}{ run-ids}]
+                The IDs of the runs to cancel.
+                Pass multiple run IDs separated by spaces, for example \Arg{-i 1 2 3}.
+                By default, all runs in the experiment are cancelled.
+                \item[\oOpt{--all}]
+                Cancel all runs from this account.
+                This includes all runs, not just those from \Prog{gourd}.
+                To see what runs would be cancelled, run \Prog{gourd}~\Arg{cancel}~\Arg{--all}~\Arg{--dry}
+            \end{Description}
 
 
         \subsection{GOURD ANALYSE}

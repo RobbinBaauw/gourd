@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use anstyle::AnsiColor;
 use anstyle::Color;
+use anstyle::Color::Ansi;
 use anstyle::Style;
 
 use crate::config::InputMap;
@@ -53,7 +54,7 @@ pub const INTERNAL_POST: &str = "_postprocess_";
 pub const INTERNAL_PREFIX: &str = "_internal_";
 
 /// The amount between refreshes of the status screen, in ms.
-pub const STATUS_REFRESH_PERIOD: Duration = Duration::from_millis(50);
+pub const STATUS_REFRESH_PERIOD: Duration = Duration::from_millis(500);
 
 /// Create a style with a defined foreground color.
 pub const fn style_from_fg(color: AnsiColor) -> Style {
@@ -73,10 +74,19 @@ pub const TERTIARY_STYLE: Style = style_from_fg(AnsiColor::Blue);
 pub const NAME_STYLE: Style = Style::new().bold();
 
 /// The styling for error messages.
-pub const ERROR_STYLE: Style = style_from_fg(AnsiColor::Red).bold().blink();
+pub const ERROR_STYLE: Style = style_from_fg(AnsiColor::Red).bold();
+
+/// The styling for warning messages.
+pub const WARNING_STYLE: Style = style_from_fg(AnsiColor::Yellow).bold();
 
 /// The styling for help messages.
 pub const HELP_STYLE: Style = style_from_fg(AnsiColor::Green).bold().underline();
+
+/// Style of commands in help messages
+pub const CMD_HELP_STYLE: Style = Style::new()
+    .italic()
+    .bg_color(Some(Ansi(AnsiColor::Green)))
+    .fg_color(Some(Ansi(AnsiColor::Black)));
 
 /// Supported SLURM versions.
 pub const SLURM_VERSIONS: [[u64; 2]; 1] = [[21, 8]];

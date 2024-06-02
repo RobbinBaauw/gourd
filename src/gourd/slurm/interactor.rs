@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
@@ -20,6 +21,7 @@ use log::trace;
 use super::handler::parse_optional_args;
 use super::SacctOutput;
 use crate::slurm::SlurmInteractor;
+use crate::status::slurm_based::flatten_slurm_id;
 
 /// Creates a Slurm duration string.
 ///
@@ -74,6 +76,7 @@ impl Default for SlurmCli {
 /// These are using functions specific to CLI version 21.8.x
 ///
 /// we don't know if other versions are supported.
+#[cfg(not(tarpaulin_include))]
 impl SlurmInteractor for SlurmCli {
     fn get_version(&self) -> Result<[u64; 2]> {
         let s_info_out = Command::new("sinfo").arg("--version").output()?;
@@ -250,6 +253,60 @@ impl SlurmInteractor for SlurmCli {
         }
 
         Ok(result)
+    }
+
+    fn get_scheduled_jobs(&self) -> Result<Vec<String>> {
+        let sacct = Command::new("sacct")
+            .arg("-p")
+            .arg("--format=jobid,state")
+            .output()
+            .with_context(ctx!(
+              "Could not get scheduled jobs", ;
+              "Make sure that the `sacct` program is accessible",
+            ))?;
+
+        let mut result: BTreeSet<String> = BTreeSet::new();
+
+        for job in String::from_utf8_lossy(&sacct.stdout)
+            .trim()
+            .split('\n')
+            .skip(1)
+        {
+            let fields = job.split('|').collect::<Vec<&str>>();
+            let set_of_completed_states = BTreeSet::from([
+                "PD", "PENDING", "R", "RUNNING", "RQ", "REQUEUED", "RS", "RESIZING",
+            ]);
+
+            if set_of_completed_states.contains(fields[1]) {
+                debug!("Found {} as possible id", fields[0]);
+                flatten_slurm_id(fields[0].to_string())?
+                    .iter()
+                    .for_each(|x| {
+                        result.insert(x.to_string());
+                    });
+            }
+        }
+
+        Ok(result.into_iter().collect::<Vec<String>>())
+    }
+
+    fn cancel_jobs(&self, batch_ids: Vec<String>) -> Result<()> {
+        for batch_id in batch_ids {
+            debug!("Cancelling batch with id {}", batch_id);
+            if Command::new("scancel")
+                .arg(batch_id.clone())
+                .status()
+                .is_err()
+            {
+                return Err(anyhow!(
+                    "Failed to cancel the job with batch id {}",
+                    batch_id
+                ))
+                .with_context(ctx!("", ; "help",));
+            }
+        }
+
+        Ok(())
     }
 }
 

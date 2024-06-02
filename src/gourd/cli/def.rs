@@ -65,8 +65,8 @@ pub struct StatusStruct {
     #[arg(short, long)]
     pub rerun_failed: bool,
 
-    /// The id of the experiment for which to fetch status [default: newest
-    /// experiment].
+    /// The id of the experiment for which to fetch status
+    /// [default: newest experiment].
     #[arg(value_name = "EXPERIMENT")]
     pub experiment_id: Option<usize>,
 
@@ -82,10 +82,33 @@ pub struct StatusStruct {
 /// Arguments supplied with the `continue` command.
 #[derive(Args, Debug, Clone, Copy)]
 pub struct ContinueStruct {
-    /// The id of the experiment for which to fetch status [default: newest
-    /// experiment].
+    /// The id of the experiment for which to fetch status
+    /// [default: newest experiment].
     #[arg(value_name = "EXPERIMENT")]
-    pub(crate) experiment_id: Option<usize>,
+    pub experiment_id: Option<usize>,
+}
+
+/// Structure of cancel subcommand.
+#[derive(Args, Debug, Clone)]
+pub struct CancelStruct {
+    /// The id of the experiment of which to cancel runs
+    /// [default: newest experiment]
+    #[arg(value_name = "EXPERIMENT")]
+    pub experiment_id: Option<usize>,
+
+    /// Cancel specific runs by providing their run ids,
+    /// for example: `gourd cancel -i 5` or `gourd cancel -i 1 2 3`.
+    #[arg(short = 'i', long, value_delimiter = ' ', num_args = 1..)]
+    pub run_ids: Option<Vec<usize>>,
+
+    /// Cancel all the experiments from this account (not only those by gourd).
+    /// To see what runs would be cancelled, use the `--dry` flag.
+    #[arg(
+        short,
+        long,
+        conflicts_with_all = ["experiment_id", "run_ids"],
+    )]
+    pub all: bool,
 }
 
 /// Arguments supplied with the `init` command.
@@ -118,6 +141,10 @@ pub enum Command {
     /// Schedule another batch of slurm jobs.
     #[command()]
     Continue(ContinueStruct),
+
+    /// Cancel runs.
+    #[command()]
+    Cancel(CancelStruct),
 
     /// Output metrics of completed runs.
     #[command()]

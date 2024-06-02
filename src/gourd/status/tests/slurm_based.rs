@@ -92,7 +92,7 @@ fn flatten_job_id_one_array() {
         },
     ];
 
-    let output = flatten_job_id(input);
+    let output = flatten_job_id(input).unwrap();
     assert_eq!(expected, output);
 }
 
@@ -129,6 +129,6 @@ fn flatten_job_id_no_flat() {
         },
     ];
 
-    let output = flatten_job_id(input.clone());
+    let output = flatten_job_id(input.clone()).unwrap();
     assert_eq!(input, output);
 }
