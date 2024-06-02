@@ -13,3 +13,4 @@ compile_man_latex() {
 
 compile_man_latex "gourd"
 compile_man_latex "gourd.toml"
+compile_man_latex "gourd-tutorial"
