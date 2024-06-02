@@ -1,27 +1,27 @@
 use std::collections::BTreeMap;
+use std::time::Duration;
 
-use gourd_lib::measurement::Metrics;
+use gourd_lib::measurement::Measurement;
 
 use crate::post::postprocess_job::filter_runs_for_post_job;
-use crate::status::FailureReason;
 use crate::status::FileSystemBasedStatus;
+use crate::status::FsState;
 use crate::status::PostprocessCompletion;
 use crate::status::PostprocessOutput;
-use crate::status::RunState;
 use crate::status::SlurmBasedStatus;
+use crate::status::SlurmState;
 use crate::status::Status;
 
 #[test]
-fn test_filter_runs_for_post_job_good_weather() {
+fn test_filter_runs_for_afterscript_good_weather() {
     let mut runs: BTreeMap<usize, Status> = BTreeMap::new();
     runs.insert(
         0,
         Status {
             fs_status: FileSystemBasedStatus {
-                completion: RunState::Pending,
-                metrics: Some(Metrics::NotCompleted),
-                afterscript_completion: None,
-                postprocess_job_completion: Some(PostprocessCompletion::Dormant),
+                completion: crate::status::FsState::Pending,
+                afterscript_completion: Some(PostprocessCompletion::Dormant),
+                postprocess_job_completion: None,
             },
             slurm_status: None,
         },
@@ -30,13 +30,16 @@ fn test_filter_runs_for_post_job_good_weather() {
         1,
         Status {
             fs_status: FileSystemBasedStatus {
-                completion: RunState::Completed,
-                metrics: Some(Metrics::NotCompleted),
-                afterscript_completion: Some(PostprocessCompletion::Dormant),
+                completion: FsState::Completed(Measurement {
+                    wall_micros: Duration::from_nanos(0),
+                    exit_code: 0,
+                    rusage: None,
+                }),
+                afterscript_completion: None,
                 postprocess_job_completion: Some(PostprocessCompletion::Dormant),
             },
             slurm_status: Some(SlurmBasedStatus {
-                completion: RunState::Completed,
+                completion: SlurmState::Success,
                 exit_code_program: 0,
                 exit_code_slurm: 0,
             }),
@@ -46,8 +49,11 @@ fn test_filter_runs_for_post_job_good_weather() {
         2,
         Status {
             fs_status: FileSystemBasedStatus {
-                completion: RunState::Fail(FailureReason::UserForced),
-                metrics: Some(Metrics::NotCompleted),
+                completion: FsState::Completed(Measurement {
+                    wall_micros: Duration::from_nanos(0),
+                    exit_code: 1,
+                    rusage: None,
+                }),
                 afterscript_completion: None,
                 postprocess_job_completion: Some(PostprocessCompletion::Dormant),
             },
@@ -58,8 +64,11 @@ fn test_filter_runs_for_post_job_good_weather() {
         3,
         Status {
             fs_status: FileSystemBasedStatus {
-                completion: RunState::Completed,
-                metrics: Some(Metrics::NotCompleted),
+                completion: FsState::Completed(Measurement {
+                    wall_micros: Duration::from_nanos(0),
+                    exit_code: 0,
+                    rusage: None,
+                }),
                 afterscript_completion: None,
                 postprocess_job_completion: Some(PostprocessCompletion::Success(
                     PostprocessOutput {

@@ -19,11 +19,11 @@ use crate::post::afterscript::run_afterscript_for_run;
 use crate::post::afterscript::Config;
 use crate::post::afterscript::PostprocessCompletion;
 use crate::status::FileSystemBasedStatus;
+use crate::status::FsState;
 use crate::status::PostprocessOutput;
 use crate::status::SlurmBasedStatus;
 use crate::status::SlurmState;
 use crate::status::Status;
-use crate::status::FsState;
 
 const PREPROGRAMMED_SH_SCRIPT: &str = r#"
 #!/bin/sh
@@ -56,7 +56,7 @@ fn test_filter_runs_for_afterscript_good_weather() {
         1,
         Status {
             fs_status: FileSystemBasedStatus {
-                completion: FsState::Completed(Measurement{
+                completion: FsState::Completed(Measurement {
                     wall_micros: Duration::from_nanos(0),
                     exit_code: 0,
                     rusage: None,
@@ -75,7 +75,7 @@ fn test_filter_runs_for_afterscript_good_weather() {
         2,
         Status {
             fs_status: FileSystemBasedStatus {
-                completion: FsState::Completed(Measurement{
+                completion: FsState::Completed(Measurement {
                     wall_micros: Duration::from_nanos(0),
                     exit_code: 1,
                     rusage: None,
@@ -90,7 +90,7 @@ fn test_filter_runs_for_afterscript_good_weather() {
         3,
         Status {
             fs_status: FileSystemBasedStatus {
-                completion: FsState::Completed(Measurement{
+                completion: FsState::Completed(Measurement {
                     wall_micros: Duration::from_nanos(0),
                     exit_code: 0,
                     rusage: None,
