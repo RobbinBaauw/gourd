@@ -35,12 +35,66 @@ postprocessing used. Multiple programs can use the same postprocessing program. 
 has a postprocessing job, a path to a folder that will store the postprocesing job output needs to be specified 
 (once for the entire experiment, analogous to metrics and output). 
 
-A postprocess binary should take two arguments - the path to the input file and the path to a folder for output. The 
-output folder is created and is empty. It is the responsibility of the postprocess program to create and write to any 
-files in that directory.
-
 \subsubsection{Example gourd.toml with postprocessing}
 
+\begin{verbatim}
+wrapper = "./gourd_wrapper"
+output_path = "./exp/outputs"
+metrics_path = "./exp/results"
+experiments_folder = "./exp/experiments"
+afterscript_output_folder = "./exp/after"
+postprocess_job_output_folder = "./exp/post"
+
+[postprocess_resource_limits]
+time_limit.secs = 60
+time_limit.nanos = 0
+cpus = 1
+mem_per_cpu = 512
+
+[resource_limits]
+time_limit.secs = 60
+time_limit.nanos = 0
+cpus = 1
+mem_per_cpu = 512
+
+[slurm]
+experiment_name = "this is my experiment"
+partition = "compute"
+array_count_limit = 1
+array_size_limit = 10
+account = "Education-EEMCS-MSc-CS"
+
+[programs.testprogram1]
+binary = "./test"
+arguments = []
+postprocess_job = "post1"
+
+[programs.testprogram2]
+binary = "/usr/bin/sleep"
+arguments = []
+afterscript = "./afterscript.sh"
+
+[inputs.testrun1]
+input = "./inp"
+arguments = ["1"]
+
+[inputs.testrun2]
+input = "./inp"
+arguments = ["2"]
+
+[inputs.testrun3]
+input = "./inp"
+arguments = ["3"]
+
+[inputs.testrun4]
+input = "./inp"
+arguments = ["4"]
+
+[postprocess_programs.post1]
+binary = "./post"
+arguments = []
+
+\end{verbatim}
 
 \subsection{Labels}
 note: this is going to be moved to user docs.
