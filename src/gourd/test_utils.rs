@@ -49,7 +49,7 @@ pub fn create_sample_experiment(prog: ProgramMap, inputs: InputMap) -> (Experime
         programs: prog,
         postprocess_programs: None,
         inputs,
-        escape_hatch: None,
+        input_schema: None,
         slurm: None,
         resource_limits: None,
         postprocess_resource_limits: None,

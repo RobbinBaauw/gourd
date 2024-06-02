@@ -20,6 +20,7 @@ use super::Program;
 use crate::constants::GLOB_ESCAPE;
 use crate::constants::INTERNAL_GLOB;
 use crate::constants::INTERNAL_POST;
+use crate::constants::INTERNAL_PREFIX;
 
 /// A wrapper around [BTreeMap] to allow serde expansion of globs.
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default, Serialize)]
@@ -174,7 +175,7 @@ where
         if is_glob {
             for (idx, glob) in globset.iter().enumerate() {
                 result.insert(
-                    format!("{}{}{}", original, INTERNAL_GLOB, idx),
+                    format!("{}{}{}{}", INTERNAL_PREFIX, original, INTERNAL_GLOB, idx),
                     glob.clone(),
                 );
             }

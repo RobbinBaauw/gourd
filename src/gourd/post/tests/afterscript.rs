@@ -164,13 +164,13 @@ fn test_add_label_to_run() {
              metrics_path = "./🪿/"
              experiments_folder = "/tmp/gourd/experiments/"
              afterscript_output_folder = "/tmp/gourd/after/"
-             [programs.a]
+             [program.a]
              binary = "/bin/sleep"
              arguments = []
              afterscript = "/bin/echo"
-             [inputs.b]
+             [input.b]
              arguments = ["1"]
-             [inputs.c]
+             [input.c]
              arguments = ["2"]
              [label.found_hello]
              priority = 0

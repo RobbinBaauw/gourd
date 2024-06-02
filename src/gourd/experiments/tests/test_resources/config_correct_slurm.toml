@@ -14,10 +14,10 @@ time_limit = "1 minute"
 cpus = 1
 mem_per_cpu = 512
 
-[programs.a]
+[program.a]
 arguments = []
 binary = "test binary"
 
-[inputs.b]
+[input.b]
 input = "test input"
 arguments = []

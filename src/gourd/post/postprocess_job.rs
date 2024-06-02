@@ -4,12 +4,6 @@ use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use gourd_lib::config::Input;
-<<<<<<< HEAD
-=======
-use gourd_lib::config::Program;
-use gourd_lib::constants::INTERNAL_POST;
-use gourd_lib::constants::INTERNAL_PREFIX;
->>>>>>> 21f2962 (provide file for inputs)
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
@@ -104,26 +98,8 @@ pub fn post_job_for_run(
     experiment: &mut Experiment,
     fs: &impl FileOperations,
 ) -> Result<()> {
-<<<<<<< HEAD
     experiment.postprocess_inputs.insert(
         input_name.clone(),
-=======
-    let prog_name = format!("{}{}{}", INTERNAL_PREFIX, INTERNAL_POST, name);
-    let input_name = format!("{}{}{}", INTERNAL_PREFIX, INTERNAL_POST, name);
-
-    experiment.config.programs.insert(
-        prog_name.clone(),
-        Program {
-            binary: postprocess.to_path_buf(),
-            arguments: vec![],
-            afterscript: None,
-            postprocess_job: None,
-        },
-    );
-
-    experiment.config.inputs.insert(
-        prog_name.clone(),
->>>>>>> 21f2962 (provide file for inputs)
         Input {
             input: Some(postprocess_input.to_path_buf()),
             arguments: vec![],

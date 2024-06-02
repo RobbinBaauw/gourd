@@ -5,12 +5,16 @@ use anstyle::AnsiColor;
 use anstyle::Color;
 use anstyle::Style;
 
+use crate::config::InputMap;
 use crate::config::ProgramMap;
 use crate::config::ResourceLimits;
 
 /// The default path to the wrapper, that is, we assume `gourd_wrapper` is in
 /// $PATH.
 pub const WRAPPER_DEFAULT: fn() -> String = || "gourd_wrapper".to_string();
+
+/// An empty map of inputs.
+pub const INPUTS_DEFAULT: fn() -> InputMap = InputMap::default;
 
 /// The default path to the afterscript.
 pub const AFTERSCRIPT_DEFAULT: fn() -> Option<PathBuf> = || None;
@@ -36,13 +40,13 @@ pub const EMPTY_ARGS: fn() -> Vec<String> = Vec::new;
 /// The prefix which will cause an argument to be interpreted as a glob.
 pub const GLOB_ESCAPE: &str = "glob|";
 
-/// The internal representation of globbed inputs.
-pub const INTERNAL_HATCH: &str = "_hatch_";
+/// The internal representation of inputs generated from a schema
+pub const INTERNAL_SCHEMA_INPUTS: &str = "_generated_";
 
 /// The internal representation of globbed inputs.
 pub const INTERNAL_GLOB: &str = "_glob_";
 
-// /// The internal representation of postprocess runs.
+/// The internal representation of postprocess runs.
 pub const INTERNAL_POST: &str = "_postprocess_";
 
 /// Internal representation for names parsed from config

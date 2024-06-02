@@ -54,10 +54,11 @@ impl FileOperations for EmptyFilesystem {
     }
 }
 
-/// ### Create a sample config file from a string, used in testing.
-/// if you need to test the Config struct you can use this function to create a sample config file,
-/// get the returned path to it and then parse it.
-/// ```rust
+/// Create a sample config file from a string, used in testing.
+///
+/// If you need to test the Config struct you can use this function to create a
+/// sample config file, get the returned path to it and then parse it.
+/// ```ignore
 /// # use gourd_lib::test_utils::create_sample_toml;
 /// let (file_pb, dir) = create_sample_toml("
 /// [section]

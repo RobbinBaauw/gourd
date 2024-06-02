@@ -275,7 +275,7 @@ fn setup_logging(cmd: &Cli) -> Result<MultiProgress> {
     LogWrapper::new(bar.clone(), log_build.build())
         .try_init()
         .with_context(ctx!(
-            "Failed to initlaize the command line interface", ;
+            "Failed to initialize the command line interface", ;
             "Make sure you are using a supported terminal",
         ))?;
 

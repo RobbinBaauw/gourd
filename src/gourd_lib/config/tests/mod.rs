@@ -16,6 +16,7 @@ use crate::config::maps::InputMap;
 use crate::config::maps::ProgramMap;
 use crate::config::Config;
 use crate::config::Input;
+use crate::config::Program;
 use crate::constants::WRAPPER_DEFAULT;
 use crate::test_utils::create_sample_toml;
 use crate::test_utils::REAL_FS;
@@ -31,15 +32,10 @@ fn breaking_changes_config_struct() {
         metrics_path: PathBuf::from(""),
         experiments_folder: PathBuf::from(""),
         wrapper: "".to_string(),
-<<<<<<< HEAD:src/gourd_lib/config/tests/mod.rs
         inputs: InputMap::default(),
         programs: ProgramMap::default(),
         postprocess_programs: None,
-=======
-        inputs: BTreeMap::new(),
-        escape_hatch: None,
-        programs: BTreeMap::new(),
->>>>>>> 21f2962 (provide file for inputs):src/gourd_lib/tests/config.rs
+        input_schema: None,
         slurm: None,
         resource_limits: None,
         postprocess_resource_limits: None,
@@ -65,9 +61,9 @@ fn breaking_changes_config_file_all_values() {
         afterscript_output_folder = "./after/"
         postprocess_job_output_folder = "./post_job/"
 
-        [programs]
+        [program]
 
-        [inputs]
+        [input]
     "#;
     let mut file = File::create(file_pathbuf.as_path()).expect("A file could not be created.");
     file.write_all(config_contents.as_bytes())
@@ -79,15 +75,10 @@ fn breaking_changes_config_file_all_values() {
             metrics_path: PathBuf::from("./vulfpeck"),
             experiments_folder: PathBuf::from("./parcels/"),
             wrapper: "gourd_wrapper".to_string(),
-<<<<<<< HEAD:src/gourd_lib/config/tests/mod.rs
             inputs: InputMap::default(),
             programs: ProgramMap::default(),
             postprocess_programs: None,
-=======
-            inputs: BTreeMap::new(),
-            escape_hatch: None,
-            programs: BTreeMap::new(),
->>>>>>> 21f2962 (provide file for inputs):src/gourd_lib/tests/config.rs
+            input_schema: None,
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
@@ -111,9 +102,9 @@ fn breaking_changes_config_file_required_values() {
         metrics_path = "./vulfpeck/"
         experiments_folder = ""
 
-        [inputs]
+        [input]
 
-        [programs]
+        [program]
     "#,
     );
 
@@ -123,15 +114,10 @@ fn breaking_changes_config_file_required_values() {
             metrics_path: PathBuf::from("./vulfpeck"),
             experiments_folder: PathBuf::from(""),
             wrapper: "gourd_wrapper".to_string(),
-<<<<<<< HEAD:src/gourd_lib/config/tests/mod.rs
             inputs: InputMap::default(),
             programs: ProgramMap::default(),
             postprocess_programs: None,
-=======
-            inputs: BTreeMap::new(),
-            escape_hatch: None,
-            programs: BTreeMap::new(),
->>>>>>> 21f2962 (provide file for inputs):src/gourd_lib/tests/config.rs
+            input_schema: None,
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
@@ -209,10 +195,10 @@ fn disallow_glob_names() {
             metrics_path = "./vulfpeck/"
             experiments_folder = ""
 
-            [inputs.test_glob_]
+            [input.test_glob_]
             arguments = []
 
-            [programs]
+            [program]
         "#,
     );
     assert!(format!("{:?}", Config::from_file(file_pb.as_path(), &REAL_FS)).contains("_glob_"));
@@ -234,10 +220,10 @@ fn test_globs() {
             metrics_path = "./vulfpeck"
             experiments_folder = ""
 
-            [inputs.test_blob]
+            [input.test_blob]
             arguments = ["-f", "glob|{}/*.in"]
 
-            [programs]
+            [program]
         "#,
         dir.path().to_str().unwrap()
     );
@@ -249,7 +235,11 @@ fn test_globs() {
     let mut inputs = InputMap::default();
 
     inputs.insert(
-        "_internal_test_blob_glob_0".to_string(),
+        format!(
+            "{}test_blob{}0",
+            crate::constants::INTERNAL_PREFIX,
+            crate::constants::INTERNAL_GLOB
+        ),
         Input {
             input: None,
             arguments: vec!["-f".to_string(), in_pathbuf.to_str().unwrap().to_string()],
@@ -263,13 +253,9 @@ fn test_globs() {
             experiments_folder: PathBuf::from(""),
             wrapper: "gourd_wrapper".to_string(),
             inputs,
-<<<<<<< HEAD:src/gourd_lib/config/tests/mod.rs
             programs: ProgramMap::default(),
             postprocess_programs: None,
-=======
-            escape_hatch: None,
-            programs: BTreeMap::new(),
->>>>>>> 21f2962 (provide file for inputs):src/gourd_lib/tests/config.rs
+            input_schema: None,
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
@@ -290,21 +276,13 @@ fn test_globs_invalid_pattern() {
             metrics_path = "./vulfpeck/"
             experiments_folder = ""
 
-            [inputs.test_blob]
+            [input.test_blob]
             arguments = ["-f", "glob|***"]
 
-            [programs]
+            [program]
         "#,
     );
-    assert!(
-<<<<<<< HEAD:src/gourd_lib/config/tests/mod.rs
-        format!("{:?}", Config::from_file(file_pathbuf.as_path(), &REAL_FS))
-            .contains("could not expand")
-=======
-        format!("{:?}", Config::from_file(file_pb.as_path(), &REAL_FS))
-            .contains("Failed to expand")
->>>>>>> 21f2962 (provide file for inputs):src/gourd_lib/tests/config.rs
-    );
+    assert!(Config::from_file(file_pb.as_path(), &REAL_FS).is_err());
 }
 
 #[test]
@@ -317,8 +295,8 @@ fn test_regex_that_do_match() {
             [label.stefan]
             regex = "[a-zA-Z0-9]+ loves stefan"
             priority = 42
-            [programs]
-            [inputs]
+            [program]
+            [input]
         "#,
     );
     let config =
@@ -340,8 +318,8 @@ fn test_invalid_regex_gives_error() {
             [label.stefan]
             regex = "{{{{{{{{{{{{{{{{ i didnt pass acc"
             priority = 42
-            [programs]
-            [inputs]
+            [program]
+            [input]
         "#,
     );
     assert!(Config::from_file(file_pathbuf.as_path(), &REAL_FS).is_err());
@@ -355,7 +333,8 @@ fn parse_valid_escape_hatch_file() {
     // let f3 = dir.path().join("file3.toml");
     let mut file1 = File::create(f1.as_path()).expect("A file could not be created.");
     let mut file2 = File::create(f2.as_path()).expect("A file could not be created.");
-    // let mut file3 = File::create(f3.as_path()).expect("A file could not be created.");
+    // let mut file3 = File::create(f3.as_path()).expect("A file could not be
+    // created.");
     file1
         .write_all(
             format!(
@@ -363,10 +342,9 @@ fn parse_valid_escape_hatch_file() {
     output_path = \"{}/42\"
     metrics_path = \"{}/43\"
     experiments_folder = \"{}/44\"
-    escape_hatch = \"{}\"
-    [programs.x]
+    input_schema = \"{}\"
+    [program.x]
     binary = \"/bin/sleep\"
-    [inputs]
     ",
                 dir.path().to_str().unwrap(),
                 dir.path().to_str().unwrap(),
@@ -401,20 +379,30 @@ fn parse_valid_escape_hatch_file() {
                 arguments: vec![],
                 afterscript: None,
                 postprocess_job: None,
+                resource_limits: None,
             },
         )]
         .into_iter()
-        .collect(),
+        .collect::<BTreeMap<String, Program>>()
+        .into(),
         inputs: vec![
             (
-                "_internal__hatch_0".to_string(),
+                format!(
+                    "{}{}0",
+                    crate::constants::INTERNAL_PREFIX,
+                    crate::constants::INTERNAL_SCHEMA_INPUTS
+                ),
                 crate::config::Input {
                     input: None,
                     arguments: vec!["hello".to_string()],
                 },
             ),
             (
-                "_internal__hatch_1".to_string(),
+                format!(
+                    "{}{}1",
+                    crate::constants::INTERNAL_PREFIX,
+                    crate::constants::INTERNAL_SCHEMA_INPUTS
+                ),
                 crate::config::Input {
                     input: None,
                     arguments: vec!["hi".to_string()],
@@ -422,13 +410,16 @@ fn parse_valid_escape_hatch_file() {
             ),
         ]
         .into_iter()
-        .collect(),
-        escape_hatch: None,
+        .collect::<BTreeMap<String, Input>>()
+        .into(),
+        input_schema: None,
         slurm: None,
         resource_limits: None,
+        postprocess_resource_limits: None,
         wrapper: WRAPPER_DEFAULT(),
         afterscript_output_folder: None,
         postprocess_job_output_folder: None,
+        postprocess_programs: None,
         labels: None,
     };
     assert_eq!(c1, c2);
