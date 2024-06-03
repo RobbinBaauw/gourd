@@ -200,3 +200,117 @@ fn latest_id_correct() {
     let id = Experiment::latest_id_from_folder(tempdir.path()).unwrap();
     assert_eq!(id, Some(2));
 }
+
+#[test]
+fn afterscript_info_when_exists() {
+    let tempdir = TempDir::new("tests").unwrap();
+
+    let seq = &42;
+    let prog_name = &String::from("c");
+    let input_name = &String::from("d");
+
+    let mut config: Config = Config::from_file(
+        Path::new("src/gourd/experiments/tests/test_resources/config_afterscript.toml"),
+        &REAL_FS,
+    )
+    .unwrap();
+
+    config.afterscript_output_folder = Some(PathBuf::from(tempdir.path()));
+
+    Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
+
+    let result: Result<Option<PathBuf>> =
+        get_afterscript_info(&config, seq, prog_name, input_name, &REAL_FS);
+
+    assert!(result.is_ok());
+    assert!(result.unwrap().is_some());
+}
+
+#[test]
+fn afterscript_info_when_not_exist() {
+    let seq = &42;
+    let prog_name = &String::from("b");
+    let input_name = &String::from("d");
+
+    let config: Config = Config::from_file(
+        Path::new("src/gourd/experiments/tests/test_resources/config_correct_local.toml"),
+        &REAL_FS,
+    )
+    .unwrap();
+
+    Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
+
+    let result: Result<Option<PathBuf>> =
+        get_afterscript_info(&config, seq, prog_name, input_name, &REAL_FS);
+
+    assert!(result.is_ok());
+    assert!(result.unwrap().is_none());
+}
+
+#[test]
+fn afterscript_info_when_error() {
+    let config: Config = Config::from_file(
+        Path::new("src/gourd/experiments/tests/test_resources/config_afterscript_error.toml"),
+        &REAL_FS,
+    )
+    .unwrap();
+
+    assert!(Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).is_err());
+}
+
+#[test]
+fn postprocess_job_info_when_exists() {
+    let tempdir = TempDir::new("tests").unwrap();
+
+    let seq = &42;
+    let prog_name = &String::from("c");
+    let input_name = &String::from("d");
+
+    let mut config: Config = Config::from_file(
+        Path::new("src/gourd/experiments/tests/test_resources/config_postprocess_job.toml"),
+        &REAL_FS,
+    )
+    .unwrap();
+
+    config.postprocess_job_output_folder = Some(PathBuf::from(tempdir.path()));
+
+    Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
+
+    let result: Result<Option<PathBuf>> =
+        get_postprocess_job_info(&config, seq, prog_name, input_name, &REAL_FS);
+
+    assert!(result.is_ok());
+    assert!(result.unwrap().is_some());
+}
+
+#[test]
+fn postprocess_job_info_when_not_exist() {
+    let seq = &42;
+    let prog_name = &String::from("b");
+    let input_name = &String::from("d");
+
+    let config: Config = Config::from_file(
+        Path::new("src/gourd/experiments/tests/test_resources/config_correct_local.toml"),
+        &REAL_FS,
+    )
+    .unwrap();
+
+    Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
+
+    let result: Result<Option<PathBuf>> =
+        get_postprocess_job_info(&config, seq, prog_name, input_name, &REAL_FS);
+
+    assert!(result.is_ok());
+    assert!(result.unwrap().is_none());
+}
+
+#[test]
+fn postprocess_job_info_when_error() {
+    let config: Config = Config::from_file(
+        Path::new("src/gourd/experiments/tests/test_resources/config_postprocess_job_error.toml"),
+        &REAL_FS,
+    )
+    .unwrap();
+
+    assert!(Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).is_err());
+}

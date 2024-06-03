@@ -11,7 +11,6 @@ use gourd_lib::experiment::InputRef;
 use gourd_lib::experiment::ProgramRef;
 use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
-use log::debug;
 
 use crate::status::ExperimentStatus;
 use crate::status::PostprocessCompletion;
@@ -53,8 +52,6 @@ pub fn schedule_post_jobs(
                 "Could not get the postprocessing information", ;
                 "",
             ))?;
-
-        debug!("The string we are dealing with is {}", postprocess);
 
         let prog_name = match &run.program {
             ProgramRef::Regular(name) => name.clone(),
