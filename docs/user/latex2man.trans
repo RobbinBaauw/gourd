@@ -1,0 +1,2 @@
+$manMacro1a{'Prog'} 	 	= '\fB';
+	$manMacro1b{'Prog'} 	= '\fP';

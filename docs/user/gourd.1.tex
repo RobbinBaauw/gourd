@@ -23,7 +23,7 @@
 \setVersion{1.29}
 
 
-\input{latex2man_styling.tex}
+\input{docs/user/latex2man_styling.tex}
 
 \usepackage{mathspec}
 \setmainfont[Mapping=tex-text, FakeBold=1]{Linux Libertine O}
@@ -67,7 +67,7 @@
         \Prog{gourd} can replicate the experiment on any cluster computer with the \Prog{Slurm} scheduler,
         on any UNIX-like system, and on Microsoft Windows.
 
-        New to \Prog{gourd}? Go directly to the \Prog{gourd-tutorial}(1) manual.
+        New to \Prog{gourd}? Go directly to the \Prog{gourd-tutorial(7)} manual.
 
 
     \section{OPTIONS}
@@ -75,7 +75,7 @@
         The following options apply to all \Prog{gourd} commands.
 
         \begin{Description}[Options]
-            \item[\oOptArg{-c}{ filename}, \OptArg{--config}{ filename}]
+            \item[\OptArg{-c}{ filename}, \OptArg{--config}{ filename}]
             Tell \Prog{gourd} to use the given filename as \File{gourd.toml}, the configuration
             file that defines the experimental setup.
             By default, the file is expected in the current working directory at \File{./gourd.toml}.
@@ -131,7 +131,7 @@
                 Because most options are specified in this file, it is usually sufficient to type
                 \Prog{gourd}~\Arg{run}~\Arg{slurm}|\Arg{local} to run an experiment.
 
-                See the manual page for \Prog{gourd-tutorial}(1) for a step-by-step guide on
+                See the manual page for \Prog{gourd-tutorial(7)} for a step-by-step guide on
                 designing experiments to run.
 
 
@@ -228,7 +228,7 @@
             \subsubsection{Options}
                 \begin{Description}[Options]
                 \item[\OptArg{-e, --example}{ example-name}]
-                Initializes the given directory with an example configuration from \Prog{gourd-tutorial}(1)
+                Initializes the given directory with an example configuration from \Prog{gourd-tutorial(7)}
                 (rather than a custom template for \File{gourd.toml}).
                 \item[\Opt{-q, --quick}]
                 Does not give interactive prompts, using default values to create a minimal \File{gourd.toml}.
@@ -313,7 +313,7 @@
     \section{EXAMPLES}
 
         This section contains some common examples of using \Prog{gourd}.
-        For a more detailed walkthrough with more focus on examples, use the \Prog{gourd-tutorial}(1) manual.
+        For a more detailed walkthrough with more focus on examples, use the \Prog{gourd-tutorial(7)} manual.
 
 
 
@@ -327,9 +327,9 @@
 
     \section{SEE ALSO}
 
-        \Prog{gourd-tutorial}(1)
+        \Prog{gourd-tutorial(7)}
 
-        \Prog{gourd.toml}(5)
+        \Prog{gourd.toml(5)}
 
     \section{AUTHORS}
     Lukáš Chládek <\Email{l@chla.cz}>\\[0.1cm]\MANbr
