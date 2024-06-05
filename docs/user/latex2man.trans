@@ -1,2 +1,4 @@
 $manMacro1a{'Prog'} 	 	= '\fB';
 	$manMacro1b{'Prog'} 	= '\fP';
+$manMacro1a{'oOpt'} 	 	= '[\fB';
+	$manMacro1b{'oOpt'} 	= '\fP]';

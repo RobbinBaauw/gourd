@@ -49,7 +49,7 @@
   \section{DESCRIPTION}
 
       \noindent \Prog{gourd.toml} is a declarative configuration file that,
-      when provided to \Prog{gourd}, can be used to create a new \emph{experiment}.
+      when provided to \Prog{gourd(1)}, can be used to create a new \emph{experiment}.
       The rules for typesetting the file follow the standard TOML format.
 
       By default, the filename is \File{gourd.toml}.
@@ -71,10 +71,10 @@
         \item[\Opt{output\_path} = path]
             Where to store the stdout files from the \emph{programs}.
         \item[\Opt{metrics\_path} = path]
-            Where to store the metrics for \Prog{gourd} \Arg{status}.
+          Where to store the metrics for \Prog{gourd(1)} \Arg{status}.
         \item[\Opt{experiments\_folder} = path]
             Where to store state of previously ran experiments.
-        \item[\oOpt{wrapper} = string]
+        \item[\Opt{wrapper?} = string]
             Defines the path to the \File{gourd-wrapper} binary.
             The default value is \Arg{gourd-wrapper}.
     \end{Description}
@@ -99,16 +99,16 @@
       \begin{Description}[Options]\setlength{\itemsep}{0cm}
           \item[\Opt{binary} = path]
             Path to the program executable.
-          \item[\oOpt{arguments} = list of string]
+          \item[\Opt{arguments?} = list of string]
             Arguments to be passed to the executable.
             The default is no arguments.
-          \item[\oOpt{afterscript} = see afterscript]
+          \item[\Opt{afterscript?} = see afterscript]
             The configuration for running a short script after program completion.
       \end{Description}
 
     \section{INPUTS}
 
-      A \Prog{gourd} experiment consists of a cross-product mapping between programs
+      A \Prog{gourd(1)} experiment consists of a cross-product mapping between programs
       and inputs.
       The experiment created from a \File{gourd.toml} file runs every combination
       of program and input in the file.
@@ -119,10 +119,10 @@
       Each input contains the following keys:
 
       \begin{Description}[Options]\setlength{\itemsep}{0cm}
-          \item[\oOpt{input} = path]
+          \item[\Opt{input?} = path]
             Path to a file, the contents of which are passed to the program as standard input.
             By default, no standard input is provided.
-          \item[\oOpt{arguments} = list of string]
+          \item[\Opt{arguments?} = list of string]
             Additional command-line arguments to be passed to the program.
             The input arguments are appended to the programs arguments.
             By default, no additional arguments.
@@ -157,7 +157,7 @@ arguments = ["-f1", "./inputs/2.in", "-f2", "./input2/test.in"]
 
 
   \section{SEE ALSO}
-      \Prog{gourd}(1)
+      \Prog{gourd(1)}
 
   \section{AUTHORS}
     Lukáš Chládek <\Email{l@chla.cz}>\\[0.1cm]\MANbr
