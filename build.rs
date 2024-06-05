@@ -48,6 +48,8 @@ fn main() -> Result<()> {
     .into();
 
     // Uncomment for local builds.
+    // The point of this is the rebuild the documentation whenever it is updated.
+    // We cannot run this on the CI, thus it is disabled by default.
     // println!("cargo::rerun-if-changed=build.rs");
 
     let target_dir = outdir.parent().unwrap().parent().unwrap().parent().unwrap();

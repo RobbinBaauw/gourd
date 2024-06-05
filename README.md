@@ -25,11 +25,11 @@ Put these in your `$PATH`.
 
 # Obtaining the manual
 
-To user and maintainer documentation run `cargo build --release --no-default-features --features documentation -vv`.
+To build user and maintainer documentation run `cargo build --release --no-default-features --features documentation -vv`.
 
 These are built into HTML, PDF, and `man` formats.
 
-To build technical documentation run `cargo doc --release --document-private-items`.
+To build code documentation run `cargo doc --release --document-private-items`.
 
 This is built into HTML.
 
