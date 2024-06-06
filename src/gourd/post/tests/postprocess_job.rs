@@ -7,7 +7,6 @@ use crate::post::postprocess_job::filter_runs_for_post_job;
 use crate::status::FileSystemBasedStatus;
 use crate::status::FsState;
 use crate::status::PostprocessCompletion;
-use crate::status::PostprocessOutput;
 use crate::status::SlurmBasedStatus;
 use crate::status::SlurmState;
 use crate::status::Status;
@@ -70,12 +69,7 @@ fn test_filter_runs_for_afterscript_good_weather() {
                     rusage: None,
                 }),
                 afterscript_completion: None,
-                postprocess_job_completion: Some(PostprocessCompletion::Success(
-                    PostprocessOutput {
-                        short_output: String::from("short"),
-                        long_output: String::from("long"),
-                    },
-                )),
+                postprocess_job_completion: Some(PostprocessCompletion::Success),
             },
             slurm_status: None,
         },

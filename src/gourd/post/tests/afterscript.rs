@@ -20,7 +20,6 @@ use crate::post::afterscript::Config;
 use crate::post::afterscript::PostprocessCompletion;
 use crate::status::FileSystemBasedStatus;
 use crate::status::FsState;
-use crate::status::PostprocessOutput;
 use crate::status::SlurmBasedStatus;
 use crate::status::SlurmState;
 use crate::status::Status;
@@ -32,7 +31,6 @@ tr '[a-z]' '[A-Z]' <$1 >$2
 
 const PREPROGRAMMED_RESULTS: &str = r#"[package]
 name = "gourd"
-version = "0.1.5-alpha"
 edition = "2021"
 
 [dependencies]
@@ -95,10 +93,7 @@ fn test_filter_runs_for_afterscript_good_weather() {
                     exit_code: 0,
                     rusage: None,
                 }),
-                afterscript_completion: Some(PostprocessCompletion::Success(PostprocessOutput {
-                    short_output: String::from("short"),
-                    long_output: String::from("long"),
-                })),
+                afterscript_completion: Some(PostprocessCompletion::Success),
                 postprocess_job_completion: None,
             },
             slurm_status: None,

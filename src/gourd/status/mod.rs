@@ -94,7 +94,7 @@ impl FsState {
 }
 
 /// This possible outcomes of a postprocessing.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum PostprocessCompletion {
     /// The postprocessing job has not yet started.
     Dormant,
@@ -103,24 +103,14 @@ pub enum PostprocessCompletion {
     Pending,
 
     /// The postprocessing job succeded.
-    Success(PostprocessOutput),
+    Success,
 
     /// The postprocessing job failed with the following exit status.
     Failed,
 }
 
-/// The results of a postprocessing.
-#[derive(Debug, Clone, PartialEq)]
-pub struct PostprocessOutput {
-    /// The shortened version of postprocessing output.
-    pub short_output: String,
-
-    /// The full output of postprocessing.
-    pub long_output: String,
-}
-
 /// Structure of file based status
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub struct FileSystemBasedStatus {
     /// State of completion of the run
     pub completion: FsState,
@@ -146,7 +136,7 @@ pub struct SlurmBasedStatus {
 }
 
 /// All possible postprocessing statuses of a run.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub struct Status {
     /// Status retrieved from slurm.
     pub slurm_status: Option<SlurmBasedStatus>,
@@ -213,7 +203,7 @@ pub fn merge_statuses(
                 job_id,
                 Status {
                     slurm_status: slurm_based.get(&job_id).cloned(),
-                    fs_status: fs[&job_id].clone(),
+                    fs_status: fs[&job_id],
                 },
             );
         } else {
@@ -221,7 +211,7 @@ pub fn merge_statuses(
                 job_id,
                 Status {
                     slurm_status: None,
-                    fs_status: fs[&job_id].clone(),
+                    fs_status: fs[&job_id],
                 },
             );
         }

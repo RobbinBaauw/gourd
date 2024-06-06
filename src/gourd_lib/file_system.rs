@@ -136,22 +136,11 @@ impl FileOperations for FileSystemInteractor {
 
     fn truncate_and_canonicalize_folder(&self, path: &Path) -> Result<PathBuf> {
         if self.dry_run {
-            if let Some(parent) = path.parent() {
-                debug!("Would have created {parent:?} (dry)");
-            }
-
             debug!("Would have created {path:?} (dry)");
             return Ok(path.to_path_buf());
         }
 
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).with_context(ctx!(
-              "Could not create parent directories for {parent:?}", ;
-              "Ensure that you have sufficient permissions",
-            ))?;
-        }
-
-        fs::create_dir(path).with_context(ctx!(
+        fs::create_dir_all(path).with_context(ctx!(
            "Could not create {path:?}", ;
            "Ensure that you have sufficient permissions",
         ))?;

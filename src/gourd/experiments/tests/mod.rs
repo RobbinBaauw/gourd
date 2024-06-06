@@ -1,6 +1,9 @@
 use std::collections::BTreeMap;
 use std::time::Duration;
+use std::vec;
 
+use gourd_lib::config::Input;
+use gourd_lib::config::Program;
 use gourd_lib::config::ResourceLimits;
 use tempdir::TempDir;
 
@@ -205,22 +208,42 @@ fn latest_id_correct() {
 fn afterscript_info_when_exists() {
     let tempdir = TempDir::new("tests").unwrap();
 
-    let seq = &42;
-    let prog_name = &String::from("c");
-    let input_name = &String::from("d");
+    let mut config = gourd_lib::config::Config {
+        output_path: PathBuf::from(tempdir.path()),
+        metrics_path: PathBuf::from(tempdir.path()),
+        experiments_folder: PathBuf::from(tempdir.path()),
+        afterscript_output_folder: Some(PathBuf::from(tempdir.path())),
+        ..Default::default()
+    };
 
-    let mut config: Config = Config::from_file(
-        Path::new("src/gourd/experiments/tests/test_resources/config_afterscript.toml"),
-        &REAL_FS,
-    )
-    .unwrap();
+    config.programs.insert(
+        String::from("a"),
+        Program {
+            binary: PathBuf::from(tempdir.path()),
+            arguments: vec![],
+            afterscript: Some(PathBuf::from(tempdir.path())),
+            postprocess_job: None,
+            resource_limits: None,
+        },
+    );
 
-    config.afterscript_output_folder = Some(PathBuf::from(tempdir.path()));
+    config.inputs.insert(
+        String::from("d"),
+        Input {
+            input: Some(PathBuf::from(tempdir.path())),
+            arguments: vec![],
+        },
+    );
 
     Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
 
-    let result: Result<Option<PathBuf>> =
-        get_afterscript_info(&config, seq, prog_name, input_name, &REAL_FS);
+    let result: Result<Option<PathBuf>> = get_afterscript_info(
+        &config,
+        &1,
+        &String::from("a"),
+        &String::from("d"),
+        &REAL_FS,
+    );
 
     assert!(result.is_ok());
     assert!(result.unwrap().is_some());
@@ -228,20 +251,43 @@ fn afterscript_info_when_exists() {
 
 #[test]
 fn afterscript_info_when_not_exist() {
-    let seq = &42;
-    let prog_name = &String::from("b");
-    let input_name = &String::from("d");
+    let tempdir = TempDir::new("tests").unwrap();
 
-    let config: Config = Config::from_file(
-        Path::new("src/gourd/experiments/tests/test_resources/config_correct_local.toml"),
-        &REAL_FS,
-    )
-    .unwrap();
+    let mut config = gourd_lib::config::Config {
+        output_path: PathBuf::from(tempdir.path()),
+        metrics_path: PathBuf::from(tempdir.path()),
+        experiments_folder: PathBuf::from(tempdir.path()),
+        ..Default::default()
+    };
+
+    config.programs.insert(
+        String::from("a"),
+        Program {
+            binary: PathBuf::from(tempdir.path()),
+            arguments: vec![],
+            afterscript: None,
+            postprocess_job: None,
+            resource_limits: None,
+        },
+    );
+
+    config.inputs.insert(
+        String::from("d"),
+        Input {
+            input: Some(PathBuf::from(tempdir.path())),
+            arguments: vec![],
+        },
+    );
 
     Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
 
-    let result: Result<Option<PathBuf>> =
-        get_afterscript_info(&config, seq, prog_name, input_name, &REAL_FS);
+    let result: Result<Option<PathBuf>> = get_afterscript_info(
+        &config,
+        &1,
+        &String::from("a"),
+        &String::from("d"),
+        &REAL_FS,
+    );
 
     assert!(result.is_ok());
     assert!(result.unwrap().is_none());
@@ -249,11 +295,33 @@ fn afterscript_info_when_not_exist() {
 
 #[test]
 fn afterscript_info_when_error() {
-    let config: Config = Config::from_file(
-        Path::new("src/gourd/experiments/tests/test_resources/config_afterscript_error.toml"),
-        &REAL_FS,
-    )
-    .unwrap();
+    let tempdir = TempDir::new("tests").unwrap();
+
+    let mut config = gourd_lib::config::Config {
+        output_path: PathBuf::from(tempdir.path()),
+        metrics_path: PathBuf::from(tempdir.path()),
+        experiments_folder: PathBuf::from(tempdir.path()),
+        ..Default::default()
+    };
+
+    config.programs.insert(
+        String::from("a"),
+        Program {
+            binary: PathBuf::from(tempdir.path()),
+            arguments: vec![],
+            afterscript: Some(PathBuf::from(tempdir.path())),
+            postprocess_job: None,
+            resource_limits: None,
+        },
+    );
+
+    config.inputs.insert(
+        String::from("d"),
+        Input {
+            input: Some(PathBuf::from(tempdir.path())),
+            arguments: vec![],
+        },
+    );
 
     assert!(Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).is_err());
 }
@@ -262,22 +330,56 @@ fn afterscript_info_when_error() {
 fn postprocess_job_info_when_exists() {
     let tempdir = TempDir::new("tests").unwrap();
 
-    let seq = &42;
-    let prog_name = &String::from("c");
-    let input_name = &String::from("d");
+    let mut config = gourd_lib::config::Config {
+        output_path: PathBuf::from(tempdir.path()),
+        metrics_path: PathBuf::from(tempdir.path()),
+        experiments_folder: PathBuf::from(tempdir.path()),
+        postprocess_job_output_folder: Some(PathBuf::from(tempdir.path())),
+        ..Default::default()
+    };
 
-    let mut config: Config = Config::from_file(
-        Path::new("src/gourd/experiments/tests/test_resources/config_postprocess_job.toml"),
-        &REAL_FS,
-    )
-    .unwrap();
+    config.programs.insert(
+        String::from("a"),
+        Program {
+            binary: PathBuf::from(tempdir.path()),
+            arguments: vec![],
+            afterscript: None,
+            postprocess_job: Some(String::from("b")),
+            resource_limits: None,
+        },
+    );
 
-    config.postprocess_job_output_folder = Some(PathBuf::from(tempdir.path()));
+    let mut post = BTreeMap::new();
+    post.insert(
+        String::from("b"),
+        Program {
+            binary: PathBuf::from(tempdir.path()),
+            arguments: vec![],
+            afterscript: None,
+            postprocess_job: None,
+            resource_limits: None,
+        },
+    );
+
+    config.postprocess_programs = Some(post);
+
+    config.inputs.insert(
+        String::from("d"),
+        Input {
+            input: Some(PathBuf::from(tempdir.path())),
+            arguments: vec![],
+        },
+    );
 
     Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
 
-    let result: Result<Option<PathBuf>> =
-        get_postprocess_job_info(&config, seq, prog_name, input_name, &REAL_FS);
+    let result: Result<Option<PathBuf>> = get_postprocess_job_info(
+        &config,
+        &1,
+        &String::from("a"),
+        &String::from("d"),
+        &REAL_FS,
+    );
 
     assert!(result.is_ok());
     assert!(result.unwrap().is_some());
@@ -285,20 +387,44 @@ fn postprocess_job_info_when_exists() {
 
 #[test]
 fn postprocess_job_info_when_not_exist() {
-    let seq = &42;
-    let prog_name = &String::from("b");
-    let input_name = &String::from("d");
+    let tempdir = TempDir::new("tests").unwrap();
 
-    let config: Config = Config::from_file(
-        Path::new("src/gourd/experiments/tests/test_resources/config_correct_local.toml"),
-        &REAL_FS,
-    )
-    .unwrap();
+    let mut config = gourd_lib::config::Config {
+        output_path: PathBuf::from(tempdir.path()),
+        metrics_path: PathBuf::from(tempdir.path()),
+        experiments_folder: PathBuf::from(tempdir.path()),
+        postprocess_job_output_folder: Some(PathBuf::from(tempdir.path())),
+        ..Default::default()
+    };
+
+    config.programs.insert(
+        String::from("a"),
+        Program {
+            binary: PathBuf::from(tempdir.path()),
+            arguments: vec![],
+            afterscript: None,
+            postprocess_job: None,
+            resource_limits: None,
+        },
+    );
+
+    config.inputs.insert(
+        String::from("d"),
+        Input {
+            input: Some(PathBuf::from(tempdir.path())),
+            arguments: vec![],
+        },
+    );
 
     Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
 
-    let result: Result<Option<PathBuf>> =
-        get_postprocess_job_info(&config, seq, prog_name, input_name, &REAL_FS);
+    let result: Result<Option<PathBuf>> = get_postprocess_job_info(
+        &config,
+        &1,
+        &String::from("a"),
+        &String::from("d"),
+        &REAL_FS,
+    );
 
     assert!(result.is_ok());
     assert!(result.unwrap().is_none());
@@ -306,11 +432,47 @@ fn postprocess_job_info_when_not_exist() {
 
 #[test]
 fn postprocess_job_info_when_error() {
-    let config: Config = Config::from_file(
-        Path::new("src/gourd/experiments/tests/test_resources/config_postprocess_job_error.toml"),
-        &REAL_FS,
-    )
-    .unwrap();
+    let tempdir = TempDir::new("tests").unwrap();
+
+    let mut config = gourd_lib::config::Config {
+        output_path: PathBuf::from(tempdir.path()),
+        metrics_path: PathBuf::from(tempdir.path()),
+        experiments_folder: PathBuf::from(tempdir.path()),
+        ..Default::default()
+    };
+
+    config.programs.insert(
+        String::from("a"),
+        Program {
+            binary: PathBuf::from(tempdir.path()),
+            arguments: vec![],
+            afterscript: None,
+            postprocess_job: Some(String::from("b")),
+            resource_limits: None,
+        },
+    );
+
+    let mut post = BTreeMap::new();
+    post.insert(
+        String::from("b"),
+        Program {
+            binary: PathBuf::from(tempdir.path()),
+            arguments: vec![],
+            afterscript: None,
+            postprocess_job: None,
+            resource_limits: None,
+        },
+    );
+
+    config.postprocess_programs = Some(post);
+
+    config.inputs.insert(
+        String::from("d"),
+        Input {
+            input: Some(PathBuf::from(tempdir.path())),
+            arguments: vec![],
+        },
+    );
 
     assert!(Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).is_err());
 }
