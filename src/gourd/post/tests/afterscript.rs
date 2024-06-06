@@ -6,6 +6,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use gourd_lib::config::Config;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileSystemInteractor;
@@ -16,7 +17,6 @@ use crate::experiments::ExperimentExt;
 use crate::post::afterscript::add_label_to_run;
 use crate::post::afterscript::filter_runs_for_afterscript;
 use crate::post::afterscript::run_afterscript_for_run;
-use crate::post::afterscript::Config;
 use crate::post::afterscript::PostprocessCompletion;
 use crate::status::FileSystemBasedStatus;
 use crate::status::FsState;

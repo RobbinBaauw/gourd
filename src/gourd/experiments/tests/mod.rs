@@ -361,7 +361,7 @@ fn postprocess_job_info_when_exists() {
         },
     );
 
-    config.postprocess_programs = Some(post);
+    config.postprocess_programs = Some(post.into());
 
     config.inputs.insert(
         String::from("d"),
@@ -464,7 +464,7 @@ fn postprocess_job_info_when_error() {
         },
     );
 
-    config.postprocess_programs = Some(post);
+    config.postprocess_programs = Some(post.into());
 
     config.inputs.insert(
         String::from("d"),
