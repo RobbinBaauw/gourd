@@ -155,6 +155,64 @@ arguments = ["-f1", "./inputs/1.in", "-f2", "./input2/test.in"]
 arguments = ["-f1", "./inputs/2.in", "-f2", "./input2/test.in"]
       \end{verbatim}
 
+  \section{LABELS}
+  \subsection{Labels}
+  When running \Prog{gourd} \Arg{status}, by default the statuses only display information
+  about Slurm scheduling of the run or an exit code.
+  In the case that a job execution can succeed (exit code 0) but the run should still
+  be considered a failure, the user can add a custom label to the run, derived from
+  the output of the run's `afterscript'.
+  Labels can be created in the configuration file as names with a regular expression,
+  where if the regex is matched in the afterscript's output, the label is assigned to the run.
+  Syntax is as follows:
+
+  \File{gourd.toml}
+  \begin{verbatim}
+    [label.<label_name>]
+    regex = <regex>
+    priority = <int>
+    rerun_by_default = <true/false>
+  \end{verbatim}
+
+  \begin{itemize}
+      \item \File{<label\_name>}: The name of the label as is to be displayed by \Prog{gourd} \Arg{status}.
+      \item \File{<regex>}: The regular expression to match against the afterscript's output.
+      If a match is found, the label is assigned to the run.
+      \item \File{<int>}: The priority of the label.
+      Higher numbers have higher priority.
+      If multiple labels match the afterscript's output, the label with the highest priority is assigned to the run.
+      Multiple labels with the same priority are assigned to the run cause undefined behaviour.
+      %(I think they are ordered alphabetically by name's hash).
+      \item \File{<true/false>}: Including this is optional, with a default value of \File{true}.
+      If the field is not present or present with value \File{true}, the run will be rerun by default if
+      this label is assigned to it; i.e., this will be considered a failed run.
+      If false then \Prog{gourd} \Arg{status} will display the run as successful, and \Prog{gourd} \Arg{rerun} will ignore it.
+  \end{itemize}
+
+  Labels are assigned based on priority.
+  For example if the configuration file looks like:
+  \begin{verbatim}
+    [label.label1]
+    regex = "Success"
+    priority = 1
+    rerun_by_default = false
+
+    [label.label2]
+    regex = "RuntimeException"
+    priority = 2
+  \end{verbatim}
+
+  and the afterscript output looks like:
+
+  \begin{verbatim}
+    Starting afterscript...
+    Success! The output was correct.
+    Verifying something else...
+    RuntimeException thrown while parsing
+  \end{verbatim}
+
+  then by principle of priorities, the run will be assigned \File{label2} even though both regex match.
+
 
   \section{SEE ALSO}
       \Prog{gourd(1)}
