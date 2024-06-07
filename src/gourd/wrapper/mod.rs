@@ -43,7 +43,7 @@ pub fn wrap(
 
     for (chunk_rel, run_id) in experiment.chunks[0].runs.iter().enumerate() {
         let run = &experiment.runs[*run_id];
-        let program = &experiment.config.programs[&run.program];
+        let program = &experiment.get_program(run)?;
 
         verify_arch(&program.binary, arch, fs)?;
 

@@ -13,7 +13,6 @@ use log::trace;
 
 use super::FileSystemBasedStatus;
 use super::PostprocessCompletion;
-use super::PostprocessOutput;
 use super::StatusProvider;
 use crate::status::FsState;
 
@@ -100,14 +99,18 @@ impl FileBasedProvider {
                 "",
             ))?;
 
-        let is_empty = dir.read_dir()?.next().is_none();
+        let is_empty = dir
+            .read_dir()
+            .with_context(ctx!(
+                "Directory {:?} could not be read", dir;
+                "Check if {:?} is an accessible directory", dir,
+            ))?
+            .next()
+            .is_none();
 
         // TODO adding meaningful postprocess outputs
         if !is_empty {
-            postprocess_completion = PostprocessCompletion::Success(PostprocessOutput {
-                short_output: String::from("gg"),
-                long_output: String::from("gg"),
-            });
+            postprocess_completion = PostprocessCompletion::Success;
         }
 
         Ok(postprocess_completion)
@@ -125,13 +128,17 @@ impl FileBasedProvider {
                 "",
             ))?;
 
-        let is_empty = dir.read_dir()?.next().is_none();
+        let is_empty = dir
+            .read_dir()
+            .with_context(ctx!(
+                "Directory {:?} could not be read", dir;
+                "Check if {:?} is an accessible directory", dir,
+            ))?
+            .next()
+            .is_none();
 
         if !is_empty {
-            postprocess_completion = PostprocessCompletion::Success(PostprocessOutput {
-                short_output: String::from("gg"),
-                long_output: String::from("gg"),
-            });
+            postprocess_completion = PostprocessCompletion::Success;
         }
 
         Ok(postprocess_completion)

@@ -11,12 +11,11 @@ use serde::Serialize;
 use crate::constants::AFTERSCRIPT_DEFAULT;
 use crate::constants::AFTERSCRIPT_OUTPUT_DEFAULT;
 use crate::constants::EMPTY_ARGS;
-use crate::constants::POSTPROCESS_JOB_CPUS;
+use crate::constants::POSTPROCESS_JOBS_DEFAULT;
 use crate::constants::POSTPROCESS_JOB_DEFAULT;
-use crate::constants::POSTPROCESS_JOB_MEM;
 use crate::constants::POSTPROCESS_JOB_OUTPUT_DEFAULT;
-use crate::constants::POSTPROCESS_JOB_TIME;
 use crate::constants::PRIMARY_STYLE;
+use crate::constants::PROGRAM_RESOURCES_DEFAULT;
 use crate::constants::RERUN_LABEL_BY_DEFAULT;
 use crate::constants::WRAPPER_DEFAULT;
 use crate::error::ctx;
@@ -47,7 +46,11 @@ pub struct Program {
 
     /// The path to the postprocess job, if there is one.
     #[serde(default = "POSTPROCESS_JOB_DEFAULT")]
-    pub postprocess_job: Option<PathBuf>,
+    pub postprocess_job: Option<String>,
+
+    /// Resource limits to optionally overwrite default resource limits.
+    #[serde(default = "PROGRAM_RESOURCES_DEFAULT")]
+    pub resource_limits: Option<ResourceLimits>,
 }
 
 /// A pair of a path to an input and additional cli arguments.
@@ -130,6 +133,9 @@ pub struct Config {
     /// If running on a SLURM cluster, the initial global resource limits
     pub resource_limits: Option<ResourceLimits>,
 
+    /// If running on a SLURM cluster, the initial postprocessing resource limits
+    pub postprocess_resource_limits: Option<ResourceLimits>,
+
     //
     // Advanced settings.
     //
@@ -144,6 +150,10 @@ pub struct Config {
     /// The path to a folder where the afterscript outputs will be stored.
     #[serde(default = "POSTPROCESS_JOB_OUTPUT_DEFAULT")]
     pub postprocess_job_output_folder: Option<PathBuf>,
+
+    /// The list of postprocessing programs.
+    #[serde(default = "POSTPROCESS_JOBS_DEFAULT")]
+    pub postprocess_programs: Option<ProgramMap>,
 
     /// Allow custom labels to be assigned based on the afterscript output.
     ///
@@ -196,18 +206,6 @@ pub struct SlurmConfig {
 
     /// Custom slurm arguments
     pub additional_args: Option<BTreeMap<String, SBatchArg>>,
-
-    /// Maximum time allowed _for each_ postprocess job.
-    #[serde(default = "POSTPROCESS_JOB_TIME")]
-    pub post_job_time_limit: Option<String>, // this is a string because slurm jobs can be longer than 24h, which is the largest value in toml time. format needs to be either "days-hours:minutes:seconds" or "minutes"
-
-    /// CPUs to use per postprocess job.
-    #[serde(default = "POSTPROCESS_JOB_CPUS")]
-    pub post_job_cpus: Option<usize>,
-
-    /// Memory in MB to allocate per CPU per postprocess job.
-    #[serde(default = "POSTPROCESS_JOB_MEM")]
-    pub post_job_mem_per_cpu: Option<usize>,
 }
 
 /// The structure for providing custom slurm arguments
@@ -248,8 +246,10 @@ impl Default for Config {
             inputs: InputMap::default(),
             slurm: None,
             resource_limits: None,
+            postprocess_resource_limits: None,
             afterscript_output_folder: AFTERSCRIPT_OUTPUT_DEFAULT(),
             postprocess_job_output_folder: POSTPROCESS_JOB_OUTPUT_DEFAULT(),
+            postprocess_programs: None,
             labels: Some(BTreeMap::new()),
         }
     }

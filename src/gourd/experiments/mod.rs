@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -12,6 +13,8 @@ use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
+use gourd_lib::experiment::InputRef;
+use gourd_lib::experiment::ProgramRef;
 use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
 
@@ -62,8 +65,8 @@ impl ExperimentExt for Experiment {
         for prog_name in conf.programs.keys() {
             for input_name in conf.inputs.keys() {
                 runs.push(Run {
-                    program: prog_name.clone(),
-                    input: input_name.clone(),
+                    program: ProgramRef::Regular(prog_name.clone()),
+                    input: InputRef::Regular(input_name.clone()),
                     err_path: fs.truncate_and_canonicalize(
                         &conf
                             .output_path
@@ -79,14 +82,10 @@ impl ExperimentExt for Experiment {
                             .output_path
                             .join(format!("{}/{}/output_{}", seq, prog_name, input_name)),
                     )?,
-                    afterscript_output_path: conf.afterscript_output_folder.as_ref().map(
-                        |out_path| {
-                            out_path
-                                .join(format!("{}/{}/afterscript_{}", seq, prog_name, input_name))
-                        },
-                    ),
+                    afterscript_output_path: get_afterscript_info(
+                        conf, &seq, prog_name, input_name, fs,
+                    )?,
                     post_job_output_path: get_postprocess_job_info(
-                        // todo for ruta: check that this is correct
                         conf, &seq, prog_name, input_name, fs,
                     )?,
                     slurm_id: None,
@@ -102,6 +101,7 @@ impl ExperimentExt for Experiment {
             chunks: vec![],
             resource_limits: conf.resource_limits.clone(),
             env,
+            postprocess_inputs: BTreeMap::new(),
         })
     }
 
@@ -170,12 +170,17 @@ pub fn get_afterscript_info(
 ) -> Result<Option<PathBuf>> {
     let postprocessing = &config.programs[prog_name].afterscript;
 
-    if let Some(path) = postprocessing {
-        let afterscript_output_path = fs.truncate_and_canonicalize(
-            &path
-                .clone()
-                .join(format!("{}/{}/afterscript_{}", seq, prog_name, input_name)),
-        )?;
+    if postprocessing.is_some() {
+        let after_folder = match config.afterscript_output_folder.clone() {
+            Some(after_path) => Ok(after_path),
+            None => Err(anyhow!(
+                "No afterscript output folder specified, but afterscript exists"
+            )),
+        }?;
+
+        let path = &after_folder.join(format!("{}/{}/afterscript_{}", seq, prog_name, input_name));
+
+        let afterscript_output_path = fs.truncate_and_canonicalize_folder(path)?;
 
         Ok(Some(afterscript_output_path))
     } else {
@@ -193,13 +198,22 @@ pub fn get_postprocess_job_info(
 ) -> Result<Option<PathBuf>> {
     let postprocessing = &config.programs[prog_name].postprocess_job;
 
-    if let Some(path) = postprocessing {
-        let postprocess_output_path = fs.truncate_and_canonicalize(&path.clone().join(format!(
-            "{}/algo_{}postprocess_job_{}",
-            seq, prog_name, input_name
-        )))?;
+    if postprocessing.is_some() {
+        let postprocess_folder = match config.postprocess_job_output_folder.clone() {
+            Some(postpr_path) => Ok(postpr_path),
+            None => Err(anyhow!(
+                "No postprocess job output folder specified, but postprocess job exists"
+            )),
+        }?;
 
-        Ok(Some(postprocess_output_path))
+        let path = postprocess_folder.join(format!(
+            "{}/{}/postprocess_job_{}",
+            seq, prog_name, input_name
+        ));
+
+        let postprocess_job_output_path = fs.truncate_and_canonicalize_folder(&path)?;
+
+        Ok(Some(postprocess_job_output_path))
     } else {
         Ok(None)
     }

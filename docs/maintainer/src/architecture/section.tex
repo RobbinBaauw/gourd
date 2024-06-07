@@ -7,6 +7,99 @@
 
 This section explains each part of the application's modular layout and the technologies used.
 
+
+\subsection{Postprocessing}
+note: should be in user docs.
+
+To postprocess the output of the runs, there are two options available: afterscipts and Slurm postprocessing jobs. 
+Afterscripts are scripts that run locally (so for DelftBlue they do not get scheduled as separate jobs) and are 
+thus meant for quick and non-complicated postprocessing (such as getting the first line of the output file). For 
+long and complicated postprocessing with a significant computational cost, we support Slurm postprocessing jobs.
+A program being evaluated can have both an afterscript and a postprocessing Slurm job, one of them, or neither.
+
+\subsubsection{Afterscripts}
+An afterscript is optional and specified per program. To indicate the use of an afterscript, the path to the script 
+file needs to be specified in the gourd.toml under the chosen program. Multiple programs can use the same script.
+Furthermore, if at least one program has an afterscript, a path to a folder that will store the afterscript output 
+needs to be specified (once for the entire experiment, analogous to metrics and output paths). The afterscript can 
+be used to assign labels to runs as a means of specifying custom status.
+
+An afterscript should take as arguments the path to the input file and the path to a folder for output. The output 
+folder has been created and is empty. It is the responsibility of the afterscript to create and write to any files 
+in that directory.
+
+\subsubsection{Postprocessing Slurm jobs}
+A postprocesing Slurm job (further called "postprocessing job") is optional and specified per program. To indicate 
+the use of a postprocessing job, a program needs to be specified under "postprocessing programs" in gourd.toml. 
+That program will have the path to the postprocessing binary file. In addition, the name of this new postprocesing 
+program needs to be specified in the gourd.toml under the chosen regular program to indicate that this is the 
+postprocessing used. Multiple programs can use the same postprocessing program. Furthermore, if at least one program 
+has a postprocessing job, a path to a folder that will store the postprocesing job output needs to be specified 
+(once for the entire experiment, analogous to metrics and output paths). 
+
+As input the postprocessing binary will get the output of a run of a regular program that has been specified to have
+this postprocessing. It will write its results to a file the way that regular programs do.
+
+\subsubsection{Example gourd.toml with postprocessing}
+
+\begin{verbatim}
+    wrapper = "./gourd_wrapper"
+    output_path = "./exp/outputs"
+    metrics_path = "./exp/results"
+    experiments_folder = "./exp/experiments"
+    afterscript_output_folder = "./exp/after"
+    postprocess_job_output_folder = "./exp/post"
+    
+    [postprocess_resource_limits]
+    time_limit.secs = 60
+    time_limit.nanos = 0
+    cpus = 1
+    mem_per_cpu = 512
+    
+    [resource_limits]
+    time_limit.secs = 60
+    time_limit.nanos = 0
+    cpus = 1
+    mem_per_cpu = 512
+    
+    [slurm]
+    experiment_name = "this is my experiment"
+    partition = "compute"
+    array_count_limit = 1
+    array_size_limit = 10
+    account = "Education-EEMCS-MSc-CS"
+    
+    [programs.testprogram1]
+    binary = "./test"
+    arguments = []
+    postprocess_job = "post1"
+    
+    [programs.testprogram2]
+    binary = "/usr/bin/sleep"
+    arguments = []
+    afterscript = "./afterscript.sh"
+    
+    [inputs.testrun1]
+    input = "./inp"
+    arguments = ["1"]
+    
+    [inputs.testrun2]
+    input = "./inp"
+    arguments = ["2"]
+    
+    [inputs.testrun3]
+    input = "./inp"
+    arguments = ["3"]
+    
+    [inputs.testrun4]
+    input = "./inp"
+    arguments = ["4"]
+    
+    [postprocess_programs.post1]
+    binary = "./post"
+    arguments = []
+\end{verbatim}
+
 \subsection{Labels}
 note: this is going to be moved to user docs.
 I am temporarily putting it here just so the documentation exists.

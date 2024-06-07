@@ -19,8 +19,5 @@ pub mod error;
 /// Constant values.
 pub mod constants;
 
-/// Afterscript definitions.
-pub mod afterscript;
-
 #[cfg(test)]
 mod test_utils;

@@ -1,10 +1,17 @@
 use std::path::PathBuf;
 
+use anyhow::anyhow;
+use anyhow::Context;
 use anyhow::Result;
 use gourd_lib::config::Config;
+use gourd_lib::config::ResourceLimits;
 use gourd_lib::config::SlurmConfig;
 use gourd_lib::constants::MAIL_TYPE_VALID_OPTIONS;
+use gourd_lib::ctx;
+use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
+use gourd_lib::experiment::ProgramRef;
+use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
 use log::debug;
 
@@ -47,10 +54,11 @@ where
         let slurm_config = get_slurm_options_from_config(config)?;
         let runs = experiment.get_unscheduled_runs()?;
 
-        let mut chunks_to_schedule = experiment.create_chunks(
+        let mut chunks_to_schedule = experiment.create_chunks_with_resource_limits(
             slurm_config.array_count_limit,
             // TODO: correctly handle ongoing array jobs causing a lower limit
             slurm_config.array_size_limit,
+            get_limits,
             runs.into_iter(),
         )?;
 
@@ -110,6 +118,52 @@ pub fn parse_optional_args(slurm_config: &SlurmConfig) -> String {
     }
 
     result
+}
+
+/// Get resource limits depending on if it is a regular program or postprocessing program
+pub fn get_limits(run: &Run, experiment: &Experiment) -> Result<ResourceLimits> {
+    let program = experiment.get_program(run)?;
+
+    // If there are program-specific limits, those overwrite defaults
+    if program.resource_limits.is_some() {
+        return program
+            .resource_limits
+            .clone()
+            .ok_or(anyhow!(
+                "Could not get the program-specific resource limits"
+            ))
+            .with_context(ctx!(
+                "Could not get the resource limits of the program", ;
+                "Please ensure that the program resource limits are specified for the experiment",
+            ));
+    }
+
+    match &run.program {
+        ProgramRef::Regular(_) => {
+            // Defaults of regular programs
+            experiment
+            .config
+            .resource_limits
+            .clone()
+            .ok_or(anyhow!("Could not get the default resource limits"))
+            .with_context(ctx!(
+                "Could not get the default resource limits", ;
+                "Please ensure that the default resource limits are specified for the experiment",
+            ))
+        }
+        ProgramRef::Postprocess(_) => {
+            // Defaults of postprocess programs
+            experiment
+            .config
+            .postprocess_resource_limits
+            .clone()
+            .ok_or(anyhow!("Could not get the postprocessing resource limits"))
+            .with_context(ctx!(
+                "Could not get the postprocessing resource limits of the program", ;
+                "Please ensure that the postprocessing resource limits are specified for the experiment",
+            ))
+        }
+    }
 }
 
 #[cfg(test)]

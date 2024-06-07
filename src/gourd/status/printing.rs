@@ -153,12 +153,12 @@ fn long_status(
     let mut longest_input: usize = 0;
 
     for (run_id, run_data) in runs.iter().enumerate() {
-        longest_input = max(longest_input, run_data.input.len());
+        longest_input = max(longest_input, run_data.input.to_string().len());
 
-        if let Some(for_this_prog) = by_program.get_mut(&run_data.program) {
+        if let Some(for_this_prog) = by_program.get_mut(&run_data.program.to_string()) {
             for_this_prog.push(run_id);
         } else {
-            by_program.insert(run_data.program.clone(), vec![run_id]);
+            by_program.insert(run_data.program.clone().to_string(), vec![run_id]);
         }
     }
 
@@ -211,8 +211,9 @@ pub fn display_job(
     writeln!(f)?;
 
     if let Some(run) = exp.runs.get(id) {
-        let program = &exp.config.programs[&run.program];
-        let input = &exp.config.inputs[&run.input];
+        let program = exp.get_program(run)?;
+
+        let input = &exp.get_input(run)?;
 
         writeln!(f, "{NAME_STYLE}program{NAME_STYLE:#}: {}", run.program)?;
         writeln!(

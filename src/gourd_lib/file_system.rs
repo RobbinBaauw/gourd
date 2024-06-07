@@ -43,6 +43,9 @@ pub trait FileOperations {
     /// Truncates the file and then runs [FileOperations::canonicalize].
     fn truncate_and_canonicalize(&self, path: &Path) -> Result<PathBuf>;
 
+    /// Truncates the folder and then runs [FileOperations::canonicalize].
+    fn truncate_and_canonicalize_folder(&self, path: &Path) -> Result<PathBuf>;
+
     /// Given a path try to canonicalize it.
     ///
     /// This will fail for files that do not exist.
@@ -125,6 +128,23 @@ impl FileOperations for FileSystemInteractor {
     }
 
     fn canonicalize(&self, path: &Path) -> Result<PathBuf> {
+        path.canonicalize().with_context(ctx!(
+          "Could not canonicalize {path:?}", ;
+          "Ensure that your path is valid",
+        ))
+    }
+
+    fn truncate_and_canonicalize_folder(&self, path: &Path) -> Result<PathBuf> {
+        if self.dry_run {
+            debug!("Would have created {path:?} (dry)");
+            return Ok(path.to_path_buf());
+        }
+
+        fs::create_dir_all(path).with_context(ctx!(
+           "Could not create {path:?}", ;
+           "Ensure that you have sufficient permissions",
+        ))?;
+
         path.canonicalize().with_context(ctx!(
           "Could not canonicalize {path:?}", ;
           "Ensure that your path is valid",

@@ -13,8 +13,8 @@ use gourd_lib::file_system::FileOperations;
 
 use crate::resources::run_script;
 use crate::status::ExperimentStatus;
-use crate::status::FsState;
 use crate::status::PostprocessCompletion;
+use crate::status::SlurmState;
 
 /// Runs the afterscript on jobs that are completed and do not yet have an afterscript output.
 pub fn run_afterscript(
@@ -22,7 +22,7 @@ pub fn run_afterscript(
     experiment: &Experiment,
     file_system: &impl FileOperations,
 ) -> Result<BTreeMap<usize, String>> {
-    let runs = filter_runs_for_afterscript(statuses)?;
+    let runs = filter_runs_for_afterscript(statuses);
 
     let mut labels = BTreeMap::new();
     for run_id in runs {
@@ -42,7 +42,7 @@ pub fn run_afterscript(
                 "",
             ))?;
 
-        let program = &experiment.config.programs[&run.program];
+        let program = &experiment.get_program(run)?;
 
         let afterscript = program
             .afterscript
@@ -73,19 +73,21 @@ pub fn run_afterscript(
 }
 
 /// Find the completed jobs where afterscript did not run yet.
-pub fn filter_runs_for_afterscript(runs: &ExperimentStatus) -> Result<Vec<&usize>> {
+pub fn filter_runs_for_afterscript(runs: &ExperimentStatus) -> Vec<&usize> {
     let mut filtered = vec![];
 
     for (run_id, status) in runs {
-        if let (&FsState::Completed(_), &Some(PostprocessCompletion::Dormant)) = (
-            &status.fs_status.completion,
-            &status.fs_status.afterscript_completion,
-        ) {
-            filtered.push(run_id);
+        if status.slurm_status.is_some() {
+            if let (&SlurmState::Success, &Some(PostprocessCompletion::Dormant)) = (
+                &status.slurm_status.unwrap().completion,
+                &status.fs_status.afterscript_completion,
+            ) {
+                filtered.push(run_id);
+            }
         }
     }
 
-    Ok(filtered)
+    filtered
 }
 
 /// Runs the afterscript on given jobs.
