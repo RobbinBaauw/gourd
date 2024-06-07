@@ -22,20 +22,28 @@ the manpage, and the maintainer documentation at \texttt{version-history/section
 In addition to adding an entry to the version history, as detailed above, maintainers should also make sure that the
 documentation remains thorough.
 \begin{enumerate}
-  \item The Maintainer PDF documentation (this document) contains an overview of the application's underlying design.
-  \item The ``manpage'' (in \verb|docs/user/gourd.man|) contains detailed usage instructions and configuration documentation.
+  \item The Maintainer PDF documentation (this document) contains a brief overview of the application's underlying design.
+  \item The three ``manpages'' (in \verb|docs/user/|) contain detailed usage instructions and configuration documentation.
+        The `gourd-tutorial' manpage is an exception: it is written in narrative form and should be accessible to new users.
   \item Inline documentation (Rustdoc) contains additional information necessary for the developer of a particular feature.
 \end{enumerate}
 
 \subsection{Code Style}
 
 Code written in Rust should be formatted using `cargo fmt` and validated using `cargo clippy`.
-Beware when using \verb|[cfg]| statements, as they can cause `clippy' issues on different platforms.
 All relevant code style rules are enforced by the GitLab CI and can be tested locally
 by configuring the Git hooks:
 \begin{lstlisting}
 git config --local core.hooksPath .hooks/
 \end{lstlisting}
+
+Additionally, the following apply:
+\begin{itemize}
+  \item Beware when using \verb|[cfg]| statements, as they can cause `clippy' issues on different platforms.
+  \item Enforce separation between crates (such as `gourd' and `gourd-wrapper') as much as possible.
+  \item Place tests in a separate file in a \verb|tests/| subdirectory of a module.
+        Ensure that the filename corresponds to the file being tested.
+\end{itemize}
 
 \subsection{Testing}
 

@@ -15,6 +15,7 @@
 \begin{abstract}
 }{
 \end{abstract}
+\vspace{-0.8cm}
 }
 
 \renewenvironment{Description}[1][]{
@@ -37,7 +38,28 @@
 
 \usepackage{titlesec}
 \titleformat{\section}
-  {\normalfont\normalsize\bfseries}{\thesection}{1em}{}
+  {\normalfont\normalsize\bfseries}{\thesection}{0.5em}{}
 
 \titleformat{\subsection}
-  {\normalfont\normalsize\bfseries}{\thesubsection}{1em}{}
+  {\normalfont\normalsize\bfseries}{\thesubsection}{0.5em}{}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+% Improve the \section command if in a LaTeX environment.
+%@% IF LATEX %@%
+\let\oldsection\section
+\renewcommand{\section}[1]{%
+\end{adjustwidth}%
+\oldsection*{#1}%
+\begin{adjustwidth}{18pt}{0pt}%
+}
+\let\oldsubsection\subsection
+\renewcommand{\subsection}[1]{%
+\oldsubsection*{#1}%
+}
+\let\oldsubsubsection\subsubsection
+\renewcommand{\subsubsection}[1]{%
+\oldsubsubsection*{#1}%
+}
+%@% END-IF %@%

@@ -5,6 +5,31 @@
 \input{version-history/definitions}
 % \version{x} for start of version x section
 
-\version{0.1}{A-Train}{pre-release}
+\version{0.8.0}{Bitter Gourd}{pre-release}
 
-First version of the `gourd-test` application, establishing the subcommands used for interaction.
+Added functionality for after-scripts, resource limits,
+and incremental scheduling.
+Set up the codebase for maintainability.
+
+\breakingchanges
+\begin{itemize}
+\item A new configuration with many new keys and
+changes to existing keys.
+\end{itemize}
+
+\version{0.1.5}{Bottle Gourd}{pre-release}
+
+An initial implementation of the `gourd-test' application
+with basic functionality for defining experiments using a
+TOML file and running them locally and on Slurm.
+
+\breakingchanges
+\begin{itemize}
+\item This is a new application without compatibility with
+the `gourd-test' prototype's configuration files.
+\end{itemize}
+
+\version{0.1.0 (prototype)}{gourd-test}{}
+
+A prototype of an evaluator for the Pumpkin CP-SAT solver,
+exploring the possibility of declarative configurations.

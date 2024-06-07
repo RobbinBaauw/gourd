@@ -1,0 +1,230 @@
+\documentclass[a4paper,english]{article}
+\usepackage{a4wide}
+\usepackage{babel}
+\usepackage{verbatim}
+
+\usepackage{changepage}
+
+\usepackage[bookmarksopen,bookmarksnumbered]{hyperref}
+
+\usepackage[fancyhdr]{latex2man}
+
+
+
+\newcommand{\thecmd}{gourd.toml}
+\newcommand{\thecommand}{GOURD.TOML}
+\newcommand{\mansection}{1}
+\newcommand{\mansectionname}{File Formats Manual}
+\newcommand{\mandate}{5 MAY 2024}
+\setDate{5 MAY 2024}
+\setVersionWord{Version:}
+\setVersion{1.29}
+
+
+\input{docs/user/latex2man_styling.tex}
+
+\usepackage{mathspec}
+\setmainfont[Mapping=tex-text, FakeBold=1]{Linux Libertine O}
+\setmathfont(Digits,Greek,Latin)[Numbers=OldStyle, FakeBold=1]{Linux Libertine O}
+
+\begin{document}
+  \pagestyle{fancy}
+
+  \begin{Name}{5}{gourd.toml}{Test}{File Formats Manual}{gourd.toml}
+%@% IF LATEX %@%
+\begin{adjustwidth}{18pt}{0pt}
+%@% END-IF %@%
+
+      \Prog{gourd.toml} \- An experimental setup file for the Gourd experiment scheduler.
+
+%@% IF LATEX %@%
+\end{adjustwidth}
+%@% END-IF %@%
+  \end{Name}
+
+%@% IF LATEX %@%
+\begin{adjustwidth}{18pt}{0pt}
+%@% END-IF %@%
+
+  \section{DESCRIPTION}
+
+      \noindent \Prog{gourd.toml} is a declarative configuration file that,
+      when provided to \Prog{gourd(1)}, can be used to create a new \emph{experiment}.
+      The rules for typesetting the file follow the standard TOML format.
+
+      By default, the filename is \File{gourd.toml}.
+
+  \section{VALUE TYPES}
+
+    \begin{Description}[Types]\setlength{\itemsep}{0cm}
+        \item[string] A string of characters surrounded by "".
+        \item[path] A file path surrounded by "".
+        \item[list of T] A list of values of type T surrounded by [].
+    \end{Description}
+
+  \section{GLOBAL CONTEXT}
+
+    These should be put at the beginning of the file before defining any sections.
+    Options surrounded by brackets are optional and can be omitted, the default value is show in brackets in the description.
+
+    \begin{Description}[Options]\setlength{\itemsep}{0cm}
+        \item[\Opt{output\_path} = path]
+            Where to store the stdout files from the \emph{programs}.
+        \item[\Opt{metrics\_path} = path]
+          Where to store the metrics for \Prog{gourd(1)} \Arg{status}.
+        \item[\Opt{experiments\_folder} = path]
+            Where to store state of previously ran experiments.
+        \item[\Opt{wrapper?} = string]
+            Defines the path to the \File{gourd-wrapper} binary.
+            The default value is \Arg{gourd-wrapper}.
+    \end{Description}
+
+
+%    \section{SLURM}
+%
+%      An optional subsection of the config file, beginning with the \Arg{[slurm]} header.
+%
+%      \begin{Description}[Options]\setlength{\itemsep}{0cm}
+%          \item[\Opt{experiment\_name} = string] The SLURM internal experiment name.
+%          \item[TODO] TODO.
+%      \end{Description}
+
+
+    \section{PROGRAMS}
+
+      Multiple programs can be specified.
+      A program represents a compiled algorithm and is a combination of a binary file and parameters.
+      Each program begins with \Arg{[programs.program-name]}, where \Arg{program-name} can be any unique name.
+
+      \begin{Description}[Options]\setlength{\itemsep}{0cm}
+          \item[\Opt{binary} = path]
+            Path to the program executable.
+          \item[\Opt{arguments?} = list of string]
+            Arguments to be passed to the executable.
+            The default is no arguments.
+          \item[\Opt{afterscript?} = see afterscript]
+            The configuration for running a short script after program completion.
+      \end{Description}
+
+    \section{INPUTS}
+
+      A \Prog{gourd(1)} experiment consists of a cross-product mapping between programs
+      and inputs.
+      The experiment created from a \File{gourd.toml} file runs every combination
+      of program and input in the file.
+
+      Multiple inputs can be specified.
+      Each input begins with \Arg{[inputs.input-name]} where \Arg{input-name} can be any unique name.
+      \textbf{The string} \Arg{\_glob\_} \textbf{is reserved and cannot be used.}
+      Each input contains the following keys:
+
+      \begin{Description}[Options]\setlength{\itemsep}{0cm}
+          \item[\Opt{input?} = path]
+            Path to a file, the contents of which are passed to the program as standard input.
+            By default, no standard input is provided.
+          \item[\Opt{arguments?} = list of string]
+            Additional command-line arguments to be passed to the program.
+            The input arguments are appended to the programs arguments.
+            By default, no additional arguments.
+      \end{Description}
+
+
+      \subsection{GLOBS}
+
+        Globs can be applied to arguments and conveniently reference multiple files.
+
+          If an argument starts with \Arg{glob|}, it will be treated as a glob.
+          The input will be instantiated for every match of the provided glob.
+
+            Example:
+
+      \begin{verbatim}
+[inputs.testrun1]
+arguments = ["-f1", "=glob=./inputs/*.in", "-f2", "=glob=./input2/*.in"]
+      \end{verbatim}
+
+            Given that the current directory contains the files
+            \File{input/1.in}, \File{input/2.in}, \File{input2/test.in}, the glob
+            expands to the following experiment inputs:
+
+      \begin{verbatim}
+[inputs.testrun1_glob_0]
+arguments = ["-f1", "./inputs/1.in", "-f2", "./input2/test.in"]
+
+[inputs.testrun1_glob_1]
+arguments = ["-f1", "./inputs/2.in", "-f2", "./input2/test.in"]
+      \end{verbatim}
+
+  \section{LABELS}
+  \subsection{Labels}
+  When running \Prog{gourd} \Arg{status}, by default the statuses only display information
+  about Slurm scheduling of the run or an exit code.
+  In the case that a job execution can succeed (exit code 0) but the run should still
+  be considered a failure, the user can add a custom label to the run, derived from
+  the output of the run's `afterscript'.
+  Labels can be created in the configuration file as names with a regular expression,
+  where if the regex is matched in the afterscript's output, the label is assigned to the run.
+  Syntax is as follows:
+
+  \File{gourd.toml}
+  \begin{verbatim}
+    [label.<label_name>]
+    regex = <regex>
+    priority = <int>
+    rerun_by_default = <true/false>
+  \end{verbatim}
+
+  \begin{itemize}
+      \item \File{<label\_name>}: The name of the label as is to be displayed by \Prog{gourd} \Arg{status}.
+      \item \File{<regex>}: The regular expression to match against the afterscript's output.
+      If a match is found, the label is assigned to the run.
+      \item \File{<int>}: The priority of the label.
+      Higher numbers have higher priority.
+      If multiple labels match the afterscript's output, the label with the highest priority is assigned to the run.
+      Multiple labels with the same priority are assigned to the run cause undefined behaviour.
+      %(I think they are ordered alphabetically by name's hash).
+      \item \File{<true/false>}: Including this is optional, with a default value of \File{true}.
+      If the field is not present or present with value \File{true}, the run will be rerun by default if
+      this label is assigned to it; i.e., this will be considered a failed run.
+      If false then \Prog{gourd} \Arg{status} will display the run as successful, and \Prog{gourd} \Arg{rerun} will ignore it.
+  \end{itemize}
+
+  Labels are assigned based on priority.
+  For example if the configuration file looks like:
+  \begin{verbatim}
+    [label.label1]
+    regex = "Success"
+    priority = 1
+    rerun_by_default = false
+
+    [label.label2]
+    regex = "RuntimeException"
+    priority = 2
+  \end{verbatim}
+
+  and the afterscript output looks like:
+
+  \begin{verbatim}
+    Starting afterscript...
+    Success! The output was correct.
+    Verifying something else...
+    RuntimeException thrown while parsing
+  \end{verbatim}
+
+  then by principle of priorities, the run will be assigned \File{label2} even though both regex match.
+
+
+  \section{SEE ALSO}
+      \Prog{gourd(1)}
+
+  \section{AUTHORS}
+    Lukáš Chládek <\Email{l@chla.cz}>\\[0.1cm]\MANbr
+    Rūta Giedrytė <\Email{r.giedryte@student.tudelft.nl}>\\[0.1cm]\MANbr
+    Ανδρέας Τσατσάνης <\Email{a.tsatsanis@student.tudelft.nl}>\\[0.1cm]\MANbr
+    Mikołaj Gazeel <\Email{m.j.gazeel@student.tudelft.nl}>\\[0.1cm]\MANbr
+    Jan Piotrowski <\Email{j.p.piotrowski@student.tudelft.nl}>
+%@% IF LATEX %@%
+\end{adjustwidth}
+%@% END-IF %@%
+
+\end{document}

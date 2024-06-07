@@ -7,37 +7,46 @@
 // for tarpaulin cfg
 #![allow(unexpected_cfgs)]
 
-/// The binary wrapper around run programs.
+/// An interface for communicating with `gourd-wrapper`, a separately
+/// packaged binary that encapsulates the user's programs.
 pub mod wrapper;
 
-/// The local runner module: `gourd run local`.
+/// A framework for running experiments on the local machine using a
+/// thread-pool executor.
 pub mod local;
 
-/// The SLURM runner module: `gourd run slurm`.
+/// A framework for running supercomputer experiments by interfacing
+/// with a local installation of SLURM.
 pub mod slurm;
 
-/// Accessing and managing resources.
+/// Functionality for retrieving resources (binaries and test cases)
+/// from files, remote servers, and source code.
 pub mod resources;
 
 /// The command line interface and relevant structures.
 #[cfg(not(tarpaulin_include))]
 pub mod cli;
 
-/// The status of the jobs running or finished.
+/// Functionality for checking and displaying the status of already
+/// running experiments.
 pub mod status;
 
-/// The implementations for the experiment struct, used by the CLI
+/// Extensions to the `Experiment` struct defined in `gourd-lib`,
+/// allowing for operations on runtime data.
 pub mod experiments;
 
-/// All post-processing: afterscripts, sequential jobs, collecting their statuses.
+/// Functionality for post-processing jobs including after-scripts,
+/// pipeline jobs, and retrieval of their status.
 pub mod post;
 
+/// Convenience functions for unit tests.
 #[cfg(test)]
 mod test_utils;
 
-/// The main entrypoint.
+/// The main CLI entry-point of the `gourd` utility.
 ///
-/// This function is the main entrypoint of the program.
+/// This function parses command-line arguments and executes
+/// sub-commands as specified by the user.
 #[cfg(not(tarpaulin_include))]
 #[tokio::main]
 async fn main() {

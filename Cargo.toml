@@ -2,7 +2,7 @@
 
 [package]
 name = "gourd"
-version = "0.1.5-alpha"
+version = "0.8.0"
 edition = "2021"
 default-run = "gourd"
 authors = [
@@ -16,6 +16,10 @@ authors = [
 build = "build.rs"
 
 [features]
+# Compile the documentation with this flag.
+documentation = []
+
+# You can turn off fetching of resources from the config here.
 fetching = ["dep:reqwest"]
 
 default = ["fetching"]
@@ -84,6 +88,9 @@ colog = "1.3.0"
 clap_complete = "4.5.2"
 clap = { version = "4.5.4", features = ["derive", "cargo"] }
 anstyle = "1.0.7"
+
+# To handle errors.
+anyhow = "1"
 
 [dev-dependencies]
 # To run benchmarks on stable rust.

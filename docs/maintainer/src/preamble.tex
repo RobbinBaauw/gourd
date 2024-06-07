@@ -1,10 +1,15 @@
-\def\version{0.1}
+\def\version{0.8.0}
 \author{Version \version}
 \date{Generated on: \today}
 
-% Times New Roman
-% Font to be changed later
-\usepackage{mathptmx}
+% Math and symbols
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Font
+\usepackage{mathspec}
+\setmainfont[Mapping=tex-text, FakeBold=1]{Linux Libertine O}
+\setmathfont(Digits,Greek,Latin)[Numbers=OldStyle, FakeBold=1]{Linux Libertine O}
 
 \usepackage{xcolor}
 
@@ -14,10 +19,6 @@
 
 \usepackage{tikz}
 \usepackage{framed}
-
-% Math and symbols
-\usepackage{amsmath}
-\usepackage{amssymb}
 
 % Narrower margins
 \usepackage{geometry}[margin=1in]

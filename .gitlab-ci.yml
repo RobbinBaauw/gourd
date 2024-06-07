@@ -5,14 +5,14 @@ variables:
   CARGO_HOME: $CI_PROJECT_DIR/.cargo
 
 .rust_container_template: &rust_container_stable
-  image: clux/muslrust:1.78.0-stable-2024-05-13
+  image: ghcr.io/mgazeel/muslrust-texlive:amd64-1.78.0-stable-2024-06-05-2
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
       - $CARGO_HOME
 
 .rust_container_template: &rust_container_night
-  image: clux/muslrust:amd64-1.80.0-nightly-2024-05-14
+  image: ghcr.io/mgazeel/muslrust-texlive:amd64-1.80.0-nightly-2024-06-05-2
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
@@ -58,8 +58,6 @@ fmt:
   stage: lint
   needs:
     - build
-  before_script:
-    - rustup component add rustfmt
   script:
     - cargo fmt -- --check
   allow_failure: true
@@ -69,10 +67,8 @@ clippy:
   stage: lint
   needs:
     - build
-  before_script:
-    - rustup component add clippy
   script:
-    - cargo clippy --release --all-targets -- -D warnings
+    - cargo clippy --release --no-deps --all-targets -- -D warnings
   allow_failure: true
 
 
@@ -81,8 +77,6 @@ coverage:
   stage: test
   needs:
     - build
-  before_script:
-    - cargo install cargo-tarpaulin
   script:
     - cargo tarpaulin --engine llvm --out Xml --root . --manifest-path Cargo.toml
   coverage: '/\d+.\d+\% coverage,.*lines covered/'
@@ -98,10 +92,8 @@ tests:
   stage: test
   needs:
     - build
-  before_script:
-    - cargo install cargo2junit
   script:
-    - cargo test -- -Z unstable-options --format json --report-time | $CARGO_HOME/bin/cargo2junit > results.xml
+    - cargo test -- -Z unstable-options --format json --report-time | cargo2junit > results.xml
   artifacts:
     when: always
     paths:
@@ -113,7 +105,8 @@ rustdoc:
   <<: *rust_container_stable
   stage: docs
   needs: [build]
-  script: cargo rustdoc
+  script:
+    - cargo doc --release --document-private-items
   allow_failure: true
   artifacts:
     when: on_success
@@ -123,40 +116,20 @@ rustdoc:
     paths:
       - target/x86_64-unknown-linux-musl/doc/
 
-maintainer_docs:
+documentation:
   <<: *texlive_full
   stage: docs
   allow_failure: true
   needs: []
+  before_script:
+    - apk --no-cache add rust cargo mandoc
   script:
-    - cd docs/maintainer
-    - ./compile.sh
-    - mv out/maintainer.pdf ../../
+    - cargo build --release --no-default-features --features documentation -vv
+    - mkdir documentation/
+    - mv target/release/manpages/* documentation/
   artifacts:
     when: on_success
     name: maintainer documentation
     expose_as: maintainer documentation
     paths:
-    - maintainer.pdf
-
-user_docs:
-  <<: *texlive_full
-  stage: docs
-  allow_failure: true
-  needs: []
-  script:
-    - cd docs/user
-    - ./compile.sh
-    - mv out/gourd.pdf ../../
-    - mv out/gourd.toml.pdf ../../
-    - mv out/gourd.man ../../
-    - mv out/gourd.toml.man ../../
-  artifacts:
-    when: on_success
-    name: user documentation
-    expose_as: user documentation
-    paths:
-    - gourd.pdf
-    - gourd.man
-    - gourd.toml.pdf
-    - gourd.toml.man
+      - documentation/

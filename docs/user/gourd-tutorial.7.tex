@@ -1,0 +1,192 @@
+\documentclass[a4paper,english]{article}
+\usepackage{a4wide}
+\usepackage{babel}
+\usepackage{verbatim}
+
+\usepackage{changepage}
+
+\usepackage[bookmarksopen,bookmarksnumbered]{hyperref}
+
+\usepackage[fancyhdr]{latex2man}
+
+\usepackage{xspace}
+
+
+
+\newcommand{\thecmd}{gourd}
+\newcommand{\thecommand}{GOURD-TUTORIAL}
+\newcommand{\mansection}{7}
+\newcommand{\mansectionname}{DelftBlue Tools Manual}
+\newcommand{\mandate}{5 MAY 2024}
+\setDate{5 MAY 2024}
+\setVersionWord{Version:}
+\setVersion{1.29}
+
+
+\input{docs/user/latex2man_styling.tex}
+
+\usepackage{mathspec}
+\setmainfont[Mapping=tex-text, FakeBold=1]{Linux Libertine O}
+\setmathfont(Digits,Greek,Latin)[Numbers=OldStyle, FakeBold=1]{Linux Libertine O}
+
+\begin{document}
+    \pagestyle{fancy}
+
+    \begin{Name}{7}{gourd-tutorial}{gourd-tutorial}{DelftBlue Tools Manual}{Gourd Tutorial}
+%@% IF LATEX %@%
+\begin{adjustwidth}{18pt}{0pt}
+%@% END-IF %@%
+
+        \Prog{gourd-tutorial} - A step-by-step walkthrough for the Gourd experiment scheduler.
+
+%@% IF LATEX %@%
+\end{adjustwidth}
+%@% END-IF %@%
+    \end{Name}
+
+%@% IF LATEX %@%
+\begin{adjustwidth}{18pt}{0pt}
+%@% END-IF %@%
+
+    \section{INTRODUCTION}
+
+    Welcome to \Prog{gourd-tutorial}!
+
+    If you haven't been introduced yet, \Prog{gourd(1)} is an application that makes it easy
+    to set up experiments on a supercomputer.
+    By experiment, we mean a large-scale comparative evaluation of one or more
+    \emph{algorithms} (runnable programs) that each run on a set of \emph{inputs} and are
+    subsequently timed and profiled.
+
+    While this tool offers a lot of versatility, this set of runnable examples will show
+    that \Prog{gourd} experiments only take a minute to set up.
+
+    \section{INSTALLATION AND REFERENCE}
+
+    This tutorial is designed to be interactive, so be sure to have a working copy of
+    \Prog{gourd(1)} installed on your computer.
+    You can verify this by typing \Prog{gourd}~\Arg{version} in your terminal.
+    For installation instructions, refer to the \File{README.md} file in the source
+    repository.
+
+    When installed, you will also have access to the user manuals.
+    For Linux, macOS, and the like, type \Prog{man}~\Prog{gourd-tutorial} to see this
+    tutorial or \Prog{gourd} and \Prog{gourd.toml} for complete documentation.
+
+    \section{INTERACTING WITH GOURD}
+
+    Gourd is a command-line application that keeps life easy.
+    You take actions by typing \Prog{gourd} followed by a command in your terminal;
+    a complete list is in the manual.
+
+    For example, type:
+    \Prog{gourd}~\Arg{init}~\Arg{--example}~\Arg{a-simple-experiment}~\Arg{myexample}
+
+    The \Prog{gourd}~\Arg{init} command will set up the \File{myexample} folder to match
+    the example below!
+    Make sure to use \Prog{cd} to enter the folder if you're following along.
+
+    NOTE: The above instructions will not work as \Arg{init} is not implemented on this branch.
+
+
+    \section{A SIMPLE EXPERIMENT}
+
+    In \Prog{gourd(1)}, each experimental setup is defined using a \File{gourd.toml} file.
+    To make one, let's open \File{gourd.toml} in an editor and start by defining a pair
+    of \textbf{programs}.
+
+% -IF LINUX/OSX
+    \begin{verbatim}
+…  +-------------------------------------------------------------------+
+1  | [programs.my-program]                                             |
+2  | binary = "/bin/sleep"                                             |
+3  |                                                                   |
+4  | [programs.my-other-program]                                       |
+5  | binary = "/bin/bash"                                              |
+6  | args = "./my_other_program.sh"                                    |
+7  |                                                                   |
+…  /_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_/
+…  \___________________________________________________________________\
+    \end{verbatim}
+
+    In this file, we have defined two programs with unique names:
+    \begin{Description}[programs]\setlength{\itemsep}{0cm}
+    \item[my-program:] the \File{sleep} binary, which waits a set amount of seconds,
+    \item[my-other-program:] a \File{bash} script that returns whatever input it received.
+    \end{Description}
+
+% -ENDIF LINUX/OSX
+
+
+
+% -IF WINDOWS
+%    \begin{verbatim}
+%
+%   +-------------------------------------------------------------------+
+%1  | [programs.MyProgram]                                              |
+%2  | binary = "./myprogram.bat"                                        |
+%3  |                                                                   |
+%…  /_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_/
+%   \___________________________________________________________________\
+%
+%    \end{verbatim}
+% -ENDIF WINDOWS
+
+    That's great, but now we need inputs: test cases that we actually run the
+    programs with.
+    Let's add those.
+
+    \begin{verbatim}
+…   ____________________________________________________________________
+…  /_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _/
+…  \                                                                   \
+…  |` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` `|
+8  | [inputs.one]                                                      |
+9  | input = "./input-one"                                             |
+10 |                                                                   |
+11 | [inputs.two]                                                      |
+12 | args = ["2"]                                                      |
+13 |                                                                   |
+14 | [inputs.one-two]                                                  |
+16 | input = "./input-one"                                             |
+17 | args = ["2"]                                                      |
+18 |                                                                   |
+…  /_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_/
+…  \___________________________________________________________________\
+    \end{verbatim}
+
+    What you see now in the file are the following uniquely named inputs:
+    \begin{Description}[inputs]\setlength{\itemsep}{0cm}
+    \item[one:] a path to an \File{./input-one} file containing the string \File{"1"},
+    \item[two:] an input specified by directly passing an argument, \File{"2"},
+    \item[abc-one:] an input specified by a combination of the two.
+    \end{Description}
+
+    The inputs above are combined with the programs in a \textbf{cross product}
+    to create \emph{runs}.
+    This means that each program and each input are combined together.
+    Therefore, exactly one run in our new experiment that combines
+    \File{my-other-program} and \File{one-two}, and it translates into the following
+    program call:
+    \begin{itemize}
+    \item Run \File{/bin/bash} with \File{./my-other-program.sh~2} as arguments and
+    the contents of \File{./input-one} as input.
+    \end{itemize}
+
+    \section{SEE ALSO}
+
+    \Prog{gourd(1)}
+
+    \Prog{gourd.toml(5)}
+
+    \section{AUTHORS}
+    Lukáš Chládek <\Email{l@chla.cz}>\\[0.1cm]\MANbr
+    Rūta Giedrytė <\Email{r.giedryte@student.tudelft.nl}>\\[0.1cm]\MANbr
+    Ανδρέας Τσατσάνης <\Email{a.tsatsanis@student.tudelft.nl}>\\[0.1cm]\MANbr
+    Mikołaj Gazeel <\Email{m.j.gazeel@student.tudelft.nl}>\\[0.1cm]\MANbr
+    Jan Piotrowski <\Email{j.p.piotrowski@student.tudelft.nl}>
+%@% IF LATEX %@%
+\end{adjustwidth}
+%@% END-IF %@%
+
+\end{document}

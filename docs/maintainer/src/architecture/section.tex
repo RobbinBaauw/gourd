@@ -3,12 +3,69 @@
 
 \section{Architecture}\label{sec:architecture}
 
+\subsection{Technology}
+
+This section lists the technologies used in the software and its development.
+
+\subsubsection{Rust}
+
+Rust is the main programming language used for `gourd' and its components.
+The project uses \emph{stable} Rust edition 2021.
+
+\subsubsection{SLURM}
+
+A key part of `gourd' is interaction with the \emph{Slurm Workload Manager}.
+Slurm is open-source software that runs on most supercomputers (including
+DelftBlue). The application interfaces with Slurm's stable command-line
+interface and generates job descriptions using its batch scripting language.
+
 \subsection{Structural Overview}
 
-This section explains each part of the application's modular layout and the technologies used.
+This section explains each part of the application's modular layout.
+The Rust source code for the application is in the \verb|./src/| directory.
+
+The `gourd' project is divided into three core crates:
+`gourd', `gourd-lib', and `gourd-wrapper'.
+Their individual responsibilities are laid out in this section.
+
+\subsubsection{`gourd' -- Command-Line Application}
+
+The `gourd' command-line application is the core part of the project.
+The source code is located in \verb|./src/gourd/|.
+
+The `gourd' binary uses the `gourd-lib' shared library to interface with
+the wrapper, `gourd-wrapper'.
+The responsibilities of the `gourd' binary are to interact with the user,
+schedule and run experiments (at a high level), and collect aggregate
+status and metrics from the experiment's runs.
+
+\subsubsection{`gourd-wrapper' -- Wrapper Program}
+
+The `gourd-wrapper' is a binary that should not be invoked manually by the user.
+The source code is located in \verb|./src/gourd-wrapper/|.
+It is responsible for the low-level implementation of executing a run;
+it takes care of combining runs of an individual binary program and input,
+encapsulating the program in platform-native frameworks for collecting metrics.
+This means that `gourd-wrapper' is the actual executable scheduled once for each run.
+
+\subsubsection{`gourd-lib' -- Wrapper Interface}
+
+The `gourd-lib' crate contains all data shared between the application and the wrapper.
+The source code is located in \verb|./src/gourd-lib/|.
+This includes the `gourd.toml' configuration file (the formal definition of an experiment)
+and an `experiment.lock' runtime data file.
+The general pattern is that `gourd' writes a `<experiment-number>.lock' TOML file when
+an experiment is started, and `gourd-wrapper' subsequently reads only the `lock' file and
+on each execution to determine the path of the executable, the resource limits,et cetera
 
 
-\subsection{Postprocessing}
+\subsection{Modules of the `gourd' command-line application}
+
+This section covers the most important modules of the `gourd' command-line application
+(the crate with source code in \verb|./src/gourd/|).
+
+
+\subsubsection{Postprocessing}
 note: should be in user docs.
 
 To postprocess the output of the runs, there are two options available: afterscipts and Slurm postprocessing jobs. 
@@ -100,52 +157,31 @@ this postprocessing. It will write its results to a file the way that regular pr
     arguments = []
 \end{verbatim}
 
-\subsection{Labels}
+\subsubsection{Labels}
 note: this is going to be moved to user docs.
 I am temporarily putting it here just so the documentation exists.
 Whoever moves this to user guides (lucas told me he will do it) is also responsible for styling the code blocks :)
 
-When running \verb|gourd status|, by default the statuses only display information about Slurm scheduling of the run or an exit code.
-In the case that a job execution can succeed (exit code 0) but the run should still be considered a failure, the user can add a custom label to the run, derived from the output of the run's afterscript.
-Labels can be created in the configuration file as names with a regular expression, where if the regex has a match in the afterscript's output, then this label is assigned to the run.
-Syntax is as follows:
+\subsubsection{CLI}
+The command-line interface of `gourd' is the main entry-point of the
+application.
+The user uses sub-commands and interactive prompts to control
+the software.
+Internally, this is done using the Rust `clap' Command-Line
+Argument Parser module.
+The interactions are defined in
+\verb|./src/gourd/cli/| where \verb|mod.rs| is the module root.
 
-\texttt{gourd.toml}
-\begin{verbatim}
-    [label.<label_name>]
-    regex = <regex>
-    priority = <int>
-    rerun_by_default = <true/false>
-\end{verbatim}
-\begin{itemize}
-    \item \verb|<label_name>|: The name of the label as is to be displayed by \verb|gourd status|.
-    \item \verb|<regex>|: The regular expression to match against the afterscript's output.
-    If a match is found, the label is assigned to the run.
-    \item \verb|<int>|: The priority of the label.
-    Higher numbers have higher priority.
-    If multiple labels match the afterscript's output, the label with the highest priority is assigned to the run.
-    Multiple labels with the same priority are assigned to the run is undefined behaviour (I think they are ordered alphabetically by name's hash).
-    \item \verb|<true/false>|: Including this is optional, with a default value of \verb|true|.
-    If the field is not present or present with value \verb|true|, the run will be rerun by default if this label is assigned to it; ie this will be considered a failed run.
-    If false then \verb|gourd status| will display the run as successful, and \verb|gourd rerun failed| will ignore it.
-\end{itemize}
-Labels are assigned based on priority.
-For example if the configuration file looks like:
-\begin{verbatim}
-    [label.label1]
-    regex = "Success"
-    priority = 1
-    rerun_by_default = false
+\subsubsection{SLURM}
 
-    [label.label2]
-    regex = "RuntimeException"
-    priority = 2
-\end{verbatim}
-and the afterscript output looks like:
-\begin{verbatim}
-    Starting afterscript...
-    Success! The output was correct.
-    Verifying something else...
-    RuntimeException thrown while parsing
-\end{verbatim}
-then by principle of priorities, the run will be assigned label2 even though both regex match.
+The `slurm' module is where interactions with SLURM are defined.
+The \verb|mod.rs| file defines the \verb|SlurmInteractor| trait;
+this is used to abstract away from the specific mode of interacting
+with Slurm.
+Currently, the only implementation (`SlurmCli') is located in the
+\verb|interactor.rs| file and targets the SLURM command-line interface.
+We decided to use the SLURM CLI rather than the C libraries or
+the REST API because of its stability and simplicity.
+However, the \verb|SlurmInteractor| trait abstracts away from this and
+adding an implementation that interacts with SLURM through another
+channel simply requires conforming to the trait.
