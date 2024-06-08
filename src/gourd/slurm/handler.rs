@@ -10,7 +10,7 @@ use gourd_lib::constants::MAIL_TYPE_VALID_OPTIONS;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
-use gourd_lib::experiment::ProgramRef;
+use gourd_lib::experiment::FieldRef;
 use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
 use log::debug;
@@ -25,6 +25,7 @@ pub struct SlurmHandler<T>
 where
     T: SlurmInteractor,
 {
+    /// The way of interaction with slurm. (May be cli or library based).
     pub(crate) internal: T,
 }
 
@@ -120,7 +121,8 @@ pub fn parse_optional_args(slurm_config: &SlurmConfig) -> String {
     result
 }
 
-/// Get resource limits depending on if it is a regular program or postprocessing program
+/// Get resource limits depending on if it is a regular program or
+/// postprocessing program
 pub fn get_limits(run: &Run, experiment: &Experiment) -> Result<ResourceLimits> {
     let program = experiment.get_program(run)?;
 
@@ -128,7 +130,6 @@ pub fn get_limits(run: &Run, experiment: &Experiment) -> Result<ResourceLimits> 
     if program.resource_limits.is_some() {
         return program
             .resource_limits
-            .clone()
             .ok_or(anyhow!(
                 "Could not get the program-specific resource limits"
             ))
@@ -139,24 +140,22 @@ pub fn get_limits(run: &Run, experiment: &Experiment) -> Result<ResourceLimits> 
     }
 
     match &run.program {
-        ProgramRef::Regular(_) => {
+        FieldRef::Regular(_) => {
             // Defaults of regular programs
             experiment
             .config
             .resource_limits
-            .clone()
             .ok_or(anyhow!("Could not get the default resource limits"))
             .with_context(ctx!(
                 "Could not get the default resource limits", ;
                 "Please ensure that the default resource limits are specified for the experiment",
             ))
         }
-        ProgramRef::Postprocess(_) => {
+        FieldRef::Postprocess(_) => {
             // Defaults of postprocess programs
             experiment
             .config
             .postprocess_resource_limits
-            .clone()
             .ok_or(anyhow!("Could not get the postprocessing resource limits"))
             .with_context(ctx!(
                 "Could not get the postprocessing resource limits of the program", ;

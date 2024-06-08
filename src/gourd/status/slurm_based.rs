@@ -3,6 +3,8 @@ use std::collections::BTreeMap;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use gourd_lib::ctx;
+use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
 use regex_lite::Regex;
 
@@ -38,12 +40,13 @@ impl<T> StatusProvider<T, SlurmBasedStatus> for SlurmBasedProvider
 where
     T: SlurmInteractor,
 {
-    /// Function to gather status using slurm job accounting data
     #[cfg(not(tarpaulin_include))]
     fn get_statuses(
         connection: &mut T,
         experiment: &Experiment,
     ) -> Result<BTreeMap<usize, SlurmBasedStatus>> {
+        use gourd_lib::bailc;
+
         let mut run_id_to_status: BTreeMap<usize, SlurmBasedStatus> = BTreeMap::new();
         let mut slurm_map = BTreeMap::new();
 
@@ -84,8 +87,8 @@ where
 
                 "RUNNING" | "R" => Running,
 
-                "REQUEUED" | "RQ" => Pending, // For now we treat it as pending, but it may need its own label for example State::Requeued
-
+                "REQUEUED" | "RQ" => Pending, /* For now we treat it as pending, but it may need */
+                // its own label for example State::Requeued
                 "RESIZING" | "RS" => Running, // Needs a label, did not think of any suitable
 
                 "REVOKED" | "RV" => Pending, // Also will probably need a label
@@ -95,7 +98,7 @@ where
                 "TIMEOUT" | "TO" => Timeout,
 
                 // if not specified above we assume it failed
-                _ => return Err(anyhow!("Sacct returned unexpected output")).context(""),
+                _ => bailc!("Sacct returned unexpected output", ; "", ; "",),
             };
 
             run_id_to_status.insert(
@@ -112,6 +115,10 @@ where
     }
 }
 
+/// This function takes [SacctOutput] and expands job ids.
+///
+/// Ids like: `1234_[22-34]` will get expanded into `1234_22, 1234_23, ...,
+/// 1234_34`.
 fn flatten_job_id(jobs: Vec<SacctOutput>) -> Vec<SacctOutput> {
     let mut result = vec![];
 

@@ -86,8 +86,9 @@ fn breaking_changes_config_file_all_values() {
     dir.close().unwrap();
 }
 
-/// This test will fail if the semantics of all REQUIRED values in the config file are changed.
-/// See above. If you add something to the struct, add it here too.
+/// This test will fail if the semantics of all REQUIRED values in the config
+/// file are changed. See above. If you add something to the struct, add it here
+/// too.
 #[test]
 fn breaking_changes_config_file_required_values() {
     let dir = TempDir::new("config_folder").expect("A temp folder could not be created.");
@@ -140,7 +141,8 @@ fn config_nonexistent_file() {
 }
 
 // Tests on a file without read permissions.
-// The test does not run on Windows because we access Unix-style permissions here.
+// The test does not run on Windows because we access Unix-style permissions
+// here.
 #[test]
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 fn config_unreadable_file() {

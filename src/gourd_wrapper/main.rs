@@ -1,5 +1,3 @@
-// for tarpaulin cfg
-#![allow(unexpected_cfgs)]
 #![cfg(not(tarpaulin_include))]
 //! This wrapper runs the binary and measures metrics
 //!
@@ -8,8 +6,10 @@
 //!   - The path to the input
 //!   - The path where the output of the program should be placed
 //!   - The path where the metrics should be output
+//!
 //! As arguments, the wrapper will then perform the experiment.
 
+/// Measurements for unix-like systems.
 mod measurement_unix;
 
 use std::env;
@@ -35,19 +35,30 @@ use gourd_lib::measurement::Measurement;
 use gourd_lib::measurement::Metrics;
 use gourd_lib::measurement::RUsage;
 
+/// How to style the erros.
 const ERROR_STYLE: Style = anstyle::Style::new()
     .blink()
     .fg_color(Some(Color::Ansi(anstyle::AnsiColor::Red)));
+
+/// How to style the help.
 const HELP_STYLE: Style = anstyle::Style::new()
     .bold()
     .fg_color(Some(Color::Ansi(anstyle::AnsiColor::Green)));
 
+/// A single run configuration.
 struct RunConf {
+    /// The path to the binary.
     binary_path: PathBuf,
+    /// The path to the input.
     input_path: Option<PathBuf>,
+
+    /// The path to the stdout file.
     output_path: PathBuf,
+    /// The path to the result file.
     result_path: PathBuf,
+    /// The path to the stderr file.
     err_path: PathBuf,
+    /// Additional arguments.
     additional_args: Vec<String>,
 }
 
@@ -65,6 +76,7 @@ fn main() {
     }
 }
 
+/// Internal part of the wrapper.
 fn process() -> Result<()> {
     let args: Vec<String> = env::args().collect();
 
@@ -138,6 +150,7 @@ fn process() -> Result<()> {
     Ok(())
 }
 
+/// Process the command line arguments passed to the wrapper.
 fn process_args(args: &[String], fs: &impl FileOperations) -> Result<RunConf> {
     let exp_path: PathBuf = args[2]
         .parse()
@@ -176,6 +189,7 @@ fn process_args(args: &[String], fs: &impl FileOperations) -> Result<RunConf> {
 
 /// This is an extensible structure for measuring monotonic metrics.
 struct Clock {
+    /// The real-world time this program took to execute.
     wall_time: Instant,
 }
 

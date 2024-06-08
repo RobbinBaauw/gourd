@@ -38,10 +38,13 @@ pub enum SlurmState {
     /// The job completed successfully.
     Success,
 
-    /// Job terminated due to launch failure, typically due to a hardware failure (e.g. unable to boot the node or block and the job can not be requeued).
+    /// Job terminated due to launch failure, typically due to a hardware
+    /// failure (e.g. unable to boot the node or block and the job can not be
+    /// requeued).
     BootFail,
 
-    /// Job was explicitly cancelled by the user or system administrator. The job may or may not have been initiated.
+    /// Job was explicitly cancelled by the user or system administrator. The
+    /// job may or may not have been initiated.
     Cancelled,
 
     /// Job terminated on deadline.
@@ -56,7 +59,8 @@ pub enum SlurmState {
     /// Job terminated due to preemption.
     Preempted,
 
-    /// Job has an allocation, but execution has been suspended and CPUs have been released for other jobs.
+    /// Job has an allocation, but execution has been suspended and CPUs have
+    /// been released for other jobs.
     Suspended,
 
     /// Job reached the time limit

@@ -8,13 +8,13 @@ use anyhow::Context;
 use anyhow::Result;
 use chrono::DateTime;
 use chrono::Local;
+use gourd_lib::bailc;
 use gourd_lib::config::Config;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
-use gourd_lib::experiment::InputRef;
-use gourd_lib::experiment::ProgramRef;
+use gourd_lib::experiment::FieldRef;
 use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
 
@@ -23,7 +23,8 @@ pub trait ExperimentExt {
     /// Initialize a new experiment from a `config`.
     ///
     /// Creates a new experiment by matching all algorithms to all inputs.
-    /// The experiment is created in the provided `env` and with `time` as the timestamp.
+    /// The experiment is created in the provided `env` and with `time` as the
+    /// timestamp.
     fn from_config(
         conf: &Config,
         time: DateTime<Local>,
@@ -65,8 +66,8 @@ impl ExperimentExt for Experiment {
         for prog_name in conf.programs.keys() {
             for input_name in conf.inputs.keys() {
                 runs.push(Run {
-                    program: ProgramRef::Regular(prog_name.clone()),
-                    input: InputRef::Regular(input_name.clone()),
+                    program: FieldRef::Regular(prog_name.clone()),
+                    input: FieldRef::Regular(input_name.clone()),
                     err_path: fs.truncate_and_canonicalize(
                         &conf
                             .output_path
@@ -99,7 +100,7 @@ impl ExperimentExt for Experiment {
             seq,
             config: conf.clone(),
             chunks: vec![],
-            resource_limits: conf.resource_limits.clone(),
+            resource_limits: conf.resource_limits,
             env,
             postprocess_inputs: BTreeMap::new(),
         })
@@ -155,7 +156,11 @@ impl ExperimentExt for Experiment {
         if let Some(id) = Self::latest_id_from_folder(folder)? {
             Self::experiment_from_folder(id, folder, fs)
         } else {
-            Err(anyhow!("There are no experiments, try running some first").context(""))
+            bailc!(
+                "There are no experiments, try running some first", ;
+                "", ;
+                "",
+            );
         }
     }
 }
@@ -203,7 +208,8 @@ pub fn get_postprocess_job_info(
             Some(postpr_path) => Ok(postpr_path),
             None => Err(anyhow!(
                 "No postprocess job output folder specified, but postprocess job exists"
-            )),
+            ))
+            .with_context(ctx!("", ; "", )),
         }?;
 
         let path = postprocess_folder.join(format!(

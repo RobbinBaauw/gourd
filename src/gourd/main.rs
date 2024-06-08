@@ -1,12 +1,5 @@
 //! Gourd allows
 
-#![warn(missing_docs)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_copy_implementations)]
-#![allow(clippy::redundant_static_lifetimes)]
-// for tarpaulin cfg
-#![allow(unexpected_cfgs)]
-
 /// An interface for communicating with `gourd-wrapper`, a separately
 /// packaged binary that encapsulates the user's programs.
 pub mod wrapper;

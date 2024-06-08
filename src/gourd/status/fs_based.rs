@@ -24,7 +24,6 @@ impl<T> StatusProvider<T, FileSystemBasedStatus> for FileBasedProvider
 where
     T: FileOperations,
 {
-    /// Function to gather status using file system
     fn get_statuses(
         fs: &mut T,
         experiment: &Experiment,

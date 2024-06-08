@@ -4,8 +4,7 @@ use std::time::Duration;
 
 use gourd_lib::config::Input;
 use gourd_lib::config::Program;
-use gourd_lib::experiment::InputRef;
-use gourd_lib::experiment::ProgramRef;
+use gourd_lib::experiment::FieldRef;
 
 use super::*;
 use crate::test_utils::create_sample_experiment;
@@ -48,7 +47,7 @@ fn get_unscheduled_runs_test() {
 
     experiment.chunks = vec![Chunk {
         runs: vec![0, 1],
-        resource_limits: Some(resource_limits.clone()),
+        resource_limits: Some(resource_limits),
         slurm_id: None,
     }];
 
@@ -97,10 +96,10 @@ fn create_chunks_basic_test() {
 
     experiment.chunks = vec![Chunk {
         runs: vec![0, 1],
-        resource_limits: Some(resource_limits.clone()),
+        resource_limits: Some(resource_limits),
         slurm_id: None,
     }];
-    experiment.resource_limits = Some(resource_limits.clone());
+    experiment.resource_limits = Some(resource_limits);
 
     let chunks = experiment
         .create_chunks(3, 2, experiment.get_unscheduled_runs().unwrap().into_iter())
@@ -111,17 +110,17 @@ fn create_chunks_basic_test() {
         vec!(
             Chunk {
                 runs: vec![2, 3, 4],
-                resource_limits: Some(resource_limits.clone()),
+                resource_limits: Some(resource_limits),
                 slurm_id: None
             },
             Chunk {
                 runs: vec![5, 6, 7],
-                resource_limits: Some(resource_limits.clone()),
+                resource_limits: Some(resource_limits),
                 slurm_id: None
             },
             Chunk {
                 runs: vec![8],
-                resource_limits: Some(resource_limits.clone()),
+                resource_limits: Some(resource_limits),
                 slurm_id: None
             }
         )
@@ -188,10 +187,10 @@ fn create_chunks_greedy_test() {
 
     experiment.chunks = vec![Chunk {
         runs: vec![],
-        resource_limits: Some(resource_limits_b.clone()),
+        resource_limits: Some(resource_limits_b),
         slurm_id: None,
     }];
-    experiment.resource_limits = Some(resource_limits_b.clone());
+    experiment.resource_limits = Some(resource_limits_b);
 
     // Gets all 20 runs
     let mut runs = experiment.get_unscheduled_runs().unwrap().into_iter();
@@ -200,14 +199,13 @@ fn create_chunks_greedy_test() {
     // - use limits_A for combination of input_A and program_A
     // - use limits_B for everything else
     let f = |r: &Run, _: &Experiment| {
-        if let InputRef::Regular(name) = r.input.clone() {
-            if name.starts_with("Input_A")
-                && r.program == ProgramRef::Regular(String::from("Prog_A"))
+        if let FieldRef::Regular(name) = r.input.clone() {
+            if name.starts_with("Input_A") && r.program == FieldRef::Regular(String::from("Prog_A"))
             {
-                return Ok(resource_limits_a.clone());
+                return Ok(resource_limits_a);
             }
         }
-        Ok(resource_limits_b.clone())
+        Ok(resource_limits_b)
     };
 
     // Test greedy algorithm
@@ -222,14 +220,14 @@ fn create_chunks_greedy_test() {
                 // Runs 5-9: prog_A, input_B
                 // Run 10: prog_B, input_A (same limits)
                 runs: vec![5, 6, 7, 8, 9, 10],
-                resource_limits: Some(resource_limits_b.clone()),
+                resource_limits: Some(resource_limits_b),
                 slurm_id: None
             },
             Chunk {
                 // Run 11-14: prog_B, input_A
                 // Run 15: prog_B, input_B (same limits)
                 runs: vec![11, 12, 13, 14, 15, 16],
-                resource_limits: Some(resource_limits_b.clone()),
+                resource_limits: Some(resource_limits_b),
                 slurm_id: None
             }
         ),
@@ -243,17 +241,17 @@ fn create_chunks_greedy_test() {
             // Does not use mapping function, so just takes the first runs
             Chunk {
                 runs: vec![0, 1, 2, 3, 4, 5],
-                resource_limits: Some(resource_limits_b.clone()),
+                resource_limits: Some(resource_limits_b),
                 slurm_id: None
             },
             Chunk {
                 runs: vec![6, 7, 8, 9, 10, 11],
-                resource_limits: Some(resource_limits_b.clone()),
+                resource_limits: Some(resource_limits_b),
                 slurm_id: None
             },
             Chunk {
                 runs: vec![12],
-                resource_limits: Some(resource_limits_b.clone()),
+                resource_limits: Some(resource_limits_b),
                 slurm_id: None
             }
         ),
@@ -279,14 +277,14 @@ fn create_chunks_greedy_test() {
                 // Runs 0-4: prog_A, input_A (special limits!)
                 // The chunk has 5/6 runs (not full)
                 runs: vec![0, 1, 2, 3, 4],
-                resource_limits: Some(resource_limits_a.clone()),
+                resource_limits: Some(resource_limits_a),
                 slurm_id: None
             },
             Chunk {
                 // Run 11-14: prog_B, input_A
                 // Run 15: prog_B, input_B (same limits)
                 runs: vec![17, 18, 19],
-                resource_limits: Some(resource_limits_b.clone()),
+                resource_limits: Some(resource_limits_b),
                 slurm_id: None
             },
         ),

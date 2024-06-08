@@ -95,3 +95,13 @@ anyhow = "1"
 [dev-dependencies]
 # To run benchmarks on stable rust.
 easybench = "1.1.1"
+
+[lints.rust]
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+missing_copy_implementations = "warn"
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }
+
+[lints.clippy]
+redundant_static_lifetimes = "allow"
+missing_docs_in_private_items = "warn"

@@ -1,4 +1,4 @@
-// The architecture of our codebase, shared between wrapper and CLI
+//! The architecture of our codebase, shared between wrapper and CLI.
 
 /// A struct and related methods for global configuration,
 /// declaratively specifying experiments.

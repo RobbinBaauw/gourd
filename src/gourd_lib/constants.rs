@@ -8,7 +8,8 @@ use anstyle::Style;
 use crate::config::ProgramMap;
 use crate::config::ResourceLimits;
 
-/// The default path to the wrapper, that is, we assume `gourd_wrapper` is in $PATH.
+/// The default path to the wrapper, that is, we assume `gourd_wrapper` is in
+/// $PATH.
 pub const WRAPPER_DEFAULT: fn() -> String = || "gourd_wrapper".to_string();
 
 /// The default path to the afterscript.

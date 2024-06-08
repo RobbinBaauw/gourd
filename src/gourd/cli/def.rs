@@ -13,92 +13,73 @@ use clap::Subcommand;
     disable_help_subcommand = true
 )]
 pub struct Cli {
+    /// The main command issued.
     #[command(subcommand)]
-    pub(crate) command: Command,
+    pub command: Command,
 
-    #[arg(
-        short,
-        long,
-        help = "Disable interactive mode, for use in scripts",
-        global = true
-    )]
-    pub(crate) script: bool,
+    /// Disable interactive mode, for use in scripts.
+    #[arg(short, long, global = true)]
+    pub script: bool,
 
-    #[arg(
-        short,
-        long,
-        help = "The path to the config file",
-        default_value = "./gourd.toml",
-        global = true
-    )]
-    pub(crate) config: PathBuf,
+    /// The path to the config file.
+    #[arg(short, long, default_value = "./gourd.toml", global = true)]
+    pub config: PathBuf,
 
-    #[arg(short, long, help = "Verbose mode, displays debug info. For even more try: -vv",
-      global = true, action = ArgAction::Count)]
-    pub(crate) verbose: u8,
+    /// Verbose mode, displays debug info. For even more try: -vv.
+    #[arg(short, long, global = true, action = ArgAction::Count)]
+    pub verbose: u8,
 
-    #[arg(
-        short,
-        long,
-        help = "Dry run, run but don't actually affect anything",
-        global = true
-    )]
-    pub(crate) dry: bool,
+    /// Dry run, run but don't actually affect anything.
+    #[arg(short, long, global = true)]
+    pub dry: bool,
 }
 
 /// Arguments supplied with the `run` command.
 #[derive(Args, Debug, Clone, Copy)]
 pub struct RunStruct {
+    /// The run mode of this run.
     #[command(subcommand)]
-    pub(crate) subcommand: RunSubcommand,
+    pub subcommand: RunSubcommand,
 }
 
 /// Enum for subcommands of the `run` subcommand.
 #[derive(Subcommand, Debug, Copy, Clone)]
 pub enum RunSubcommand {
-    /// Subcommand for running locally.
-    #[command(about = "Create and run an experiment on this computer.")]
+    /// Create and run an experiment on this computer.
+    #[command()]
     Local {},
 
-    /// Subcommand for running on slurm.
-    #[command(about = "Create and run an experiment using Slurm.")]
+    /// Create and run an experiment using Slurm.
+    #[command()]
     Slurm {},
 }
 
 /// Arguments supplied with the `status` command.
 #[derive(Args, Debug, Clone, Copy)]
 pub struct StatusStruct {
-    #[arg(short, long, help = "Rerun failed jobs")]
-    pub(crate) rerun_failed: bool,
+    /// Rerun failed jobs.
+    #[arg(short, long)]
+    pub rerun_failed: bool,
 
-    #[arg(
-        value_name = "EXPERIMENT",
-        help = "The id of the experiment for which to fetch status [default: newest experiment]"
-    )]
-    pub(crate) experiment_id: Option<usize>,
+    /// The id of the experiment for which to fetch status [default: newest
+    /// experiment].
+    #[arg(value_name = "EXPERIMENT")]
+    pub experiment_id: Option<usize>,
 
-    #[arg(
-        short = 'i',
-        long,
-        help = "Get a detailed description of a run by providing its id"
-    )]
-    pub(crate) run_id: Option<usize>,
+    /// Get a detailed description of a run by providing its id.
+    #[arg(short = 'i', long)]
+    pub run_id: Option<usize>,
 
-    /// Whether to follow the status, by default false.
-    #[arg(long, help = "Do not exit until all jobs are finished")]
-    pub(crate) follow: bool,
+    /// Do not exit until all jobs are finished.
+    #[arg(long)]
+    pub follow: bool,
 }
 
 /// Arguments supplied with the `init` command.
 #[derive(Args, Debug)]
 pub struct InitStruct {
-    /// Flag used to point to directory in which to set up a new experiment.
-    #[arg(
-        short = 'D',
-        long,
-        help = "Directory in which to create an experiment",
-        default_value = "./"
-    )]
+    /// Directory in which to create an experiment.
+    #[arg(short = 'D', long, default_value = "./")]
     directory: Option<String>,
 }
 
@@ -109,27 +90,27 @@ pub struct AnalyseStruct {}
 /// Enum for root-level `gourd` commands.
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Subcommand for scheduling a run.
-    #[command(about = "Create an experiment from configuration and run it.")]
+    /// Create an experiment from configuration and run it.
+    #[command()]
     Run(RunStruct),
 
-    /// Subcommand for initializing new experiment.
-    #[command(about = "Set up a template of an experiment configuration.")]
+    /// Set up a template of an experiment configuration.
+    #[command()]
     Init(InitStruct),
 
-    /// Subcommand for checking status of a run.
-    #[command(about = "Display the status of an experiment that was run.")]
+    /// Display the status of an experiment that was run.
+    #[command()]
     Status(StatusStruct),
 
-    /// Subcommand for scheduling another batch of slurm jobs.
-    #[command(about = "Schedule another batch of slurm jobs")]
+    /// Schedule another batch of slurm jobs.
+    #[command()]
     Continue,
 
-    /// Subcommand for analysing results of a run.
-    #[command(about = "Output metrics of completed runs.")]
+    /// Output metrics of completed runs.
+    #[command()]
     Analyse(AnalyseStruct),
 
-    /// Subcommand for getting the version.
-    #[command(about = "Show the software version.")]
+    /// Print information about the version.
+    #[command()]
     Version,
 }

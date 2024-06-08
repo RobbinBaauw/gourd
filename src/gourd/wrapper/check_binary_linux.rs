@@ -8,6 +8,7 @@ use anyhow::Result;
 use elf::abi;
 use elf::endian::AnyEndian;
 use elf::ElfBytes;
+use gourd_lib::bailc;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::file_system::FileOperations;
@@ -28,6 +29,7 @@ const E_MACHINE_MAPPING: for<'a> fn(&'a str) -> u16 = |machine| match machine {
     _ => 0,
 };
 
+/// Verify the architecture of the binary on linux.
 pub fn verify_arch(binary: &PathBuf, expected_arch: &str, fs: &impl FileOperations) -> Result<()> {
     let expected_machine_type = E_MACHINE_MAPPING(expected_arch);
     let elf = fs.read_bytes(binary)?;
@@ -38,15 +40,12 @@ pub fn verify_arch(binary: &PathBuf, expected_arch: &str, fs: &impl FileOperatio
     ))?;
 
     if elf.ehdr.e_machine != expected_machine_type {
-        Err(anyhow!(
-            "The program architecture {} does not match the expected architecture {}",
-            elf.ehdr.e_machine,
-            expected_arch
-        ))
-        .with_context(ctx!(
+        bailc!(
+          "The program architecture {} does not match the expected architecture {expected_arch}",
+          elf.ehdr.e_machine;
           "The architecture does not match for program {binary:?}", ;
           "Ensure that the program is compiled for the correct target",
-        ))
+        )
     } else {
         Ok(())
     }

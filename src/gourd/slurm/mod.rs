@@ -20,12 +20,14 @@ pub mod interactor;
 /// This can be via a version-specific CLI, via a REST API, or via a library.
 pub trait SlurmInteractor {
     /// Check the version of slurm on the current environment.
-    /// returns an error if the version is not supported, or if slurm is not present.
+    /// returns an error if the version is not supported, or if slurm is not
+    /// present.
     fn get_version(&self) -> Result<[u64; 2]>;
+
     /// Check if the provided partition is valid.
     fn get_partitions(&self) -> Result<Vec<Vec<String>>>;
 
-    /// actually running batch jobs. still not completely decided what this will do, more documentation soon™
+    /// Schedule a new job array on the cluster.
     fn schedule_chunk(
         &self,
         slurm_config: &SlurmConfig,

@@ -1,5 +1,14 @@
-#![allow(clippy::needless_borrows_for_generic_args)]
+//! The building process.
+//!
+//! This script does two steps when building `gourd`.
+//! 1. The shell completions are compiled and placed in
+//!    `[output_dir]/completions/`.
+//! 2. If the feature `documentation` is on, user and maintainer documentation
+//!    will be compiled into `[output_dir]/manpages/`.
+
 #![allow(unused)]
+#![allow(clippy::missing_docs_in_private_items)]
+
 use std::env;
 use std::fs;
 use std::path::Path;
@@ -58,7 +67,6 @@ fn main() -> Result<()> {
     let docs = target_dir.join("manpages/");
 
     let _ = fs::create_dir(&completions);
-    let _ = fs::create_dir(&docs);
 
     let mut cmd = Cli::command();
 
@@ -69,6 +77,8 @@ fn main() -> Result<()> {
 
     #[cfg(feature = "documentation")]
     {
+        let _ = fs::create_dir(&docs);
+
         // Uncomment for local builds.
         // println!("cargo::rerun-if-changed=docs/");
 
