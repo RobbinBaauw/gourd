@@ -45,13 +45,16 @@ where
     T: SlurmInteractor,
 {
     /// Run an experiment on delftblue.
+    ///
+    /// # Returns
+    /// The amount of chunks that have been scheduled.
     pub fn run_experiment(
         &self,
         config: &Config,
         experiment: &mut Experiment,
         exp_path: PathBuf,
         fs: impl FileOperations,
-    ) -> Result<()> {
+    ) -> Result<usize> {
         let slurm_config = get_slurm_options_from_config(config)?;
         let runs = experiment.get_unscheduled_runs()?;
 
@@ -68,6 +71,7 @@ where
 
         experiment.save(&config.experiments_folder, &fs)?;
 
+        let mut counter = 0;
         for (chunk_id, chunk) in chunks_to_iterate.iter_mut().enumerate() {
             if chunk.slurm_id.is_some() {
                 continue;
@@ -86,12 +90,13 @@ where
                 experiment,
                 &fs.canonicalize(&exp_path)?,
             )?;
+            counter += 1;
         }
 
         experiment.chunks = chunks_to_iterate;
         experiment.save(&config.experiments_folder, &fs)?;
 
-        Ok(())
+        Ok(counter)
     }
 }
 

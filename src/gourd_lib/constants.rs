@@ -66,6 +66,9 @@ pub const PRIMARY_STYLE: Style = style_from_fg(AnsiColor::Green).bold();
 /// The styling for the secondary text.
 pub const SECONDARY_STYLE: Style = style_from_fg(AnsiColor::BrightGreen);
 
+/// The styling for the tertiary text.
+pub const TERTIARY_STYLE: Style = style_from_fg(AnsiColor::Blue);
+
 /// The styling for the university name.
 pub const NAME_STYLE: Style = Style::new().bold();
 
@@ -101,5 +104,11 @@ pub const SHORTEN_STATUS_CUTOFF: usize = 100;
 /// Do we assume by default that runs with custom labels are failed runs?
 pub const RERUN_LABEL_BY_DEFAULT: fn() -> bool = || true;
 
+/// The maximal amount of tasks that gourd will schedule.
+pub const TASK_LIMIT: usize = 200;
+
 /// The logo of the application.
 pub const LOGO: &str = include_str!("../resources/logo.ascii");
+
+/// The length of the bar for scheudling.
+pub const SCHEDULE_BAR_WIDTH: usize = 50;

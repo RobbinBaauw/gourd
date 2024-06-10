@@ -68,38 +68,22 @@ impl Chunkable for Experiment {
         ids: impl Iterator<Item = usize>,
     ) -> Result<Vec<Chunk>> {
         /// Create a new empty chunk.
-        fn new_chunk(resource_limits: &Option<ResourceLimits>) -> Chunk {
+        fn new_chunk(runs: Vec<usize>, resource_limits: &Option<ResourceLimits>) -> Chunk {
             Chunk {
-                runs: Vec::new(),
+                runs,
                 resource_limits: *resource_limits,
                 slurm_id: None,
             }
         }
 
-        let mut chunks: Vec<Chunk> = vec![];
-        let mut current_chunk = new_chunk(&self.resource_limits);
+        let mut chunks_full: Vec<Chunk> = ids
+            .collect::<Vec<usize>>()
+            .chunks(chunk_length)
+            .map(|chunk| new_chunk(chunk.to_vec(), &self.resource_limits))
+            .collect();
+        chunks_full.truncate(num_chunks);
 
-        for id in ids {
-            debug_assert!(id < self.runs.len(), "Run ID out of range");
-            if chunks.len() == num_chunks {
-                break;
-            }
-
-            if current_chunk.runs.len() == chunk_length {
-                chunks.push(current_chunk);
-                current_chunk = new_chunk(&self.resource_limits);
-            }
-
-            if current_chunk.runs.len() < chunk_length {
-                current_chunk.runs.push(id);
-            }
-        }
-
-        if !current_chunk.runs.is_empty() {
-            chunks.push(current_chunk);
-        }
-
-        Ok(chunks)
+        Ok(chunks_full)
     }
 
     fn create_chunks_with_resource_limits(

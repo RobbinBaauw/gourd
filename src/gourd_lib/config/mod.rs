@@ -263,7 +263,10 @@ pub struct SBatchArg {
 #[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, Serialize, Deserialize)]
 pub struct ResourceLimits {
     /// Maximum time allowed _for each_ job.
-    #[serde(deserialize_with = "duration::deserialize_human_time_duration")]
+    #[serde(
+        serialize_with = "duration::serialize_human_time_duration",
+        deserialize_with = "duration::deserialize_human_time_duration"
+    )]
     pub time_limit: Duration,
 
     /// CPUs to use per job
