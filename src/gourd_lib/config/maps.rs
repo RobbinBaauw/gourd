@@ -1,6 +1,7 @@
 use core::fmt;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::collections::HashSet;
 use std::env::current_dir;
 use std::hash::Hash;
@@ -10,7 +11,11 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 use std::path::Path;
 
+use anyhow::anyhow;
+use anyhow::Context;
+use anyhow::Result;
 use glob::glob;
+use regex_lite::Regex;
 use serde::de;
 use serde::de::MapAccess;
 use serde::de::Visitor;
@@ -19,10 +24,14 @@ use serde::Deserializer;
 use serde::Serialize;
 
 use super::Input;
+use super::Parameter;
 use super::Program;
+use crate::bailc;
 use crate::constants::GLOB_ESCAPE;
 use crate::constants::INTERNAL_GLOB;
 use crate::constants::INTERNAL_PREFIX;
+use crate::ctx;
+use crate::error::Ctx;
 use crate::file_system::FileOperations;
 use crate::file_system::FileSystemInteractor;
 
@@ -261,6 +270,275 @@ where
     }
 }
 
+/// Takes the set of all inputs and all Parameters and expands parameterd
+/// arguments in the inputs with valeus of provided parameters.
+///
+/// # Examples
+///
+/// ```toml
+/// [parameters.x.sub.a]
+/// values = ["1", "2"]
+///
+/// [parameters.x.sub.b]
+/// values = ["15", "60"]
+///
+/// [parameters.y]
+/// values = ["a", "b"]
+///
+/// [programs.test_program]
+/// binary = "test"
+///
+/// [inputs.test_input]
+/// arguments = [ "const", "parameter|{parameter_x_a}", "parameter|{parameter_y}", "parameter|{parameter_x_b}" ]
+/// ```
+///
+/// Will get expanded to:
+/// ```toml
+/// [inputs.test_input_x-0_y-0]
+/// arguments = [ "const", "1", "a", "15" ]
+///
+/// [inputs.test_input_x-1_y-0]
+/// arguments = [ "const", "2", "a", "60" ]
+///
+/// [inputs.test_input_x-0_y-1]
+/// arguments = [ "const", "1", "b", "15" ]
+///
+/// [inputs.test_input_x-1_y-1]
+/// arguments = [ "const", "2", "b", "60" ]
+/// ```
+pub fn expand_parameters(
+    inputs: InputMap,
+    parameters: &BTreeMap<String, Parameter>,
+) -> anyhow::Result<InputMap> {
+    let mut result: BTreeMap<String, Input> = BTreeMap::new();
+    let mut parameter_names_encountered: BTreeSet<String> = BTreeSet::new();
+
+    check_subparameter_size_is_equal(parameters)?;
+
+    for (input_name, input) in inputs.iter() {
+        let mut map: BTreeMap<String, Vec<(usize, String)>> = BTreeMap::new();
+        let mut expandable_parameters: BTreeSet<String> = BTreeSet::new();
+
+        // Find uses of parameters in inputs.
+        get_expandable_parameters(
+            input,
+            &mut map,
+            &mut expandable_parameters,
+            &mut parameter_names_encountered,
+        )?;
+
+        // If none of parameters was used in this input then there's no need to do
+        // anything.
+        if expandable_parameters.is_empty() {
+            result.insert(input_name.clone(), input.clone());
+            continue;
+        }
+
+        let mut set: BTreeSet<(String, Vec<String>)> = BTreeSet::new();
+        set.insert((input_name.clone(), input.arguments.clone()));
+
+        for parameter_name in expandable_parameters {
+            let param = parameters.get(&parameter_name).with_context(
+                ctx!("Did not find values for parameter specified in input {}",input_name;"{}",parameter_name),
+            )?;
+            let indexes = &map[&parameter_name];
+
+            if indexes[0].1 == *""
+            // Parameters have empty string in indexes
+            {
+                expand_parameter(&parameter_name, param, &mut set, indexes)?;
+            } else {
+                expand_subparameter(&parameter_name, param, &mut set, indexes)?;
+            }
+        }
+
+        for (name, x) in set {
+            let mut input_copy = input.clone();
+            input_copy.arguments.clone_from(&x);
+            result.insert(name, input_copy);
+        }
+    }
+
+    // Make sure every parameter specified was used at least once.
+    check_parameters_were_used(parameters, &parameter_names_encountered)?;
+
+    Ok(InputMap(result))
+}
+
+/// Checks if all subparameters of each paramterers specified in `parameters`
+/// are equal (Helper function)
+fn check_subparameter_size_is_equal(
+    parameters: &BTreeMap<String, Parameter>,
+) -> anyhow::Result<()> {
+    for (parameter_name, parameter) in parameters {
+        if let Some(sub_parameters) = &parameter.sub {
+            let sub_parameter_size = sub_parameters
+                .clone()
+                .first_entry()
+                .unwrap()
+                .get()
+                .values
+                .len();
+            for x in sub_parameters.values() {
+                if x.values.len() != sub_parameter_size {
+                    bailc!(
+                        "Subparameter sizes don't match", ;
+                        "{}", parameter_name;
+                        "",
+                    );
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Gets names and positions of parameters in the provided `input`. (Helper
+/// function)
+///
+/// Saves paramter names in `expandable_parameters` Set and
+/// `parameter_names_encountered` Set
+///
+/// Saves map of Index to Parameter name in `map`
+fn get_expandable_parameters(
+    input: &Input,
+    map: &mut BTreeMap<String, Vec<(usize, String)>>,
+    expandable_parameters: &mut BTreeSet<String>,
+    parameter_names_encountered: &mut BTreeSet<String>,
+) -> anyhow::Result<()> {
+    for (pos, arg) in input.arguments.iter().enumerate() {
+        if arg.starts_with("parameter|") {
+            let regex_solo = Regex::new(r"^.*\{parameter_([0-9a-zA-Z]*)\}.*$").unwrap();
+            let regex_sub =
+                Regex::new(r"^.*\{parameter_([0-9a-zA-Z]*)_([0-9a-zA-Z]*)\}.*$").unwrap();
+
+            if let Some(captures) = regex_solo.captures(arg) {
+                let param_name = captures[1].to_string();
+                expandable_parameters.insert(param_name.clone());
+
+                if let Some(vector) = map.get_mut(&param_name) {
+                    vector.push((pos, "".to_string()))
+                } else {
+                    map.insert(param_name, vec![(pos, "".to_string())]);
+                }
+            }
+
+            if let Some(captures) = regex_sub.captures(arg) {
+                let param_name = captures[1].to_string();
+                expandable_parameters.insert(param_name.clone());
+                parameter_names_encountered.insert(param_name.clone() + "_" + &captures[2]);
+
+                if let Some(vector) = map.get_mut(&param_name) {
+                    vector.push((pos, captures[2].to_string()))
+                } else {
+                    map.insert(param_name, vec![(pos, captures[2].to_string())]);
+                }
+            }
+        }
+    }
+
+    parameter_names_encountered.append(&mut expandable_parameters.clone());
+
+    Ok(())
+}
+
+/// Expands provided parameter (Helper function)
+fn expand_parameter(
+    parameter_name: &String,
+    param: &Parameter,
+    set: &mut BTreeSet<(String, Vec<String>)>,
+    indexes: &Vec<(usize, String)>,
+) -> anyhow::Result<()> {
+    // If no subparameters are used all strings will be empty
+    let param_values = param.values.as_ref().unwrap();
+
+    for (base_name, arguments) in set.clone() {
+        for (i, value) in param_values.iter().enumerate() {
+            let mut arguments_clone = arguments.clone();
+            for index in indexes {
+                arguments_clone[index.0] = arguments_clone[index.0]
+                    .replace("parameter|", "") // Remove `parameter|` indicator
+                    .replace(&format!("{{parameter_{}}}", parameter_name), value);
+                // Replace `{parameter_name}` with value of the parameter
+            }
+
+            set.insert((
+                base_name.clone() + "_" + parameter_name + "-" + &i.to_string(),
+                arguments_clone,
+            ));
+        }
+
+        set.remove(&(base_name, arguments));
+    }
+    Ok(())
+}
+
+/// Expands provided subparameter (Helper function)
+fn expand_subparameter(
+    parameter_name: &String,
+    param: &Parameter,
+    set: &mut BTreeSet<(String, Vec<String>)>,
+    indexes: &Vec<(usize, String)>,
+) -> anyhow::Result<()> {
+    let mut sub_parameters = param.clone().sub.unwrap();
+    let sub_parameter_size = sub_parameters.first_entry().unwrap().get().values.len();
+
+    for (base_name, arguments) in set.clone() {
+        for i in 0..sub_parameter_size {
+            let mut arguments_clone = arguments.clone();
+            for sub_index in indexes {
+                arguments_clone[sub_index.0] = arguments_clone[sub_index.0]
+                    .replace("parameter|", "") // Remove `parameter|` indicator
+                    .replace(
+                        &format!("{{parameter_{}_{}}}", parameter_name, &sub_index.1),
+                        &sub_parameters[&sub_index.1].values[i],
+                    ); // Replace `{parameter_name_subname}` with
+                       // value of the sub parameter
+            }
+            set.insert((
+                base_name.clone() + "_" + parameter_name + "-" + &i.to_string(),
+                arguments_clone,
+            ));
+        }
+
+        set.remove(&(base_name, arguments));
+    }
+
+    Ok(())
+}
+
+/// Checks that all parameters and subparameters in `parameters` were used in
+/// `parameter_names_encountered`.
+fn check_parameters_were_used(
+    parameters: &BTreeMap<String, Parameter>,
+    parameter_names_encountered: &BTreeSet<String>,
+) -> anyhow::Result<()> {
+    for (parameter_name, parameter) in parameters {
+        if !parameter_names_encountered.contains(parameter_name) {
+            bailc!(
+                "Parameter was not used in any of the inputs", ;
+                "{}", parameter_name;
+                "",
+            );
+        }
+
+        if let Some(sub) = &parameter.sub {
+            for sub_name in sub.keys() {
+                let name = parameter_name.clone() + "_" + sub_name;
+                if !parameter_names_encountered.contains(&name) {
+                    bailc!(
+                        "Subparameter was not used in any of the inputs", ;
+                        "{}", name;
+                        "",
+                    );
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Make sure that a substring is not part of a string.
 fn disallow_substring<T>(name: &String, disallowed: &'static str) -> Result<(), T>
 where
@@ -343,3 +621,7 @@ impl IntoIterator for InputMap {
         self.0.into_iter()
     }
 }
+
+#[cfg(test)]
+#[path = "tests/maps.rs"]
+mod tests;

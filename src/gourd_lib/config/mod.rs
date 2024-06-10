@@ -7,6 +7,7 @@ use std::time::Duration;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use maps::expand_parameters;
 use maps::IS_USER_FACING;
 use serde::Deserialize;
 use serde::Serialize;
@@ -112,6 +113,73 @@ pub struct InputSchema {
     pub inputs: Vec<Input>,
 }
 
+/// Parameter
+///
+/// # Examples
+///
+/// ```toml
+/// [parameters.x]
+/// values = ["1", "2"]
+///
+/// [parameters.y]
+/// values = ["a", "b"]
+///
+/// [programs.test_program]
+/// binary = "test"
+///
+/// [inputs.test_input]
+/// arguments = [ "parameter|{parameter_x}" ]
+/// ```
+///
+/// Will run:
+/// `test 1 a`
+/// `test 1 b`
+/// `test 2 a`
+/// `test 2 b`
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
+pub struct Parameter {
+    /// Subparameters of this parameter
+    ///
+    /// To be used exclusively without values of parameter
+    pub sub: Option<BTreeMap<String, SubParameter>>,
+
+    /// The values of parameter
+    ///
+    /// To be used exclusively without sub (parameter)
+    pub values: Option<Vec<String>>,
+}
+
+/// Parameter
+///
+/// # Examples
+///
+/// ```toml
+/// [parameters.x_a]
+/// values = ["1", "2", "3"]
+///
+/// [parameters.x_b]
+/// values = ["15", "60", "30"]
+///
+/// [programs.test_program]
+/// binary = "test"
+///
+/// [inputs.test_input]
+/// arguments = [ "parameter|{parameter_x_a}", "parameter|{parameter_x_b}" ]
+/// ```
+///
+/// Will run:
+/// `test 1 15`
+/// `test 2 60`
+/// `test 3 30`
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
+pub struct SubParameter {
+    /// The values of sub parameter
+    ///
+    /// Has to equal in length to values of other subparameters of the same
+    /// argument
+    pub values: Vec<String>,
+}
+
 /// A label that can be assigned to a job based on the afterscript output.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
 #[serde(deny_unknown_fields)]
@@ -164,6 +232,9 @@ pub struct Config {
 
     /// A path to a TOML file that contains input combinations.
     pub input_schema: Option<PathBuf>,
+
+    /// The list of parameters
+    pub parameters: Option<BTreeMap<String, Parameter>>,
 
     /// If running on a SLURM cluster, the job configurations
     pub slurm: Option<SlurmConfig>,
@@ -281,6 +352,7 @@ impl Default for Config {
             programs: ProgramMap::default(),
             inputs: InputMap::default(),
             input_schema: None,
+            parameters: None,
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
@@ -327,6 +399,28 @@ impl Config {
                   "The name \"{overlap}\" appears twice: {:?}", initial
                 );
             }
+        }
+
+        if let Some(parameters) = &initial.parameters.clone() {
+            for (p_name, p) in parameters {
+                if p.sub.is_some() == p.values.is_some() {
+                    if p.sub.is_some() {
+                        bailc!(
+                          "Parameter specified incorrectly", ;
+                          "Parameter can have either values or subparameters, not both", ;
+                          "Parameter name {}", p_name
+                        );
+                    } else {
+                        bailc!(
+                          "Parameter specified incorrectly", ;
+                          "Parameter must have either values or subparameters, currently has none", ;
+                          "Parameter name {}", p_name
+                        );
+                    }
+                }
+            }
+
+            initial.inputs = expand_parameters(initial.inputs, parameters)?;
         }
 
         Ok(initial)
