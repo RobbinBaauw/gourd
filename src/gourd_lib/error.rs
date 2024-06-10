@@ -8,8 +8,8 @@ use crate::constants::HELP_STYLE;
 /// The first element of the structre is the errors "context".
 /// The second element is the help message displayed to the user.
 ///
-/// Both have to implement [Display], and will be displayed when the error is printed.
-/// # Example
+/// Both have to implement [Display], and will be displayed when the error is
+/// printed. # Example
 ///
 /// You can use this for example with two [String]s.
 ///
@@ -55,11 +55,13 @@ impl<A: Display, B: Display> Display for Ctx<A, B> {
 /// || Ctx(format!([context], [context args]), format!([help], [help args]))
 /// ```
 ///
-/// Note the placement of the `;` and `,`. They are required and otherwise the macro will not parse.
+/// Note the placement of the `;` and `,`. They are required and otherwise the
+/// macro will not parse.
 ///
 /// # Example
 ///
-/// Assume that we want to run [std::fs::read] and add context to the error message.
+/// Assume that we want to run [std::fs::read] and add context to the error
+/// message.
 ///
 /// This can be done as follows:
 ///
@@ -76,7 +78,8 @@ impl<A: Display, B: Display> Display for Ctx<A, B> {
 /// ));
 /// ```
 ///
-/// If one does not want to print a help message this can be easily done by leaving it empty:
+/// If one does not want to print a help message this can be easily done by
+/// leaving it empty:
 ///
 /// ```no_run
 /// # #[macro_use]
@@ -94,6 +97,47 @@ impl<A: Display, B: Display> Display for Ctx<A, B> {
 macro_rules! ctx {
     {$cause: expr,  $($arg_cause: expr)*; $help: expr, $($arg_help: tt)*} => {
       || Ctx(format!($cause, $($arg_cause)*), format!($help, $($arg_help)*))
+    };
+}
+
+/// This is a shorthand for the [anyhow::bail] macro, now with context.
+///
+/// # Example
+///
+/// Instead of doing:
+/// ```no_run
+/// # #[macro_use]
+/// # use gourd_lib::error::Ctx;
+/// # use gourd_lib::ctx;
+/// # use std::path::PathBuf;
+/// # use anyhow::Context;
+/// # use anyhow::anyhow;
+/// # use anyhow::Result;
+/// # fn main() -> Result<()> {
+/// return Err(anyhow!("Something")).with_context(ctx!("Something", ; "Help", ));
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Do:
+/// ```no_run
+/// # #[macro_use]
+/// # use gourd_lib::error::Ctx;
+/// # use gourd_lib::ctx;
+/// # use gourd_lib::bailc;
+/// # use std::path::PathBuf;
+/// # use anyhow::anyhow;
+/// # use anyhow::Context;
+/// # use anyhow::Result;
+/// # fn main() -> Result<()> {
+/// bailc!("Something", ; "Something", ; "Help", );
+/// # Ok(())
+/// # }
+/// ```
+#[macro_export]
+macro_rules! bailc {
+    {$text: expr,  $($arg_text: expr)*; $cause: expr,  $($arg_cause: expr)*; $help: expr, $($arg_help: tt)*} => {
+      return Err(anyhow!($text, $($arg_text)*)).with_context(ctx!($cause, $($arg_cause)*; $help, $($arg_help)*));
     };
 }
 

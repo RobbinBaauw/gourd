@@ -1,15 +1,19 @@
+/// Binary verification for linux.
 mod check_binary_linux;
+/// Binary verification for macos.
 mod check_binary_macos;
 
 use std::path::Path;
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 use std::path::PathBuf;
-/// Verify if the architecture of a `binary` matched the `expected` architecture.
+/// Verify if the architecture of a `binary` matched the `expected`
+/// architecture.
 use std::process::Command;
 
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use gourd_lib::bailc;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
@@ -20,12 +24,14 @@ use crate::wrapper::check_binary_linux::verify_arch;
 #[cfg(target_os = "macos")]
 use crate::wrapper::check_binary_macos::verify_arch;
 
+/// Verify the architecture of the binary.
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 fn verify_arch(_: &PathBuf, _: &str, _: &impl FileOperations) -> Result<()> {
     Ok(())
 }
 
-/// This function returns the commands to be run for an n x m matching of the runs to tests.
+/// This function returns the commands to be run for an n x m matching of the
+/// runs to tests.
 ///
 /// The results and outputs will be located in `config.output_dir`.
 pub fn wrap(
@@ -37,8 +43,11 @@ pub fn wrap(
     let mut result = Vec::new();
 
     if experiment.chunks.len() != 1 {
-        return Err(anyhow!("Wrapping locally requires exactly one chunk"))
-            .with_context(ctx!("",;"You may be running too many programs on local",));
+        bailc!(
+          "Wrapping locally requires exactly one chunk", ;
+          "",;
+          "You may be running too many programs on local",
+        );
     }
 
     for (chunk_rel, run_id) in experiment.chunks[0].runs.iter().enumerate() {

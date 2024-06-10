@@ -7,6 +7,7 @@ use std::time::Duration;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use gourd_lib::bailc;
 use gourd_lib::config::SlurmConfig;
 use gourd_lib::constants::SLURM_VERSIONS;
 use gourd_lib::ctx;
@@ -54,7 +55,8 @@ pub fn format_slurm_duration(duration: Duration) -> String {
     )
 }
 
-/// An implementation of the SlurmInteractor trait for interacting with SLURM via the CLI.
+/// An implementation of the SlurmInteractor trait for interacting with SLURM
+/// via the CLI.
 #[derive(Debug)]
 pub struct SlurmCli {
     /// Supported versions by this instance of the CLI interactor
@@ -73,7 +75,6 @@ impl Default for SlurmCli {
 ///
 /// we don't know if other versions are supported.
 impl SlurmInteractor for SlurmCli {
-    /// Get the SLURM version from CLI output.
     fn get_version(&self) -> Result<[u64; 2]> {
         let s_info_out = Command::new("sinfo").arg("--version").output()?;
         let version = String::from_utf8_lossy(&s_info_out.stdout)
@@ -93,8 +94,6 @@ impl SlurmInteractor for SlurmCli {
         Ok(buf)
     }
 
-    /// Get available partitions on the cluster.
-    /// returns a (space and newline delimited) table of partition name and availability.
     fn get_partitions(&self) -> Result<Vec<Vec<String>>> {
         let s_info_out = Command::new("sinfo").arg("-o").arg("%P %a").output()?;
         let partitions = String::from_utf8_lossy(&s_info_out.stdout)
@@ -111,7 +110,6 @@ impl SlurmInteractor for SlurmCli {
         Ok(partitions)
     }
 
-    /// Schedule a new job array on the cluster.
     fn schedule_chunk(
         &self,
         slurm_config: &SlurmConfig,
@@ -122,7 +120,6 @@ impl SlurmInteractor for SlurmCli {
     ) -> Result<()> {
         let resource_limits = chunk
             .resource_limits
-            .clone()
             .ok_or(anyhow!("Could not get slurm resource limits"))
             .with_context(
                 ctx!("",;"Specyfing resource limits in the config is required for slurm runs",),
@@ -183,10 +180,10 @@ impl SlurmInteractor for SlurmCli {
         let proc = cmd.wait_with_output().context("")?;
 
         if !proc.status.success() {
-            return Err(anyhow!("Sbatch failed to run")).with_context(ctx!(
+            bailc!("Sbatch failed to run", ;
                 "Sbatch printed: {}", String::from_utf8(proc.stderr).unwrap();
                 "Please ensure that you are running on slurm",
-            ));
+            );
         }
 
         let batch_id = String::from_utf8(proc.stdout)
@@ -207,12 +204,10 @@ impl SlurmInteractor for SlurmCli {
         Ok(())
     }
 
-    /// Get the supported SLURM versions for this CLI interactor.
     fn is_version_supported(&self, v: [u64; 2]) -> bool {
         self.versions.contains(&v)
     }
 
-    /// Get the supported SLURM versions for this CLI interactor.
     fn get_supported_versions(&self) -> String {
         self.versions
             .iter()
@@ -221,7 +216,6 @@ impl SlurmInteractor for SlurmCli {
             .join(", ")
     }
 
-    /// Get accounting data of user's jobs
     fn get_accounting_data(&self, job_ids: Vec<String>) -> Result<Vec<SacctOutput>> {
         let mut sacct_cmd = Command::new("sacct");
         sacct_cmd

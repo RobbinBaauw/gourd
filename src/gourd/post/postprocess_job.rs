@@ -7,8 +7,7 @@ use gourd_lib::config::Input;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
-use gourd_lib::experiment::InputRef;
-use gourd_lib::experiment::ProgramRef;
+use gourd_lib::experiment::FieldRef;
 use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
 
@@ -16,7 +15,8 @@ use crate::status::ExperimentStatus;
 use crate::status::PostprocessCompletion;
 use crate::status::SlurmState;
 
-/// Schedules the postprocessing job for jobs that are completed and do not yet have a postprocess job output.
+/// Schedules the postprocessing job for jobs that are completed and do not yet
+/// have a postprocess job output.
 pub fn schedule_post_jobs(
     experiment: &mut Experiment,
     statuses: &mut ExperimentStatus,
@@ -54,8 +54,8 @@ pub fn schedule_post_jobs(
             ))?;
 
         let prog_name = match &run.program {
-            ProgramRef::Regular(name) => name.clone(),
-            ProgramRef::Postprocess(name) => name.clone(),
+            FieldRef::Regular(name) => name.clone(),
+            FieldRef::Postprocess(name) => name.clone(),
         };
 
         post_job_for_run(
@@ -109,8 +109,8 @@ pub fn post_job_for_run(
     experiment.save(&experiment.config.experiments_folder, fs)?;
 
     experiment.runs.push(Run {
-        program: ProgramRef::Postprocess(postprocess_name.clone()),
-        input: InputRef::Postprocess(input_name),
+        program: FieldRef::Postprocess(postprocess_name.clone()),
+        input: FieldRef::Postprocess(input_name),
         err_path: fs.truncate_and_canonicalize(
             &postprocess_out.join(format!("error_{}", postprocess_name)),
         )?,

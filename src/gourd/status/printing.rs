@@ -135,11 +135,13 @@ pub fn display_statuses(
     Ok(finished)
 }
 
+/// Display a shortened status for a lot of runs.
 #[cfg(not(tarpaulin_include))] // We can't test stdout
 fn short_status(_: &Experiment, _: &ExperimentStatus) -> Result<()> {
     todo!()
 }
 
+/// Display a shortened status for a small amount of runs.
 #[cfg(not(tarpaulin_include))] // We can't test stdout
 fn long_status(
     f: &mut impl Write,

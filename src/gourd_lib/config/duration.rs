@@ -9,6 +9,7 @@ pub fn deserialize_human_time_duration<'de, D>(deserializer: D) -> Result<Durati
 where
     D: Deserializer<'de>,
 {
+    /// The default duration visitor.
     struct DurationVisitor;
 
     impl<'de> Visitor<'de> for DurationVisitor {

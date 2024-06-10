@@ -9,7 +9,7 @@ use self::runner::run_locally;
 use crate::slurm::chunk::Chunkable;
 use crate::wrapper::wrap;
 
-/// The (first iteration) thread pool implementation
+/// The (first iteration) thread pool implementation.
 pub mod runner;
 
 /// Run an experiment locally, as specified in the config file.

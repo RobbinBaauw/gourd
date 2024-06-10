@@ -41,6 +41,7 @@ impl<'de> Deserialize<'de> for Regex {
     where
         D: Deserializer<'de>,
     {
+        /// The visitor for regex values.
         struct RegexVisitor;
 
         impl<'de> Visitor<'de> for RegexVisitor {

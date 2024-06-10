@@ -13,7 +13,8 @@ use crate::test_utils::get_compiled_example;
 use crate::test_utils::REAL_FS;
 use crate::wrapper::wrap;
 
-/// This test will generate an ARM binary and check if [crate::wrapper::wrap] rightfully rejects it.
+/// This test will generate an ARM binary and check if [crate::wrapper::wrap]
+/// rightfully rejects it.
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 #[test]
 fn non_matching_arch() {

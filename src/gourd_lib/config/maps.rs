@@ -14,7 +14,6 @@ use serde::de::Visitor;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
-use serde::Serializer;
 
 use super::Input;
 use super::Program;
@@ -23,51 +22,23 @@ use crate::constants::INTERNAL_GLOB;
 use crate::constants::INTERNAL_POST;
 
 /// A wrapper around [BTreeMap] to allow serde expansion of globs.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Default, Serialize)]
 pub struct InputMap(BTreeMap<String, Input>);
 
 /// A wrapper around [BTreeMap] with programs.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Default, Serialize)]
 pub struct ProgramMap(BTreeMap<String, Program>);
-
-impl Default for InputMap {
-    /// Initialize a new [InputMap].
-    fn default() -> Self {
-        InputMap(BTreeMap::new())
-    }
-}
-
-impl Default for ProgramMap {
-    /// Initialize a new [InputMap].
-    fn default() -> Self {
-        ProgramMap(BTreeMap::new())
-    }
-}
-
-impl Serialize for InputMap {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        Serialize::serialize(&self.0, serializer)
-    }
-}
-
-impl Serialize for ProgramMap {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        Serialize::serialize(&self.0, serializer)
-    }
-}
 
 impl<'de> Deserialize<'de> for ProgramMap {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
+        /// The custom map visitor for inputs.
         struct MapVisitor {
+            /// Wheter to disallow internal strings.
+            disallow: bool,
+            /// Phantom marker.
             marker: PhantomData<()>,
         }
 
@@ -86,8 +57,10 @@ impl<'de> Deserialize<'de> for ProgramMap {
                 let mut values = BTreeMap::new();
 
                 while let Some((k, v)) = map.next_entry()? {
-                    disallow_substring(&k, INTERNAL_GLOB)?;
-                    disallow_substring(&k, INTERNAL_POST)?;
+                    if self.disallow {
+                        disallow_substring(&k, INTERNAL_GLOB)?;
+                        disallow_substring(&k, INTERNAL_POST)?;
+                    }
 
                     values.insert(k, v);
                 }
@@ -97,6 +70,7 @@ impl<'de> Deserialize<'de> for ProgramMap {
         }
 
         let visitor = MapVisitor {
+            disallow: !deserializer.is_human_readable(),
             marker: PhantomData,
         };
 
@@ -109,7 +83,11 @@ impl<'de> Deserialize<'de> for InputMap {
     where
         D: Deserializer<'de>,
     {
+        /// The custom map visitor for inputs.
         struct MapVisitor {
+            /// Wheter to disallow internal strings.
+            disallow: bool,
+            /// Phantom marker.
             marker: PhantomData<()>,
         }
 
@@ -128,8 +106,10 @@ impl<'de> Deserialize<'de> for InputMap {
                 let mut values = BTreeMap::new();
 
                 while let Some((k, v)) = map.next_entry()? {
-                    disallow_substring(&k, INTERNAL_GLOB)?;
-                    disallow_substring(&k, INTERNAL_POST)?;
+                    if self.disallow {
+                        disallow_substring(&k, INTERNAL_GLOB)?;
+                        disallow_substring(&k, INTERNAL_POST)?;
+                    }
 
                     values.insert(k, v);
                 }
@@ -141,6 +121,7 @@ impl<'de> Deserialize<'de> for InputMap {
         }
 
         let visitor = MapVisitor {
+            disallow: !deserializer.is_human_readable(),
             marker: PhantomData,
         };
 
@@ -295,5 +276,39 @@ impl From<BTreeMap<String, Program>> for ProgramMap {
 impl From<BTreeMap<String, Input>> for InputMap {
     fn from(value: BTreeMap<String, Input>) -> Self {
         InputMap(value)
+    }
+}
+
+/// The user facing deserializer.
+///
+/// This may perform checks outside of just veryfing if the data is parsable.
+pub struct UserDeserializer<'de>(toml::Deserializer<'de>);
+
+impl<'de> UserDeserializer<'de> {
+    /// Create a new user facing deserializer.
+    pub fn new(s: &'de str) -> Self {
+        UserDeserializer(toml::Deserializer::new(s))
+    }
+}
+
+impl<'de> Deserializer<'de> for UserDeserializer<'de> {
+    type Error = toml::de::Error;
+
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        self.0.deserialize_any(visitor)
+    }
+
+    fn is_human_readable(&self) -> bool {
+        false
+    }
+
+    // This passes all other deserialization functions to the `toml` deserializer.
+    serde::forward_to_deserialize_any! {
+        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+        bytes byte_buf option unit unit_struct newtype_struct seq tuple
+        tuple_struct map struct enum identifier ignored_any
     }
 }

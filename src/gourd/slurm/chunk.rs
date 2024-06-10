@@ -7,20 +7,23 @@ use gourd_lib::experiment::Chunk;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::experiment::Run;
 
-/// A trait that applies to an Experiment and enables its constituent runs to be split into Chunks.
+/// A trait that applies to an Experiment and enables its constituent runs to be
+/// split into Chunks.
 pub trait Chunkable {
     /// Gets Runs that have not yet been scheduled.
     ///
-    /// Get a vector of `usize` IDs that correspond to the indices of `self.runs` that have not yet
-    /// been scheduled on the SLURM cluster. Returns an error if this is not a SLURM experiment.
+    /// Get a vector of `usize` IDs that correspond to the indices of
+    /// `self.runs` that have not yet been scheduled on the SLURM cluster.
+    /// Returns an error if this is not a SLURM experiment.
     fn get_unscheduled_runs(&self) -> Result<Vec<usize>>;
 
     /// Allocates the provided runs to new Chunks.
     ///
-    /// Creates up to `num_chunks` Chunk objects of maximum length `chunk_length`
-    /// from the provided `Run` IDs, such that each chunk contains Runs with
-    /// equal resource limits (as provided by a mapping function). The IDs must
-    /// be valid and should probably be retrieved using `get_unscheduled_runs`.
+    /// Creates up to `num_chunks` Chunk objects of maximum length
+    /// `chunk_length` from the provided `Run` IDs, such that each chunk
+    /// contains Runs with equal resource limits (as provided by a mapping
+    /// function). The IDs must be valid and should probably be retrieved
+    /// using `get_unscheduled_runs`.
     fn create_chunks(
         &self,
         chunk_length: usize,
@@ -30,10 +33,11 @@ pub trait Chunkable {
 
     /// Allocates the provided runs to new Chunks.
     ///
-    /// Creates up to `num_chunks` Chunk objects of maximum length `chunk_length`
-    /// from the provided `Run` IDs, such that each chunk contains Runs with
-    /// equal resource limits (as provided by a mapping function). The IDs must
-    /// be valid and should probably be retrieved using `get_unscheduled_runs`.
+    /// Creates up to `num_chunks` Chunk objects of maximum length
+    /// `chunk_length` from the provided `Run` IDs, such that each chunk
+    /// contains Runs with equal resource limits (as provided by a mapping
+    /// function). The IDs must be valid and should probably be retrieved
+    /// using `get_unscheduled_runs`.
     #[allow(dead_code)]
     fn create_chunks_with_resource_limits(
         &self,
@@ -63,10 +67,11 @@ impl Chunkable for Experiment {
         num_chunks: usize,
         ids: impl Iterator<Item = usize>,
     ) -> Result<Vec<Chunk>> {
+        /// Create a new empty chunk.
         fn new_chunk(resource_limits: &Option<ResourceLimits>) -> Chunk {
             Chunk {
                 runs: Vec::new(),
-                resource_limits: resource_limits.clone(),
+                resource_limits: *resource_limits,
                 slurm_id: None,
             }
         }
@@ -118,7 +123,7 @@ impl Chunkable for Experiment {
                     } else {
                         final_chunks.push(chunk.clone());
                         chunks_map.insert(
-                            limit.clone(),
+                            limit,
                             Chunk {
                                 runs: vec![id],
                                 resource_limits: Some(limit),
@@ -130,7 +135,7 @@ impl Chunkable for Experiment {
 
                 None => {
                     _ = chunks_map.insert(
-                        limit.clone(),
+                        limit,
                         Chunk {
                             runs: vec![id],
                             resource_limits: Some(limit),

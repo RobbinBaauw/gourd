@@ -3,3 +3,6 @@ imports_granularity = "Item"
 
 # imports are sorted to better work with line-based diffs like git
 group_imports = "StdExternalCrate"
+
+# makes comments adjust to our maximal code width.
+wrap_comments = true

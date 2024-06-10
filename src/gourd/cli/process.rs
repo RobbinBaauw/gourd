@@ -10,6 +10,7 @@ use clap::CommandFactory;
 use clap::FromArgMatches;
 use colog::default_builder;
 use colog::formatter;
+use gourd_lib::bailc;
 use gourd_lib::config::Config;
 use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
@@ -219,9 +220,11 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
                 info!("Postprocessing scheduled for available jobs");
             } else {
-                return Err(anyhow!(
-                    "Continue is only available for a Slurm experiment, not for a local one"
-                ));
+                bailc!(
+                    "Continue is only available for a Slurm experiment, not for a local one", ;
+                    "",;
+                    "",
+                );
             }
 
             // Continuing the experiment
@@ -247,8 +250,8 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
 /// Prepare the log levels for the application.
 ///
-/// Sets up a Colog logger with verbosity based on the flags provided by the user.
-/// Valid verbosities are 0, 1, or 2 (for example, 2 is denoted by "-vv").
+/// Sets up a Colog logger with verbosity based on the flags provided by the
+/// user. Valid verbosities are 0, 1, or 2 (for example, 2 is denoted by "-vv").
 fn setup_logging(cmd: &Cli) -> Result<MultiProgress> {
     let mut log_build = default_builder();
     log_build.format(formatter(LogTokens));
@@ -262,7 +265,11 @@ fn setup_logging(cmd: &Cli) -> Result<MultiProgress> {
     } else if cmd.verbose == 0 {
         log_build.filter(None, LevelFilter::Info);
     } else {
-        return Err(anyhow!("Only two levels of verbosity supported (ie. -vv)")).context("");
+        bailc!(
+            "Only two levels of verbosity supported (ie. -vv)", ;
+            "", ;
+            "",
+        )
     }
 
     LogWrapper::new(bar.clone(), log_build.build())

@@ -6,6 +6,7 @@ use std::process::ExitStatus;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use gourd_lib::bailc;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
@@ -16,7 +17,8 @@ use crate::status::ExperimentStatus;
 use crate::status::PostprocessCompletion;
 use crate::status::SlurmState;
 
-/// Runs the afterscript on jobs that are completed and do not yet have an afterscript output.
+/// Runs the afterscript on jobs that are completed and do not yet have an
+/// afterscript output.
 pub fn run_afterscript(
     statuses: &ExperimentStatus,
     experiment: &Experiment,
@@ -55,16 +57,14 @@ pub fn run_afterscript(
         let exit_status = run_afterscript_for_run(&afterscript, &res_path, &after_output)?;
 
         if !exit_status.success() {
-            return Err(anyhow!(
-                "Afterscript failed with exit code {}",
+            bailc!("Afterscript failed with exit code {}",
                 exit_status
                     .code()
                     .ok_or(anyhow!("Status does not exist"))
                     .with_context(ctx!(
                         "Could not get the exit code of the execution", ;
                         "",
-                    ))?
-            ));
+                    ))? ; "", ; "", );
         }
 
         add_label_to_run(*run_id, &mut labels, experiment, after_output, file_system)?;
@@ -129,6 +129,7 @@ pub fn run_afterscript_for_run(
     Ok(exit_status)
 }
 
+/// Assigns a label to a run.
 fn add_label_to_run(
     run_id: usize,
     labels: &mut BTreeMap<usize, String>,

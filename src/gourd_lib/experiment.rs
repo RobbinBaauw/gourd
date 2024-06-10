@@ -15,36 +15,20 @@ use crate::config::Program;
 use crate::config::ResourceLimits;
 use crate::file_system::FileOperations;
 
-/// Differentiating between regular and postprocess programs.
+/// Differentiating between regular and postprocess fields.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub enum ProgramRef {
+pub enum FieldRef {
+    /// A reference to a filed stored in a config [BTreeMap].
     Regular(String),
+    /// A reference to a postprocess field.
     Postprocess(String),
 }
 
-impl Display for ProgramRef {
+impl Display for FieldRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            ProgramRef::Regular(name) => name,
-            ProgramRef::Postprocess(name) => name,
-        };
-
-        write!(f, "{}", name)
-    }
-}
-
-/// Differentiating between regular and postprocess inputs.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub enum InputRef {
-    Regular(String),
-    Postprocess(String),
-}
-
-impl Display for InputRef {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = match self {
-            InputRef::Regular(name) => name,
-            InputRef::Postprocess(name) => name,
+            FieldRef::Regular(name) => name,
+            FieldRef::Postprocess(name) => name,
         };
 
         write!(f, "{}", name)
@@ -55,10 +39,10 @@ impl Display for InputRef {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Run {
     /// The unique name of the program to run.
-    pub program: ProgramRef,
+    pub program: FieldRef,
 
     /// The unique name of the input to run with.
-    pub input: InputRef,
+    pub input: FieldRef,
 
     /// The path to the stderr output.
     pub err_path: PathBuf,
@@ -127,26 +111,29 @@ impl Experiment {
         Ok(saving_path)
     }
 
-    /// Gets the program by checking of it is a postprocess or a regular program.
+    /// Gets the program by checking if it is a postprocess or a regular
+    /// program.
     pub fn get_program(&self, run: &Run) -> Result<Program> {
         match &run.program {
-            ProgramRef::Regular(name) => Ok(self.config.programs[name].clone()),
-            ProgramRef::Postprocess(name) => {
+            FieldRef::Regular(name) => Ok(self.config.programs[name].clone()),
+            FieldRef::Postprocess(name) => {
                 Ok(self.config.postprocess_programs.clone().unwrap()[name].clone())
             }
         }
     }
 
+    /// Gets the input by checking if it is a postprocess or a regular program.
     pub fn get_input(&self, run: &Run) -> Result<Input> {
         match &run.input {
-            InputRef::Regular(name) => Ok(self.config.inputs[name].clone()),
-            InputRef::Postprocess(name) => Ok(self.postprocess_inputs[name].clone()),
+            FieldRef::Regular(name) => Ok(self.config.inputs[name].clone()),
+            FieldRef::Postprocess(name) => Ok(self.postprocess_inputs[name].clone()),
         }
     }
 }
 
-/// Describes one chunk: a Slurm array of scheduled runs with common resource limits.
-/// Chunks are created at runtime; a run is in one chunk iff it has been scheduled.
+/// Describes one chunk: a Slurm array of scheduled runs with common resource
+/// limits. Chunks are created at runtime; a run is in one chunk iff it has been
+/// scheduled.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Chunk {
     /// The runs that belong to this chunk (by RunID)
@@ -158,15 +145,3 @@ pub struct Chunk {
     /// The slurm job id of this chunk.
     pub slurm_id: Option<String>,
 }
-
-// this stays here as an idea to eventually implement,
-// right now i realised that because SLURM_TASK_ID is an environment variable
-// i cant pass it into a serialized struct
-// /// serialize this and pass it to the wrapper as first argument
-// #[derive(Serialize, Deserialize, Debug)]
-// pub struct WrapperArgs {
-//     /// Path to the experiment toml
-//     pub experiment: PathBuf,
-//     ///
-//     pub run_id: usize,
-// }
