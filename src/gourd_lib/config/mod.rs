@@ -11,6 +11,9 @@ use serde::Serialize;
 use crate::constants::AFTERSCRIPT_DEFAULT;
 use crate::constants::AFTERSCRIPT_OUTPUT_DEFAULT;
 use crate::constants::EMPTY_ARGS;
+use crate::constants::INPUTS_DEFAULT;
+use crate::constants::INTERNAL_PREFIX;
+use crate::constants::INTERNAL_SCHEMA_INPUTS;
 use crate::constants::POSTPROCESS_JOBS_DEFAULT;
 use crate::constants::POSTPROCESS_JOB_DEFAULT;
 use crate::constants::POSTPROCESS_JOB_OUTPUT_DEFAULT;
@@ -89,6 +92,23 @@ pub struct Input {
     pub arguments: Vec<String>,
 }
 
+/// ### TOML struct that can be used to provide inputs.
+/// structure is:
+/// ```toml
+/// [[inputs]]
+/// input = "/path/to/input"
+/// arguments = [ "arg1", "arg2" ]
+///
+/// [[inputs]]
+/// input = "/path/to/input2"
+/// arguments = [ "arg1", "arg2" ]
+/// ```
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Hash, Eq)]
+pub struct InputSchema {
+    /// 0 or more `[[input]]` instances
+    pub inputs: Vec<Input>,
+}
+
 /// A label that can be assigned to a job based on the afterscript output.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
 pub struct Label {
@@ -120,21 +140,29 @@ pub struct Config {
     //
     // Basic settings.
     /// The path to a folder where the experiment output will be stored.
+    #[serde(alias = "out")]
     pub output_path: PathBuf,
 
     /// The path to a folder where the metrics output will be stored.
+    #[serde(alias = "metrics")]
     pub metrics_path: PathBuf,
 
     /// The path to a folder where the experiments will be stored.
+    #[serde(alias = "experiments")]
     pub experiments_folder: PathBuf,
 
     /// The list of tested algorithms.
+    #[serde(rename = "program")]
     pub programs: ProgramMap,
 
     /// The list of inputs for each of them.
     ///
     /// The name of an input cannot contain `glob|`.
+    #[serde(rename = "input", default = "INPUTS_DEFAULT")]
     pub inputs: InputMap,
+
+    /// A path to a TOML file that contains input combinations.
+    pub input_schema: Option<PathBuf>,
 
     /// If running on a SLURM cluster, the job configurations
     pub slurm: Option<SlurmConfig>,
@@ -259,6 +287,7 @@ impl Default for Config {
             wrapper: WRAPPER_DEFAULT(),
             programs: ProgramMap::default(),
             inputs: InputMap::default(),
+            input_schema: None,
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
@@ -275,11 +304,35 @@ impl Config {
     /// Returns a valid `Config` or an explanatory
     /// `GourdError::ConfigLoadError`.
     pub fn from_file<F: FileOperations>(path: &Path, fs: &F) -> Result<Config> {
-        Config::deserialize(UserDeserializer::new(&fs.read_utf8(path)?)).with_context(ctx!(
-          "Could not parse {path:?}", ;
-          "More help and examples can be found with \
-          {PRIMARY_STYLE}man gourd.toml{PRIMARY_STYLE:#}",
-        ))
+        let mut initial: Config = Config::deserialize(UserDeserializer::new(&fs.read_utf8(path)?))
+            .with_context(ctx!(
+              "Could not parse {path:?}", ;
+              "More help and examples can be found with \
+              {PRIMARY_STYLE}man gourd.toml{PRIMARY_STYLE:#}",
+            ))?;
+
+        if let Some(schema) = &initial.input_schema {
+            initial.inputs = Self::parse_schema_inputs(schema.as_path(), initial.inputs, fs)?;
+            initial.input_schema = None;
+        }
+
+        Ok(initial)
+    }
+
+    /// Parse the additional inputs toml file and add them to the inputs map.
+    fn parse_schema_inputs(
+        path_buf: &Path,
+        mut inputs: InputMap,
+        fso: &impl FileOperations,
+    ) -> Result<InputMap> {
+        let hi = fso.try_read_toml::<InputSchema>(path_buf)?;
+        for (idx, input) in hi.inputs.iter().enumerate() {
+            inputs.insert(
+                format!("{}{}{}", INTERNAL_PREFIX, INTERNAL_SCHEMA_INPUTS, idx),
+                input.clone(),
+            );
+        }
+        Ok(inputs)
     }
 }
 

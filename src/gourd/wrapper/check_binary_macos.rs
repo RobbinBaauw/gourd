@@ -11,6 +11,7 @@ use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::file_system::FileOperations;
 
+/// Mapping of the expected architecture to the string used by `lipo`.
 const OSX_ARCH_MAPPING: for<'a> fn(&'a str) -> &'static str = |machine| match machine {
     "x86" => "i386",
     "x86_64" => "x86_64",

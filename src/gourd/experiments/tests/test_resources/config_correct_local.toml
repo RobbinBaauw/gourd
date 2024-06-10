@@ -2,18 +2,18 @@ output_path = "target/tests/local"
 metrics_path = "target/tests/local"
 experiments_folder = "target/tests/local"
 
-[programs.b]
+[program.b]
 arguments = []
 binary = "test binary"
 
-[programs.c]
+[program.c]
 arguments = []
 binary = "test binary 2"
 
-[inputs.d]
+[input.d]
 input = "test input"
 arguments = []
 
-[inputs.e]
+[input.e]
 input = "test input 2"
 arguments = []

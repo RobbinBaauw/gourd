@@ -9,10 +9,10 @@ array_count_limit = 1
 array_size_limit = 1
 account = "test account"
 
-[programs.a]
+[program.a]
 arguments = []
 binary = "test binary"
 
-[inputs.b]
+[input.b]
 input = "test input"
 arguments = []

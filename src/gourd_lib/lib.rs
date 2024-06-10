@@ -19,5 +19,6 @@ pub mod error;
 /// Constant values.
 pub mod constants;
 
+/// Helper functions for testing, only compiled in test mode.
 #[cfg(test)]
 mod test_utils;

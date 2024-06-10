@@ -69,7 +69,7 @@ anstyle = "1.0.7"
 indicatif = "0.17.8"
 indicatif-log-bridge = "0.2.2"
 
-# To provide human readable formatting of durations.
+# To provide human-readable formatting of durations.
 humantime = "2.1.0"
 
 # To handle errors.
