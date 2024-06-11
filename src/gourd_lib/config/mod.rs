@@ -140,15 +140,12 @@ pub struct Config {
     //
     // Basic settings.
     /// The path to a folder where the experiment output will be stored.
-    #[serde(alias = "out")]
     pub output_path: PathBuf,
 
     /// The path to a folder where the metrics output will be stored.
-    #[serde(alias = "metrics")]
     pub metrics_path: PathBuf,
 
     /// The path to a folder where the experiments will be stored.
-    #[serde(alias = "experiments")]
     pub experiments_folder: PathBuf,
 
     /// The list of tested algorithms.
@@ -200,7 +197,7 @@ pub struct Config {
     /// regex = "<regex>" # the regex where if it matches then this label is assigned
     /// rerun_by_default = true # whether using rerun failed will rerun this job- ie is this label a "failure"
     /// ```
-    #[serde(alias = "label")]
+    #[serde(rename = "label")]
     pub labels: Option<BTreeMap<String, Label>>,
 }
 
