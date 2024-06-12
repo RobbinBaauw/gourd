@@ -1,0 +1,143 @@
+\section{Building and distributing}
+
+\textbf{All} of {\gourd}s builds are orchestrated exclusively by \texttt{cargo}
+and all of the rules for non standard builds are contained in the \texttt{build.rs} file.
+
+
+\subsection{Features}
+
+\gourd contains two optional compilation features described below:
+
+\begin{itemize}
+  \item \texttt{documentation}
+  This when turned on will compile all of the documentation for \gourd\ and
+  the resulting files will be placed in \texttt{target/release/manpages}.
+
+  \item \texttt{fetching}
+  This feature when turned on will compile the https backend for fetching resources
+  in experiments, this was made an optional feature because it requires linking against
+  OpenSSL and increases compilation time considerably.
+
+  This is tuned on by default, to turn it on specify: \texttt{--no-default-features}
+\end{itemize}
+
+\subsection{Building}
+
+To build \gourd\ in release mode issue:
+
+\texttt{\$ cargo build --release}
+\vspace{0.5cm}
+
+\noindent The following actions will be taken:
+
+\begin{itemize}
+  \item The shell completions\footnote{For shells: \texttt{fish}, \texttt{zsh}, \texttt{bash}, and PowerShell. See \texttt{build.rs}}
+  will be compiled and placed in \texttt{target/release/completions}
+  \item \gourdlib\ will be compiled.
+  \item \gourd\ will be compiled and placed in \texttt{target/release/gourd}.
+  \item \gourdwrap\ will be compiled and placed in \texttt{target/release/gourd\_wrapper}.
+\end{itemize}
+
+You can now run \gourd\ form the \texttt{target/} folder.
+
+\subsection{Documentation}
+\label{sec:docbuild}
+
+To build \gourd\ with documentation issue:
+
+\texttt{\$ cargo build --release --features documentation -vv}
+\vspace{0.5cm}
+
+\noindent This requires Xe\LaTeX, \texttt{latex2man}, as well as \texttt{mandoc(1)} installed.
+
+This will build all of the manpages to: \texttt{PDF}, \texttt{HTML}, and \texttt{groff}.
+This will also build this(!) document.
+
+All of the resulting files are placed in: \texttt{target/release/manpages}.
+
+
+\subsection{Distribution}
+\textcolor{red!30!black}{\textbf{
+  It was decided that at the current time \gourd\ will not be compiled into
+  operating system specific packages. This is left for future versions of the application.
+  It would be ideal if this process was included in \texttt{build.rs} via optional features.
+}}
+\vspace{0.3cm}
+
+For users to be able to easily install and use a fully setup gourd a specially prepared script was made.
+
+Building documentation as described in \ref{sec:docbuild} will produce: \\
+\texttt{target/release/generate-installer.sh}.
+
+By moving into the \texttt{target/release/} folder and invoking the bourne shell script like so:
+
+\begin{verbatim}
+$ cd target/release/
+$ ./generate-installer.sh
+\end{verbatim}
+
+Two platform specific files will be generated \texttt{install.sh}, and \texttt{uninstall.sh}.
+
+These files are fully bundled versions of gourd and can be distributed directly to users.
+There are some enviormental variables that need to be set when generating the script,
+please continue to \ref{sec:installexample1} and \ref{sec:installexample2}.
+
+\subsubsection{An example}
+\label{sec:installexample1}
+
+Let's look at the generation process for the platform \texttt{x86\_64-unknown-linux-gnu}\footnote{aka Linux systems with the GNU C library on amd64 platforms}.
+
+\begin{verbatim}
+$ INSTALL_PATH="/usr/local/bin" \
+  MANINSTALL_PATH="/usr/local/share/man" \
+  FISHINSTALL_PATH="/usr/share/fish/completions" \
+  ./generate-installer.sh
+\end{verbatim}
+
+During generation of the installation script one has to specify the paths for placing the binaries, manpages, and shell completions.
+These will differ between systems or distibutions thats why this was introduced.
+
+After running this we will get two scripts: \texttt{install-x86\_64-unknown-linux-musl.sh}, \texttt{uninstall-x86\_64-unknown-linux-musl.sh}.
+
+Now the scrips can be distributed and the results of running them are:
+
+\begin{verbatim}
+$ sudo ./install-x86_64-unknown-linux-gnu.sh
+sudo (user@pc) password:
+gourd --> /usr/local/bin/gourd
+gourd_wrapper --> /usr/local/bin/gourd_wrapper
+manpages/gourd.1.man --> /usr/local/share/man/man1/gourd.1
+manpages/gourd.toml.5.man --> /usr/local/share/man/man5/gourd.toml.5
+manpages/gourd-tutorial.7.man --> /usr/local/share/man/man7/gourd-tutorial.7
+Installing completions... this can fail and thats fine!
+completions/gourd.fish --> /usr/share/fish/completions/gourd.fish
+\end{verbatim}
+
+\begin{verbatim}
+$ sudo ./uninstall-x86_64-unknown-linux-gnu.sh
+removed '/usr/local/bin/gourd'
+removed '/usr/local/bin/gourd_wrapper'
+removed '/usr/local/share/man/man1/gourd.1'
+removed '/usr/local/share/man/man5/gourd.toml.5'
+removed '/usr/local/share/man/man7/gourd-tutorial.7'
+Uninstalling completions... this can fail and thats fine!
+removed '/usr/share/fish/completions/gourd.fish'
+\end{verbatim}
+
+
+\subsubsection{Notes on DelftBlue}
+\label{sec:installexample2}
+
+Of course these folders for placing binary files and others will differ from system to system
+thats why the option of specyfing them is provided, a user can also override these paths by
+passing the same variables (\texttt{INSTALL\_PATH, MANINSTALL\_PATH, } $\dots$) to the install script.
+
+So for example on DelftBlue, where users are not allow to install applications
+to the global \texttt{bin} one can do:
+
+\begin{verbatim}
+$ INSTALL_PATH="~/.local/bin" \
+  ./install-x86_64-unknown-linux-gnu.sh
+\end{verbatim}
+
+And the binaries will be placed accordingly.

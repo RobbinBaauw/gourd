@@ -1,7 +1,3 @@
-\def\version{0.8.0}
-\author{Version \version}
-\date{Generated on: \today}
-
 % Math and symbols
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -26,6 +22,9 @@
 % Code highlighting
 \usepackage{listings}
 
+% ISO compliant dates
+\usepackage[iso]{isodate}
+
 \lstset{
   frameround=fttt,
 %  language=Rust,
@@ -36,4 +35,7 @@
 
 \def\note#1{\color{darkgray}{\textit{#1}}}
 
-\def\gourd{\textit{Gourd}}
+\newcommand{\gourdtest}[0]{\texttt{gourd-test}}
+\newcommand{\gourdwrap}[0]{\texttt{gourd\_wrapper}}
+\newcommand{\gourdlib}[0]{\texttt{gourd\_lib}}
+\newcommand{\gourd}[0]{\texttt{gourd}}
