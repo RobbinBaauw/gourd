@@ -31,7 +31,7 @@ const GOURD_MANPAGE: &str = "docs/user/gourd.1.tex";
 const GOURD_TOML_MANPAGE: &str = "docs/user/gourd.toml.5.tex";
 const GOURD_TUTORIAL_MANPAGE: &str = "docs/user/gourd-tutorial.7.tex";
 const MAINTAINER_DOCS: &str = "./maintainer.tex";
-const MAINTAINER_DOCS_WORKDIR: &str = "docs/maintainer/src/";
+const MAINTAINER_DOCS_WORKDIR: &str = "docs/maintainer/";
 
 const PREAMBLE: &str = include_str!("docs/user/html/preamble.html");
 const POSTAMBLE: &str = include_str!("docs/user/html/postamble.html");
