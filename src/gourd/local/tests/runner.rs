@@ -1,5 +1,7 @@
 use std::process::Command;
 
+use gourd_lib::constants::TASK_LIMIT;
+
 use crate::local::runner::run_locally;
 use crate::test_utils::get_compiled_example;
 
@@ -20,7 +22,7 @@ async fn runner_fibonacci_test() {
         commands.push(cmd);
     }
 
-    let results = run_locally(commands).await;
+    let results = run_locally(commands, false).await;
 
     assert!(results.is_ok(), "Executing children processes failed");
 }
@@ -35,7 +37,21 @@ async fn runner_sleep_test() {
         commands.push(cmd);
     }
 
-    let results = run_locally(commands).await;
+    let results = run_locally(commands, false).await;
 
     assert!(results.is_ok(), "Executing children processes failed");
+}
+
+/// Test hitting the task limir
+#[tokio::test]
+async fn test_limit() {
+    let mut commands: Vec<Command> = vec![];
+    for _ in 0..TASK_LIMIT + 1 {
+        let cmd = Command::new("sleep");
+        commands.push(cmd);
+    }
+
+    let results = run_locally(commands, false).await;
+
+    assert!(results.is_err(), "Executing children processes failed");
 }

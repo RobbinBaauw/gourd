@@ -102,7 +102,7 @@ fn create_chunks_basic_test() {
     experiment.resource_limits = Some(resource_limits);
 
     let chunks = experiment
-        .create_chunks(3, 2, experiment.get_unscheduled_runs().unwrap().into_iter())
+        .create_chunks(3, 3, experiment.get_unscheduled_runs().unwrap().into_iter())
         .unwrap();
 
     assert_eq!(
@@ -235,7 +235,7 @@ fn create_chunks_greedy_test() {
     );
 
     // Test basic algorithm
-    let chunks_basic = experiment.create_chunks(6, 2, runs.clone()).unwrap();
+    let chunks_basic = experiment.create_chunks(6, 3, runs.clone()).unwrap();
     assert_eq!(
         vec!(
             // Does not use mapping function, so just takes the first runs
@@ -250,7 +250,7 @@ fn create_chunks_greedy_test() {
                 slurm_id: None
             },
             Chunk {
-                runs: vec![12],
+                runs: vec![12, 13, 14, 15, 16, 17],
                 resource_limits: Some(resource_limits_b),
                 slurm_id: None
             }

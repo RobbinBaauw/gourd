@@ -17,13 +17,14 @@ pub async fn run_local(
     experiment: &mut Experiment,
     exp_path: &Path,
     fs: &impl FileOperations,
+    force: bool,
 ) -> Result<()> {
     experiment.chunks = experiment.create_chunks(usize::MAX, 1, 0..experiment.runs.len())?;
     experiment.save(&experiment.config.experiments_folder, fs)?;
 
     let cmds = wrap(experiment, exp_path, env::consts::ARCH, fs)?;
 
-    run_locally(cmds).await?;
+    run_locally(cmds, force).await?;
 
     Ok(())
 }

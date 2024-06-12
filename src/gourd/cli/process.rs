@@ -26,6 +26,7 @@ use log::info;
 use log::trace;
 use log::LevelFilter;
 
+use super::def::ContinueStruct;
 use super::log::LogTokens;
 use super::printing::get_styles;
 use crate::cli::def::Cli;
@@ -38,9 +39,11 @@ use crate::local::run_local;
 use crate::post::afterscript::run_afterscript;
 use crate::post::postprocess_job::schedule_post_jobs;
 use crate::slurm::checks::get_slurm_options_from_config;
+use crate::slurm::chunk::Chunkable;
 use crate::slurm::handler::SlurmHandler;
 use crate::slurm::interactor::SlurmCli;
 use crate::status::blocking_status;
+use crate::status::chunks::print_scheduling;
 use crate::status::get_statuses;
 use crate::status::printing::display_job;
 use crate::status::printing::display_statuses;
@@ -99,11 +102,11 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             debug!("Saved the experiment at {exp_path:?}");
 
             match args.subcommand {
-                RunSubcommand::Local { .. } => {
+                RunSubcommand::Local { force } => {
                     if cmd.dry {
                         info!("Would have ran the experiment (dry)");
                     } else {
-                        run_local(&mut experiment, &exp_path, &file_system).await?;
+                        run_local(&mut experiment, &exp_path, &file_system, force).await?;
 
                         info!("Experiment started");
 
@@ -123,6 +126,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                         info!("Would have scheduled the experiment on slurm (dry)");
                     } else {
                         s.run_experiment(&config, &mut experiment, exp_path, file_system)?;
+                        print_scheduling(&experiment, true)?;
                         info!("Experiment started");
                     }
 
@@ -199,15 +203,23 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
         Command::Version => print_version(cmd.script),
 
-        Command::Continue => {
+        Command::Continue(ContinueStruct { experiment_id }) => {
             debug!("Reading the config: {:?}", cmd.config);
 
             let config = Config::from_file(&cmd.config, &file_system)?;
 
-            let mut experiment = Experiment::latest_experiment_from_folder(
-                &config.experiments_folder,
-                &file_system,
-            )?;
+            let mut experiment = match experiment_id {
+                Some(id) => Experiment::experiment_from_folder(
+                    id,
+                    &config.experiments_folder,
+                    &file_system,
+                )?,
+
+                None => Experiment::latest_experiment_from_folder(
+                    &config.experiments_folder,
+                    &file_system,
+                )?,
+            };
 
             debug!("Found the newest experiment with id: {}", experiment.seq);
 
@@ -227,6 +239,11 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                 );
             }
 
+            if experiment.get_unscheduled_runs()?.is_empty() {
+                info!("Nothing more to continue :D");
+                return Ok(());
+            }
+
             // Continuing the experiment
             let exp_path = experiment.save(&config.experiments_folder, &file_system)?;
 
@@ -237,8 +254,9 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             if cmd.dry {
                 info!("Would have continued the experiment on slurm (dry)");
             } else {
-                s.run_experiment(&config, &mut experiment, exp_path, file_system)?;
-                info!("Experiment continued");
+                let sched = s.run_experiment(&config, &mut experiment, exp_path, file_system)?;
+                print_scheduling(&experiment, false)?;
+                info!("Experiment continued you just scheduled {sched} chunks");
             }
 
             experiment.save(&config.experiments_folder, &file_system)?;

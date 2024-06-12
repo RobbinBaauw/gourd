@@ -1,24 +1,40 @@
 use std::process;
 use std::process::Command;
 
+use anyhow::anyhow;
+use anyhow::Context;
 use anyhow::Result;
-use futures::future::join_all;
+use gourd_lib::bailc;
+use gourd_lib::constants::NAME_STYLE;
+use gourd_lib::constants::PRIMARY_STYLE;
+use gourd_lib::constants::TASK_LIMIT;
+use gourd_lib::ctx;
+use gourd_lib::error::Ctx;
 use log::error;
-use tokio::task::spawn_blocking;
+use tokio::task::JoinSet;
 
 /// Run a list of tasks locally in a multithreaded way.
-pub async fn run_locally(tasks: Vec<Command>) -> Result<()> {
+pub async fn run_locally(tasks: Vec<Command>, force: bool) -> Result<()> {
+    if tasks.len() > TASK_LIMIT && !force {
+        bailc!(
+          "task limit exceeded", ;
+          "{PRIMARY_STYLE}gourd{PRIMARY_STYLE:#} will not run more than \
+          {TASK_LIMIT} jobs on local, doing so may result in a forkbomb", ;
+          "if you are {NAME_STYLE}absolutely{NAME_STYLE:#} sure that you \
+          want to run {} tasks use the {PRIMARY_STYLE}--force{PRIMARY_STYLE:#} \
+          option", tasks.len()
+        )
+    }
+
     #[cfg(not(tarpaulin_include))] // Tarpaulin can't calculate the coverage correctly
     tokio::spawn(async {
-        let task_futures: Vec<_> = tasks
-            .into_iter()
-            .map(|mut cmd| spawn_blocking(move || cmd.output()))
-            .collect();
+        let mut set = JoinSet::new();
 
-        // Run all commands concurrently and collect their results
-        let results = join_all(task_futures).await;
+        for mut task in tasks {
+            set.spawn_blocking(move || task.output());
+        }
 
-        for result in results.into_iter() {
+        while let Some(result) = set.join_next().await {
             if let Ok(join) = result {
                 if let Ok(exit) = join {
                     if !exit.status.success() {

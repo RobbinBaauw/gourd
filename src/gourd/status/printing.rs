@@ -121,7 +121,7 @@ pub fn display_statuses(
     if experiment.runs.len() <= SHORTEN_STATUS_CUTOFF {
         long_status(f, experiment, statuses)?;
     } else {
-        short_status(experiment, statuses)?;
+        short_status(f, experiment, statuses)?;
     }
 
     let mut finished = 0;
@@ -137,8 +137,54 @@ pub fn display_statuses(
 
 /// Display a shortened status for a lot of runs.
 #[cfg(not(tarpaulin_include))] // We can't test stdout
-fn short_status(_: &Experiment, _: &ExperimentStatus) -> Result<()> {
-    todo!()
+fn short_status(
+    f: &mut impl Write,
+    experiment: &Experiment,
+    statuses: &ExperimentStatus,
+) -> Result<()> {
+    let runs = &experiment.runs;
+
+    writeln!(f, "There are {} runs in total", runs.len())?;
+
+    let mut by_program: BTreeMap<String, (usize, usize, usize, usize)> = BTreeMap::new();
+
+    for (run_id, run_data) in runs.iter().enumerate() {
+        if by_program.get_mut(&run_data.program.to_string()).is_none() {
+            by_program.insert(run_data.program.clone().to_string(), (0, 0, 0, 0));
+        }
+
+        if let Some(for_this_prog) = by_program.get_mut(&run_data.program.to_string()) {
+            let status = statuses[&run_id];
+
+            if status.is_completed() {
+                for_this_prog.0 += 1;
+            }
+
+            if status.has_failed() {
+                for_this_prog.1 += 1;
+            }
+
+            if status.is_scheduled() {
+                for_this_prog.2 += 1;
+            }
+
+            for_this_prog.3 += 1;
+        }
+    }
+
+    for (prog, (completed, failed, sched, total)) in by_program {
+        writeln!(f)?;
+
+        writeln!(f, "For program {}:", prog)?;
+
+        writeln!(f, "  {} jobs have been scheduled", sched)?;
+        writeln!(f, "  ... {} of which have completed", completed)?;
+        writeln!(f, "  ... {} of which have failed", failed)?;
+        writeln!(f, "  ... {} of which have succeded", completed - failed)?;
+        writeln!(f, "  {} jobs need to still be scheduled", total - sched)?;
+    }
+
+    Ok(())
 }
 
 /// Display a shortened status for a small amount of runs.
@@ -153,9 +199,11 @@ fn long_status(
     let mut by_program: BTreeMap<String, Vec<usize>> = BTreeMap::new();
 
     let mut longest_input: usize = 0;
+    let mut longest_index: usize = 0;
 
     for (run_id, run_data) in runs.iter().enumerate() {
         longest_input = max(longest_input, run_data.input.to_string().len());
+        longest_index = max(longest_index, run_id.to_string().len());
 
         if let Some(for_this_prog) = by_program.get_mut(&run_data.program.to_string()) {
             for_this_prog.push(run_id);
@@ -177,11 +225,12 @@ fn long_status(
 
             write!(
                 f,
-                "  {}. {:.<width$}.... {}",
+                "  {: >numw$}. {:.<width$}.... {}",
                 run_id,
-                run.input,
+                run.input.to_string(),
                 status,
-                width = longest_input
+                width = longest_input,
+                numw = longest_index
             )?;
 
             if status.fs_status.completion == FsState::Pending {

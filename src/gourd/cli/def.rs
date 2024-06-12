@@ -47,7 +47,11 @@ pub struct RunStruct {
 pub enum RunSubcommand {
     /// Create and run an experiment on this computer.
     #[command()]
-    Local {},
+    Local {
+        /// Force running more experiments than recommended.
+        #[arg(long)]
+        force: bool,
+    },
 
     /// Create and run an experiment using Slurm.
     #[command()]
@@ -73,6 +77,15 @@ pub struct StatusStruct {
     /// Do not exit until all jobs are finished.
     #[arg(long)]
     pub follow: bool,
+}
+
+/// Arguments supplied with the `continue` command.
+#[derive(Args, Debug, Clone, Copy)]
+pub struct ContinueStruct {
+    /// The id of the experiment for which to fetch status [default: newest
+    /// experiment].
+    #[arg(value_name = "EXPERIMENT")]
+    pub(crate) experiment_id: Option<usize>,
 }
 
 /// Arguments supplied with the `init` command.
@@ -104,7 +117,7 @@ pub enum Command {
 
     /// Schedule another batch of slurm jobs.
     #[command()]
-    Continue,
+    Continue(ContinueStruct),
 
     /// Output metrics of completed runs.
     #[command()]

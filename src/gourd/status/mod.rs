@@ -26,6 +26,9 @@ pub mod slurm_based;
 /// Printing status information.
 pub mod printing;
 
+/// Printing information about scheduled chunks.
+pub mod chunks;
+
 /// The reasons for slurm to kill a job
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SlurmState {
@@ -161,6 +164,19 @@ impl Status {
                 .map(|x| x.completion.is_completed())
                 .unwrap_or(false)
         }
+    }
+
+    /// Check if we know this job to have failed.
+    pub fn has_failed(&self) -> bool {
+        match self.fs_status.completion {
+            FsState::Completed(Measurement { exit_code, .. }) => exit_code != 0,
+            _ => false,
+        }
+    }
+
+    /// Check if we know this job to be scheduled.
+    pub fn is_scheduled(&self) -> bool {
+        self.slurm_status.is_some()
     }
 }
 
