@@ -162,7 +162,7 @@ fn short_status(
     let mut by_program: BTreeMap<String, (usize, usize, usize, usize)> = BTreeMap::new();
 
     for (run_id, run_data) in runs.iter().enumerate() {
-        if by_program.get_mut(&run_data.program.to_string()).is_none() {
+        if by_program.contains_key(&run_data.program.to_string()) {
             by_program.insert(run_data.program.clone().to_string(), (0, 0, 0, 0));
         }
 

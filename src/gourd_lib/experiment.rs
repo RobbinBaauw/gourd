@@ -3,13 +3,13 @@ use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::DateTime;
 use chrono::Local;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::config::Config;
+use crate::config::{Config, Label};
 use crate::config::Input;
 use crate::config::Program;
 use crate::config::ResourceLimits;
@@ -100,7 +100,7 @@ pub struct Experiment {
     /// The ID of this experiment.
     pub seq: usize,
 
-    /// Enviroment of the experiment
+    /// Environment of the experiment
     pub env: Environment,
 
     /// The inputs for postprocessing programs.
@@ -134,6 +134,11 @@ impl Experiment {
             FieldRef::Regular(name) => Ok(self.config.inputs[name].clone()),
             FieldRef::Postprocess(name) => Ok(self.postprocess_inputs[name].clone()),
         }
+    }
+
+    /// Get the label by name.
+    pub fn get_label(&self, name: &String) -> Result<Label> {
+        self.config.labels.as_ref().and_then(|labels| labels.get(name).cloned()).ok_or(anyhow!("Label not found"))
     }
 }
 

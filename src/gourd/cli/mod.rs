@@ -9,3 +9,6 @@ pub mod process;
 
 /// Logging definitions.
 pub mod log;
+
+/// Rerun subcommand helper functions
+mod rerun;

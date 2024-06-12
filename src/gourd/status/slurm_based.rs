@@ -42,7 +42,7 @@ where
 {
     #[cfg(not(tarpaulin_include))]
     fn get_statuses(
-        connection: &mut T,
+        connection: &T,
         experiment: &Experiment,
     ) -> Result<BTreeMap<usize, SlurmBasedStatus>> {
         use gourd_lib::bailc;
