@@ -120,11 +120,23 @@ pub struct CancelStruct {
 }
 
 /// Arguments supplied with the `init` command.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct InitStruct {
-    /// Directory in which to create an experiment.
-    #[arg(short = 'D', long, default_value = "./")]
-    directory: Option<String>,
+    /// The directory in which to initialise a new experimental setup.
+    #[arg(value_name = "directory")]
+    pub directory: PathBuf,
+
+    /// The name of an example experiment in gourd-tutorial(7).
+    #[arg(short, long)]
+    pub example: Option<String>,
+
+    /// Do not give interactive prompts, create a default setup.
+    #[arg(short, long)]
+    pub quick: bool,
+
+    /// Do not initialize a git repository.
+    #[arg(short = 'g', long = "no-git")]
+    pub no_git: bool,
 }
 
 /// Arguments supplied with the `analyse` command.

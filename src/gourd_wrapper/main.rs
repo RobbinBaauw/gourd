@@ -7,7 +7,7 @@
 //!   - The path where the output of the program should be placed
 //!   - The path where the metrics should be output
 //!
-//! As arguments, the wrapper will then perform the experiment.
+//! as arguments, the wrapper will then perform the experiment.
 
 /// Measurements for unix-like systems.
 mod measurement_unix;

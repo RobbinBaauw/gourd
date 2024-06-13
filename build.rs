@@ -10,12 +10,19 @@
 #![allow(clippy::missing_docs_in_private_items)]
 
 use std::env;
+use std::fmt::format;
 use std::fs;
 use std::fs::Permissions;
 use std::os::unix::fs::PermissionsExt;
+use std::fs::canonicalize;
+use std::fs::File;
+use std::io::Write;
 use std::path::Path;
 use std::process::Command as StdCommand;
+use std::ptr::copy;
 
+use anyhow::anyhow;
+use anyhow::bail;
 use anyhow::Context;
 use anyhow::Result;
 use clap::CommandFactory;
@@ -25,6 +32,8 @@ use clap_complete::shells::Fish;
 use clap_complete::shells::PowerShell;
 use clap_complete::shells::Zsh;
 
+#[cfg(feature = "builtin-examples")]
+include!("build_builtin_examples.rs");
 include!("src/gourd/cli/def.rs");
 
 const GOURD_MANPAGE: &str = "docs/user/gourd.1.tex";
@@ -68,7 +77,6 @@ fn main() -> Result<()> {
     // Uncomment for local builds.
     // The point of this is the rebuild the documentation whenever it is updated.
     // We cannot run this on the CI, thus it is disabled by default.
-    // println!("cargo::rerun-if-changed=build.rs");
 
     let target_dir = outdir.parent().unwrap().parent().unwrap().parent().unwrap();
 
@@ -119,6 +127,9 @@ fn main() -> Result<()> {
         #[cfg(unix)]
         fs::set_permissions(&installer, Permissions::from_mode(0o755));
     }
+
+    #[cfg(feature = "builtin-examples")]
+    build_builtin_examples();
 
     Ok(())
 }

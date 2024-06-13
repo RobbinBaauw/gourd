@@ -39,6 +39,7 @@ use crate::cli::def::RunSubcommand;
 use crate::cli::def::StatusStruct;
 use crate::cli::printing::print_version;
 use crate::experiments::ExperimentExt;
+use crate::init::init_experiment_setup;
 use crate::local::run_local;
 use crate::post::postprocess_job::schedule_post_jobs;
 use crate::slurm::checks::get_slurm_options_from_config;
@@ -211,6 +212,63 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             }
         }
 
+        Command::Init(init_struct) => {
+            let template = match &init_struct.example {
+                // The user has not specified an example name. Use the default template.
+                None => {
+                    if cmd.script {
+                        debug!("No template provided, initialising in script mode.");
+                    } else {
+                        debug!("No template provided, initialising interactively.");
+                    }
+                    None
+                }
+
+                // The user has specified an example ID. Check that it exists.
+                Some(_) => {
+                    #[cfg(not(feature = "builtin-examples"))]
+                    return Err(anyhow!("Cannot use the -e flag")).with_context(
+                        ctx!("This version of gourd was not compiled with built-in examples.", ;
+                            "To include these, build with the \"builtin-examples\" feature", ),
+                    );
+
+                    #[cfg(feature = "builtin-examples")]
+                    {
+                        use crate::init::builtin_examples::get_example;
+                        let example_id = &init_struct.example.as_ref().unwrap();
+
+                        match get_example(example_id)? {
+                            // The example does not exist. Bail.
+                            None => {
+                                return Err(anyhow!("Example not found.")).with_context(
+                                    ctx!("The example '{}' does not exist.",
+                            example_id;
+                                 "Try a valid example, like 'a-simple-experiment'", ),
+                                )
+                            }
+
+                            // Print the name and description, use the example.
+                            Some(t) => {
+                                info!("Using the following example: {}", t.name);
+                                info!("{}", t.description);
+
+                                Some(t)
+                            }
+                        }
+                    }
+                }
+            };
+
+            // The directory's validity is checked within the method.
+            init_experiment_setup(
+                &init_struct.directory,
+                init_struct.no_git,
+                cmd.script,
+                template,
+                &mut file_system,
+            )?;
+        }
+
         Command::Cancel(CancelStruct {
             experiment_id,
             run_ids,
@@ -280,8 +338,6 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                 s.internal.cancel_jobs(id_list)?;
             }
         }
-
-        Command::Init(_) => panic!("Gourd Init has not been implemented yet"),
 
         Command::Analyse(_) => panic!("Analyse has not been implemented yet"),
 
