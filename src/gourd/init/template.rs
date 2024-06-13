@@ -4,13 +4,12 @@ use anyhow::Result;
 use flate2::read::GzDecoder;
 use gourd_lib::config::Config;
 use gourd_lib::file_system::FileOperations;
-use gourd_lib::file_system::FileSystemInteractor;
 use log::debug;
 use log::warn;
 use tar::Archive;
 
 /// Stores a template for `gourd init`: a named set of directory contents.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InitTemplate<'a> {
     /// The template name.
     pub name: &'a str,
@@ -29,11 +28,7 @@ impl InitTemplate<'_> {
     ///
     /// The directory must have a valid parent, but may not exist.
     /// This is to be enforced by the caller method.
-    pub fn unpack_to(
-        &self,
-        directory: &Path,
-        file_system: &mut FileSystemInteractor,
-    ) -> Result<()> {
+    pub fn unpack_to(&self, directory: &Path, file_system: &impl FileOperations) -> Result<()> {
         let tar = GzDecoder::new(self.directory_tarball);
         let mut archive = Archive::new(tar);
 
@@ -46,21 +41,16 @@ impl InitTemplate<'_> {
         let mut config_path = directory.to_owned();
         config_path.push("gourd.toml");
 
-        if file_system.dry_run {
-            debug!("Would have verified the example's \"gourd.toml\"");
-        } else {
-            debug!("Checking for a \"gourd.toml\" at {:?}.", config_path);
-            match Config::from_file(&config_path, file_system) {
-                Err(e) => {
-                    debug!("Configuration check failed: {}", e.root_cause());
-                    warn!(
-                        "The \"gourd.toml\" configuration in this example is missing or invalid."
-                    );
-                    warn!("You may have to make some changes.");
-                }
-                Ok(_) => debug!("A valid \"gourd.toml\" is present."),
+        debug!("Checking for a \"gourd.toml\" at {:?}.", config_path);
+        match Config::from_file(&config_path, file_system) {
+            Err(e) => {
+                debug!("Configuration check failed: {}", e.root_cause());
+                warn!("The \"gourd.toml\" configuration in this example is missing or invalid.");
+                warn!("You may have to make some changes.");
             }
+            Ok(_) => debug!("A valid \"gourd.toml\" is present."),
         }
+
         Ok(())
     }
 }

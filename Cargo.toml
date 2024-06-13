@@ -107,6 +107,10 @@ tar = { version = "0.4", optional = true }
 # To handle errors.
 anyhow = "1"
 
+serde = { version = "1.0", features = ["derive"] }
+
+toml = "0.8.12"
+
 [dev-dependencies]
 # To run benchmarks on stable rust.
 easybench = "1.1.1"

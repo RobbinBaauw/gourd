@@ -7,12 +7,15 @@ use std::path::PathBuf;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use git2::Repository;
 use log::debug;
+use log::info;
 use log::trace;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tar::Archive;
 
+use crate::bailc;
 use crate::error::ctx;
 use crate::error::Ctx;
 
@@ -56,6 +59,9 @@ pub trait FileOperations {
     ///
     /// This will fail for files that do not exist.
     fn canonicalize(&self, path: &Path) -> Result<PathBuf>;
+
+    /// Create a new template repository.
+    fn init_template_repository(&self, path: &Path) -> Result<()>;
 }
 
 impl FileOperations for FileSystemInteractor {
@@ -93,9 +99,11 @@ impl FileOperations for FileSystemInteractor {
     fn write_archive<T: Read>(&self, path: &Path, mut data: Archive<T>) -> Result<()> {
         // Verify the path
         if path.exists() {
-            return Err(anyhow!("The path exists."))
-                .with_context(ctx!("A directory or file exists at {:?}.", path;
-                     "Choose a path that is not already taken.", ));
+            bailc!(
+                "The path exists.", ;
+                "A directory or file exists at {path:?}.", ;
+                "Choose a path that is not already taken.",
+            );
         }
 
         let canonical_path = self.truncate_and_canonicalize_folder(path)?;
@@ -199,5 +207,17 @@ impl FileOperations for FileSystemInteractor {
           "Could not canonicalize {path:?}", ;
           "Ensure that your path is valid",
         ))
+    }
+
+    fn init_template_repository(&self, path: &Path) -> Result<()> {
+        if self.dry_run {
+            info!("Would have initialized a git repo (dry)");
+            return Ok(());
+        }
+
+        Repository::init(path).with_context(ctx!("Error initialising a Git repository.", ;
+                                "You can use '--no-git' to skip this.", ))?;
+        info!("Successfully created a Git repository");
+        Ok(())
     }
 }

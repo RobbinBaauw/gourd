@@ -4,12 +4,12 @@ use std::path::PathBuf;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use gourd_lib::bailc;
 use gourd_lib::config::Config;
 use gourd_lib::config::SlurmConfig;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::file_system::FileOperations;
-use gourd_lib::file_system::FileSystemInteractor;
 use inquire::validator::ValueRequiredValidator;
 use inquire::InquireError;
 use log::debug;
@@ -19,8 +19,9 @@ use log::info;
 pub fn init_interactive(
     directory: &Path,
     script_mode: bool,
-    fs: &mut FileSystemInteractor,
+    fs: &impl FileOperations,
 ) -> Result<()> {
+    /// This macro will inquire the user about something.
     macro_rules! ask {{$default: expr, $inq: expr} => {
       if script_mode {
           Ok($default)
@@ -29,12 +30,18 @@ pub fn init_interactive(
           Ok(answer) => Ok(answer),
           Err(e) => match e {
                 InquireError::OperationCanceled => {
-                    info!("The operation was canceled using the ESC key.");
-                    return Ok(());
+                    bailc!(
+                        "The operation was canceled using the ESC key.", ;
+                        "",;
+                        "",
+                    )
                 }
                 InquireError::OperationInterrupted => {
-                    info!("The operation was interrupted using Ctrl+C.");
-                    return Ok(());
+                    bailc!(
+                        "The operation was interrupted using Ctrl+C.", ;
+                        "",;
+                        "",
+                    )
                 }
                 _ => Err(e)
             }
@@ -63,6 +70,7 @@ pub fn init_interactive(
         postprocess_job_output_folder: None,
         postprocess_programs: None,
         labels: None,
+        input_schema: None,
     };
 
     let slurm = ask!(
@@ -146,11 +154,14 @@ pub fn init_interactive(
     write_files(directory, config, fs)
 }
 
-pub fn write_files(directory: &Path, config: Config, fs: &mut FileSystemInteractor) -> Result<()> {
+/// Write all files during initialization.
+pub fn write_files(directory: &Path, config: Config, fs: &impl FileOperations) -> Result<()> {
     if directory.exists() {
-        return Err(anyhow!("The path exists."))
-            .with_context(ctx!("A directory or file exists at {:?}.", directory;
-                     "Choose a path that is not already taken.", ));
+        bailc!(
+            "The path exists.", ;
+            "A directory or file exists at {directory:?}.", ;
+            "Choose a path that is not already taken.",
+        );
     }
 
     let canonical_directory = fs.truncate_and_canonicalize_folder(directory)?;

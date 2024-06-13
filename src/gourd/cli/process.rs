@@ -227,23 +227,27 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                 // The user has specified an example ID. Check that it exists.
                 Some(_) => {
                     #[cfg(not(feature = "builtin-examples"))]
-                    return Err(anyhow!("Cannot use the -e flag")).with_context(
-                        ctx!("This version of gourd was not compiled with built-in examples.", ;
-                            "To include these, build with the \"builtin-examples\" feature", ),
+                    bailc!(
+                        "Cannot use the -e flag", ;
+                        "This version of gourd was not compiled with built-in examples.", ;
+                        "To include these, build with the \"builtin-examples\" feature",
                     );
 
                     #[cfg(feature = "builtin-examples")]
                     {
                         use crate::init::builtin_examples::get_example;
+                        use crate::init::builtin_examples::get_examples;
+
                         let example_id = &init_struct.example.as_ref().unwrap();
 
-                        match get_example(example_id)? {
+                        match get_example(example_id) {
                             // The example does not exist. Bail.
                             None => {
-                                return Err(anyhow!("Example not found.")).with_context(
-                                    ctx!("The example '{}' does not exist.",
-                            example_id;
-                                 "Try a valid example, like 'a-simple-experiment'", ),
+                                bailc!(
+                                    "Example not found.", ;
+                                    "The example '{example_id}' does not exist.", ;
+                                    "Try a valid example, like '{}'",
+                                    get_examples().keys().next().unwrap()
                                 )
                             }
 
@@ -264,8 +268,9 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                 &init_struct.directory,
                 init_struct.no_git,
                 cmd.script,
+                cmd.dry,
                 template,
-                &mut file_system,
+                &file_system,
             )?;
         }
 

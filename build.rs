@@ -12,11 +12,11 @@
 use std::env;
 use std::fmt::format;
 use std::fs;
-use std::fs::Permissions;
-use std::os::unix::fs::PermissionsExt;
 use std::fs::canonicalize;
 use std::fs::File;
+use std::fs::Permissions;
 use std::io::Write;
+use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::Command as StdCommand;
 use std::ptr::copy;
@@ -33,7 +33,8 @@ use clap_complete::shells::PowerShell;
 use clap_complete::shells::Zsh;
 
 #[cfg(feature = "builtin-examples")]
-include!("build_builtin_examples.rs");
+include!("src/resources/build_builtin_examples.rs");
+
 include!("src/gourd/cli/def.rs");
 
 const GOURD_MANPAGE: &str = "docs/user/gourd.1.tex";
@@ -129,7 +130,9 @@ fn main() -> Result<()> {
     }
 
     #[cfg(feature = "builtin-examples")]
-    build_builtin_examples();
+    let tars = target_dir.join("tarballs/");
+    #[cfg(feature = "builtin-examples")]
+    build_builtin_examples(&tars)?;
 
     Ok(())
 }

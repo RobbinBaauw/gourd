@@ -1,17 +1,15 @@
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use tar::Archive;
 use tar::Builder;
 
-const GOURD_INIT_EXAMPLE_FOLDERS: &str = "./gourd_init_examples";
-const GOURD_INIT_EXAMPLE_TARBALLS: &str = "src/gourd/init/tarballs";
+const GOURD_INIT_EXAMPLE_FOLDERS: &str = "src/resources/gourd_init_examples";
 
-fn build_builtin_examples() -> Result<()> {
-    use flate2::write::GzEncoder;
-    use flate2::Compression;
-    use tar::Archive;
-    use tar::Builder;
+fn build_builtin_examples(out_folder: &Path) -> Result<()> {
+    let _ = fs::create_dir(out_folder);
 
-    println!("cargo::rerun-if-changed=gourd_init_examples/");
+    // println!("cargo::rerun-if-changed={}", GOURD_INIT_EXAMPLE_FOLDERS);
+    // println!("cargo::rerun-if-changed=src/resources/build_builtin_examples.rs");
 
     for e in PathBuf::from(GOURD_INIT_EXAMPLE_FOLDERS)
         .read_dir()
@@ -25,7 +23,7 @@ fn build_builtin_examples() -> Result<()> {
         if (path.is_dir()) {
             println!("Generating example tarball for {:?}", path);
 
-            let mut tar_path = PathBuf::from(GOURD_INIT_EXAMPLE_TARBALLS);
+            let mut tar_path = PathBuf::from(out_folder);
 
             tar_path.push(
                 path.file_name()
@@ -46,9 +44,12 @@ fn build_builtin_examples() -> Result<()> {
 /// This function accepts a path to a subfolder containing a valid `gourd.toml`
 /// and other experiment resources.
 /// It compresses the folder contents into a `.tar.gz` archive (excluding the
-/// folder itself), while also compiling `.rs` filesinto platform-native binaries.
-/// The archive will be created at the provided 'tarball' path.
-fn generate_example_tarball(subfolder_path: PathBuf, tarball_output_path: &Path) -> Result<()> {
+/// folder itself), while also compiling `.rs` filesinto platform-native
+/// binaries. The archive will be created at the provided 'tarball' path.
+fn generate_example_tarball(
+    subfolder_path: PathBuf,
+    tarball_output_path: &Path,
+) -> Result<()> {
     if !subfolder_path.is_dir() {
         bail!(
             "The subfolder path {:?} is not a directory.",
@@ -83,7 +84,8 @@ fn generate_example_tarball(subfolder_path: PathBuf, tarball_output_path: &Path)
 /// Appends experiment files to the given tarball builder.
 ///
 /// This function recursively searches the provided directory, adding all
-/// normal files and a `rustc`-compiled version of each `.rs` file to the tar archive.
+/// normal files and a `rustc`-compiled version of each `.rs` file to the tar
+/// archive.
 fn append_files_to_tarball(
     tar: &mut Builder<GzEncoder<File>>,
     path_in_subfolder: PathBuf,
@@ -93,7 +95,8 @@ fn append_files_to_tarball(
     fs_path.push(&path_in_subfolder);
 
     if fs_path.is_file() {
-        println!("Checking out file {:?}", fs_path);
+        println!("Inclding file: {:?}", fs_path);
+
         if is_a_rust_file(&fs_path) {
             compile_rust_file(&fs_path)
                 .context(format!("Could not compile a Rust example: {:?}", &fs_path))?;
@@ -101,13 +104,13 @@ fn append_files_to_tarball(
             let compiled_fs_path = &fs_path.with_extension("");
             let compiled_subfolder_path = &path_in_subfolder.with_extension("");
 
-            tar.append_path_with_name(&compiled_fs_path, &compiled_subfolder_path)
+            tar.append_path_with_name(compiled_fs_path, compiled_subfolder_path)
                 .context(format!(
                     "Could not add a compiled Rust file to the tarball: {:?}",
                     &compiled_fs_path
                 ))?;
 
-            fs::remove_file(&compiled_fs_path).context(format!(
+            fs::remove_file(compiled_fs_path).context(format!(
                 "Could not remove the compiled file: {:?}",
                 &compiled_fs_path
             ));
@@ -118,6 +121,7 @@ fn append_files_to_tarball(
                     &fs_path
                 ))?;
         }
+
         Ok(())
     } else if fs_path.is_dir() {
         for e in fs::read_dir(&fs_path)
@@ -147,13 +151,13 @@ fn append_files_to_tarball(
 /// Returns true if the provided path links to a file,
 /// and the file has the `.rs` extension.
 fn is_a_rust_file(path: &Path) -> bool {
-    path.is_file() && path.extension().is_some_and(|ext| ext.eq("rs"))
+    path.is_file() && path.extension().is_some_and(|ext| ext == "rs")
 }
 
 /// Returns the path of the file after it has been compiled with `rustc`.
 fn compile_rust_file(path: &Path) -> Result<()> {
     let canon_path =
-        canonicalize(&path).context(format!("Could not canonicalize the path: {:?}", &path))?;
+        canonicalize(path).context(format!("Could not canonicalize the path: {:?}", &path))?;
 
     let str_path = canon_path.to_str().unwrap();
 

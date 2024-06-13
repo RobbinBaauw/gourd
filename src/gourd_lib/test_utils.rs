@@ -1,14 +1,13 @@
 use std::fs::File;
+use std::io::Read;
 use std::io::Write;
+use std::path::Path;
 use std::path::PathBuf;
 
 use anyhow::bail;
 use anyhow::Result;
-use tempdir::TempDir;
-use std::io::Read;
-use std::path::Path;
-
 use tar::Archive;
+use tempdir::TempDir;
 
 use crate::file_system::FileOperations;
 use crate::file_system::FileSystemInteractor;
@@ -59,6 +58,10 @@ impl FileOperations for EmptyFilesystem {
     }
 
     fn write_archive<T: Read>(&self, _path: &Path, _data: Archive<T>) -> Result<()> {
+        bail!("File not found")
+    }
+
+    fn init_template_repository(&self, _: &Path) -> Result<()> {
         bail!("File not found")
     }
 }

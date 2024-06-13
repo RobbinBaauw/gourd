@@ -2,8 +2,8 @@ output_path = "output"
 metrics_path = "metrics"
 experiments_folder = "experiments"
 
-[programs.program]
+[program.program]
 binary = "./program"
 
-[inputs.input]
+[input.input]
 input = "./inp"

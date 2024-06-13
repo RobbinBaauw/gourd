@@ -10,6 +10,3 @@ Cargo.lock
 /docs/**/out/*
 /*.pdf
 /*.man
-
-# Generated at runtime
-/src/gourd/init/tarballs/*

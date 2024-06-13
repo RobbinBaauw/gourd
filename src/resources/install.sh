@@ -43,6 +43,7 @@ extract manpages/gourd-tutorial.7.man \"\${MAN_PATH}/man7/gourd-tutorial.7\"
 echo \"Installing completions... this can fail and thats fine!\"
 extract completions/gourd.fish \"\${FISH_PATH}/gourd.fish\" || true
 
+
 exit 0
 __PAYLOAD_BELOW__\n" > "$tmp"
 
