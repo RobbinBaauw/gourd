@@ -9,12 +9,13 @@ This section lists the technologies used in the software and its development.
 
 \subsubsection{Rust}
 
-Rust is the main programming language used for `gourd' and its components.
-The project uses \emph{stable} Rust edition 2021.
+Rust is the main programming language used for \gourd\ and its components.
+The project uses Rust\footnote{See the MSRV for the version of Rust required}
+edition 2021 for buidling.
 
 \subsubsection{SLURM}
 
-A key part of `gourd' is interaction with the \emph{Slurm Workload Manager}.
+A key part of \gourd\ is interaction with the \emph{Slurm Workload Manager}.
 Slurm is open-source software that runs on most supercomputers (including
 DelftBlue). The application interfaces with Slurm's stable command-line
 interface and generates job descriptions using its batch scripting language.
@@ -24,75 +25,75 @@ interface and generates job descriptions using its batch scripting language.
 This section explains each part of the application's modular layout.
 The Rust source code for the application is in the \verb|./src/| directory.
 
-The `gourd' project is divided into three core crates:
-`gourd', `gourd-lib', and `gourd-wrapper'.
+The \gourd\ project is divided into three core crates:
+\gourd, \gourdlib, and \gourdwrap.
 Their individual responsibilities are laid out in this section.
 
-\subsubsection{`gourd' -- Command-Line Application}
+\subsubsection{\gourd\ -- Command-Line Application}
 
-The `gourd' command-line application is the core part of the project.
+The \gourd\ command-line application is the core part of the project.
 The source code is located in \verb|./src/gourd/|.
 
-The `gourd' binary uses the `gourd-lib' shared library to interface with
-the wrapper, `gourd-wrapper'.
-The responsibilities of the `gourd' binary are to interact with the user,
+The \gourd\ binary uses the \gourdlib\ shared library to interface with
+the wrapper, \gourdwrap\.
+The responsibilities of the \gourd\ binary are to interact with the user,
 schedule and run experiments (at a high level), and collect aggregate
 status and metrics from the experiment's runs.
 
-\subsubsection{`gourd-wrapper' -- Wrapper Program}
+\subsubsection{\gourdwrap\ -- Wrapper Program}
 
-The `gourd-wrapper' is a binary that should not be invoked manually by the user.
+The \gourdwrap\ is a binary that should not be invoked manually by the user.
 The source code is located in \verb|./src/gourd-wrapper/|.
 It is responsible for the low-level implementation of executing a run;
 it takes care of combining runs of an individual binary program and input,
 encapsulating the program in platform-native frameworks for collecting metrics.
-This means that `gourd-wrapper' is the actual executable scheduled once for each run.
+This means that \gourdwrap\ is the actual executable scheduled once for each run.
 
-\subsubsection{`gourd-lib' -- Wrapper Interface}
+\subsubsection{\gourdlib\ -- Wrapper Interface}
 
-The `gourd-lib' crate contains all data shared between the application and the wrapper.
+The \gourdlib\ crate contains all data shared between the application and the wrapper.
 The source code is located in \verb|./src/gourd-lib/|.
 This includes the `gourd.toml' configuration file (the formal definition of an experiment)
 and an `experiment.lock' runtime data file.
-The general pattern is that `gourd' writes a `<experiment-number>.lock' TOML file when
-an experiment is started, and `gourd-wrapper' subsequently reads only the `lock' file and
+The general pattern is that \gourd\ writes a `<experiment-number>.lock' TOML file when
+an experiment is started, and \gourdwrap\ subsequently reads only the `lock' file and
 on each execution to determine the path of the executable, the resource limits,et cetera
 
 
-\subsection{Modules of the `gourd' command-line application}
+\subsection{Modules of the \gourd\ command-line application}
 
-This section covers the most important modules of the `gourd' command-line application
+This section covers the most important modules of the \gourd\ command-line application
 (the crate with source code in \verb|./src/gourd/|).
 
 
 \subsubsection{Postprocessing}
 note: should be in user docs.
 
-To postprocess the output of the runs, there are two options available: afterscipts and Slurm postprocessing jobs. 
-Afterscripts are scripts that run locally (so for DelftBlue they do not get scheduled as separate jobs) and are 
-thus meant for quick and non-complicated postprocessing (such as getting the first line of the output file). For 
+To postprocess the output of the runs, there are two options available: afterscipts and Slurm postprocessing jobs.
+Afterscripts are scripts that run locally (so for DelftBlue they do not get scheduled as separate jobs) and are
+thus meant for quick and non-complicated postprocessing (such as getting the first line of the output file). For
 long and complicated postprocessing with a significant computational cost, we support Slurm postprocessing jobs.
 A program being evaluated can have both an afterscript and a postprocessing Slurm job, one of them, or neither.
 
 \subsubsection{Afterscripts}
-An afterscript is optional and specified per program. To indicate the use of an afterscript, the path to the script 
+An afterscript is optional and specified per program. To indicate the use of an afterscript, the path to the script
 file needs to be specified in the gourd.toml under the chosen program. Multiple programs can use the same script.
-Furthermore, if at least one program has an afterscript, a path to a folder that will store the afterscript output 
-needs to be specified (once for the entire experiment, analogous to metrics and output paths). The afterscript can 
+Furthermore, if at least one program has an afterscript, a path to a folder that will store the afterscript output
+needs to be specified (once for the entire experiment, analogous to metrics and output paths). The afterscript can
 be used to assign labels to runs as a means of specifying custom status.
 
-An afterscript should take as arguments the path to the input file and the path to a folder for output. The output 
-folder has been created and is empty. It is the responsibility of the afterscript to create and write to any files 
+An afterscript should take as arguments the path to the input file and the path to a folder for output. The output
+folder has been created and is empty. It is the responsibility of the afterscript to create and write to any files
 in that directory.
 
 \subsubsection{Postprocessing Slurm jobs}
-A postprocesing Slurm job (further called "postprocessing job") is optional and specified per program. To indicate 
-the use of a postprocessing job, a program needs to be specified under "postprocessing programs" in gourd.toml. 
-That program will have the path to the postprocessing binary file. In addition, the name of this new postprocesing 
-program needs to be specified in the gourd.toml under the chosen regular program to indicate that this is the 
-postprocessing used. Multiple programs can use the same postprocessing program. Furthermore, if at least one program 
-has a postprocessing job, a path to a folder that will store the postprocesing job output needs to be specified 
-(once for the entire experiment, analogous to metrics and output paths). 
+A postprocesing Slurm job (further called "postprocessing job") is optional and specified per program. To indicate
+the use of a postprocessing job, a program needs to be specified under "postprocessing programs" in gourd.toml.
+That program will have the path to the postprocessing binary file. In addition, the name of this new postprocesing
+program needs to be specified in the gourd.toml under the chosen regular program to indicate that this is the
+postprocessing used. Multiple programs can use the same postprocessing program. Furthermore, if at least one program
+has a postprocessing job, a path to a folder that will store the postprocesing job output needs to be specified
+(once for the entire experiment, analogous to metrics and output paths).
 
 As input the postprocessing binary will get the output of a run of a regular program that has been specified to have
 this postprocessing. It will write its results to a file the way that regular programs do.
@@ -106,52 +107,52 @@ this postprocessing. It will write its results to a file the way that regular pr
     experiments_folder = "./exp/experiments"
     afterscript_output_folder = "./exp/after"
     postprocess_job_output_folder = "./exp/post"
-    
+
     [postprocess_resource_limits]
     time_limit.secs = 60
     time_limit.nanos = 0
     cpus = 1
     mem_per_cpu = 512
-    
+
     [resource_limits]
     time_limit.secs = 60
     time_limit.nanos = 0
     cpus = 1
     mem_per_cpu = 512
-    
+
     [slurm]
     experiment_name = "this is my experiment"
     partition = "compute"
     array_count_limit = 1
     array_size_limit = 10
     account = "Education-EEMCS-MSc-CS"
-    
+
     [programs.testprogram1]
     binary = "./test"
     arguments = []
     postprocess_job = "post1"
-    
+
     [programs.testprogram2]
     binary = "/usr/bin/sleep"
     arguments = []
     afterscript = "./afterscript.sh"
-    
+
     [inputs.testrun1]
     input = "./inp"
     arguments = ["1"]
-    
+
     [inputs.testrun2]
     input = "./inp"
     arguments = ["2"]
-    
+
     [inputs.testrun3]
     input = "./inp"
     arguments = ["3"]
-    
+
     [inputs.testrun4]
     input = "./inp"
     arguments = ["4"]
-    
+
     [postprocess_programs.post1]
     binary = "./post"
     arguments = []
@@ -163,7 +164,7 @@ I am temporarily putting it here just so the documentation exists.
 Whoever moves this to user guides (lucas told me he will do it) is also responsible for styling the code blocks :)
 
 \subsubsection{CLI}
-The command-line interface of `gourd' is the main entry-point of the
+The command-line interface of \gourd\ is the main entry-point of the
 application.
 The user uses sub-commands and interactive prompts to control
 the software.

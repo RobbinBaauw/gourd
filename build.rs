@@ -11,6 +11,8 @@
 
 use std::env;
 use std::fs;
+use std::fs::Permissions;
+use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::Command as StdCommand;
 
@@ -29,11 +31,13 @@ const GOURD_MANPAGE: &str = "docs/user/gourd.1.tex";
 const GOURD_TOML_MANPAGE: &str = "docs/user/gourd.toml.5.tex";
 const GOURD_TUTORIAL_MANPAGE: &str = "docs/user/gourd-tutorial.7.tex";
 const MAINTAINER_DOCS: &str = "./maintainer.tex";
-const MAINTAINER_DOCS_WORKDIR: &str = "docs/maintainer/src/";
+const MAINTAINER_DOCS_WORKDIR: &str = "docs/maintainer/";
 
 const PREAMBLE: &str = include_str!("docs/user/html/preamble.html");
 const POSTAMBLE: &str = include_str!("docs/user/html/postamble.html");
 const STYLE: &str = include_str!("docs/user/html/manpage.css");
+
+const INSTALLER: &str = include_str!("src/resources/install.sh");
 
 const XETEX_OPTS: [&str; 3] = [
     "-halt-on-error",
@@ -55,6 +59,11 @@ fn main() -> Result<()> {
         Some(outdir) => outdir,
     }
     .into();
+
+    let triple: String = match env::var_os("TARGET") {
+        None => return Ok(()),
+        Some(outdir) => outdir.to_str().map(|x| x.to_string()).unwrap(),
+    };
 
     // Uncomment for local builds.
     // The point of this is the rebuild the documentation whenever it is updated.
@@ -81,6 +90,8 @@ fn main() -> Result<()> {
 
         // Uncomment for local builds.
         // println!("cargo::rerun-if-changed=docs/");
+        // println!("cargo::rerun-if-changed=src/resources/install.sh");
+        // println!("cargo::rerun-if-changed=src/resources/uninstall.sh");
 
         let gourd = generate_man(GOURD_MANPAGE.parse()?, &docs)?;
         generate_pdf(GOURD_MANPAGE.parse()?, &docs)?;
@@ -99,6 +110,14 @@ fn main() -> Result<()> {
             &docs,
             Some(MAINTAINER_DOCS_WORKDIR.parse()?),
         )?;
+
+        let installer = target_dir.join("generate-installer.sh");
+        let uninstaller = target_dir.join("uninstall.sh");
+
+        fs::write(&installer, INSTALLER.replace("{{triple}}", &triple));
+
+        #[cfg(unix)]
+        fs::set_permissions(&installer, Permissions::from_mode(0o755));
     }
 
     Ok(())

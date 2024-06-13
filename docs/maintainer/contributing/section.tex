@@ -24,7 +24,7 @@ documentation remains thorough.
 \begin{enumerate}
   \item The Maintainer PDF documentation (this document) contains a brief overview of the application's underlying design.
   \item The three ``manpages'' (in \verb|docs/user/|) contain detailed usage instructions and configuration documentation.
-        The `gourd-tutorial' manpage is an exception: it is written in narrative form and should be accessible to new users.
+    The \texttt{gourd-tutorial} manpage is an exception: it is written in narrative form and should be accessible to new users.
   \item Inline documentation (Rustdoc) contains additional information necessary for the developer of a particular feature.
 \end{enumerate}
 
@@ -33,14 +33,21 @@ documentation remains thorough.
 Code written in Rust should be formatted using `cargo fmt` and validated using `cargo clippy`.
 All relevant code style rules are enforced by the GitLab CI and can be tested locally
 by configuring the Git hooks:
-\begin{lstlisting}
-git config --local core.hooksPath .hooks/
-\end{lstlisting}
+
+The gitlab pipeline validates all of the changes against our rules, but to check these locally
+we \textbf{strongly} recommend issuing the command below:
+
+\begin{verbatim}
+$ git config --local core.hooksPath .hooks/
+\end{verbatim}
+
+This will ensure that whever you commit or push new changes they will be first checked against
+a hook scripts which catch common mistakes that would have failed the pipeline check remotely.
 
 Additionally, the following apply:
 \begin{itemize}
   \item Beware when using \verb|[cfg]| statements, as they can cause `clippy' issues on different platforms.
-  \item Enforce separation between crates (such as `gourd' and `gourd-wrapper') as much as possible.
+  \item Enforce separation between crates (such as \gourd\ and \gourdwrap) as much as possible.
   \item Place tests in a separate file in a \verb|tests/| subdirectory of a module.
         Ensure that the filename corresponds to the file being tested.
 \end{itemize}
