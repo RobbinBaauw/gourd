@@ -1,5 +1,8 @@
 use std::time::Duration;
 
+use gourd_lib::constants::SLURM_VERSIONS;
+
+use super::SlurmCli;
 use crate::slurm::interactor::format_slurm_duration;
 
 #[test]
@@ -23,4 +26,9 @@ fn duration_fmt_test() {
         format_slurm_duration(Duration::from_secs(21 + (40 + (6 + 3 * 24) * 60) * 60)),
         "3-06:40:21"
     );
+}
+
+#[test]
+fn slurm_interactor_default_test() {
+    assert_eq!(SlurmCli::default().versions, SLURM_VERSIONS);
 }

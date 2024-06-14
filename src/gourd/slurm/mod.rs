@@ -45,4 +45,10 @@ pub trait SlurmInteractor {
 
     /// Get accounting data of user's jobs
     fn get_accounting_data(&self, job_id: Vec<String>) -> Result<Vec<SacctOutput>>;
+
+    /// Get vector of all (not finished) jobs scheduled by user
+    fn get_scheduled_jobs(&self) -> Result<Vec<String>>;
+
+    /// Cancel all of the jobs in the `batch_ids` vectoro
+    fn cancel_jobs(&self, batch_ids: Vec<String>) -> Result<()>;
 }

@@ -62,11 +62,16 @@ where
                     .filter_map(|x| x.slurm_id.clone())
                     .collect(),
             )?,
-        );
+        )?;
 
         for job in statuses {
             // Mapping of all possible job state codes https://slurm.schedmd.com/sacct.html#SECTION_JOB-STATE-CODES
-            let completion = match job.state.as_str() {
+            let completion = match job
+                .state
+                .split(' ')
+                .next()
+                .ok_or(anyhow!("Failed to get completion status from sacct"))?
+            {
                 "BOOT_FAIL" | "BF" => BootFail,
 
                 "CANCELLED" | "CA" => Cancelled,
@@ -119,35 +124,13 @@ where
 ///
 /// Ids like: `1234_[22-34]` will get expanded into `1234_22, 1234_23, ...,
 /// 1234_34`.
-fn flatten_job_id(jobs: Vec<SacctOutput>) -> Vec<SacctOutput> {
+fn flatten_job_id(jobs: Vec<SacctOutput>) -> Result<Vec<SacctOutput>> {
     let mut result = vec![];
 
     for job in jobs {
-        let range = Regex::new(r"([0-9]+_)\[([0-9]+)-([0-9]+)\]$").unwrap(); // Match job ids in form NUMBER_[NUMBER-NUMBER]
-        let solo = Regex::new(r"([0-9]+_)\[?([0-9]+)\]?$").unwrap(); // Match job ids in form NUMBER_NUMBER
-
-        if let Some(captures) = range.captures(&job.job_id) {
-            let batch_id = &captures[1];
-            let begin = captures[2].parse::<usize>().unwrap();
-            let end = captures[3].parse::<usize>().unwrap();
-
-            for i in begin..=end {
-                result.push(SacctOutput {
-                    job_id: format!("{}{}", batch_id, i),
-                    job_name: job.job_name.clone(),
-                    state: job.state.clone(),
-                    slurm_exit_code: job.slurm_exit_code,
-                    program_exit_code: job.program_exit_code,
-                })
-            }
-        }
-
-        if let Some(captures) = solo.captures(&job.job_id) {
-            let batch_id = &captures[1];
-            let run_id = captures[2].parse::<usize>().unwrap();
-
+        for id in flatten_slurm_id(job.job_id.clone())? {
             result.push(SacctOutput {
-                job_id: format!("{}{}", batch_id, run_id),
+                job_id: id,
                 job_name: job.job_name.clone(),
                 state: job.state.clone(),
                 slurm_exit_code: job.slurm_exit_code,
@@ -156,7 +139,37 @@ fn flatten_job_id(jobs: Vec<SacctOutput>) -> Vec<SacctOutput> {
         }
     }
 
-    result
+    Ok(result)
+}
+
+/// Takes a job id as slurm spews out, eg `1234_[56-58]`
+/// and expands it into `[1234_56, 1234_57, 1234_58]`.
+///
+/// all ids are represented as Strings.
+pub fn flatten_slurm_id(id: String) -> Result<Vec<String>> {
+    let mut result = vec![];
+
+    let range = Regex::new(r"([0-9]+_)\[([0-9]+)-([0-9]+)\]$").with_context(ctx!("",;"",))?; // Match job ids in form NUMBER_[NUMBER-NUMBER]
+    let solo = Regex::new(r"([0-9]+[_]?)\[?([0-9]+)\]?$").with_context(ctx!("",;"",))?; // Match job ids in form NUMBER_NUMBER
+
+    if let Some(captures) = range.captures(&id) {
+        let batch_id = &captures[1];
+        let begin = captures[2].parse::<usize>().unwrap();
+        let end = captures[3].parse::<usize>().unwrap();
+
+        for i in begin..=end {
+            result.push(format!("{}{}", batch_id, i))
+        }
+    }
+
+    if let Some(captures) = solo.captures(&id) {
+        let batch_id = &captures[1];
+        let run_id = captures[2].parse::<usize>().unwrap();
+
+        result.push(format!("{}{}", batch_id, run_id))
+    }
+
+    Ok(result)
 }
 
 #[cfg(test)]
