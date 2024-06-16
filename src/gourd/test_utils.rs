@@ -51,7 +51,6 @@ pub fn create_sample_experiment(prog: ProgramMap, inputs: InputMap) -> (Experime
         slurm: None,
         resource_limits: None,
         postprocess_resource_limits: None,
-        postprocess_output_folder: Some(TempDir::new("post_job").unwrap().into_path()),
         labels: Some(BTreeMap::new()),
     };
 

@@ -40,6 +40,7 @@ use crate::cli::def::GourdCommand;
 use crate::cli::def::RunSubcommand;
 use crate::cli::def::StatusStruct;
 use crate::cli::printing::print_version;
+use crate::experiments::generate_new_run;
 use crate::experiments::ExperimentExt;
 use crate::init::init_experiment_setup;
 use crate::init::list_init_examples;
@@ -347,7 +348,6 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     blocking_status(&progress, &experiment, &mut file_system, false)?;
 
                     info!("Experiment finished");
-                    println!();
                 }
             } else if experiment.env == Environment::Slurm {
                 let s: SlurmHandler<SlurmCli> = SlurmHandler::default();
@@ -373,7 +373,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
         }) => {
             let (mut experiment, _) = read_experiment(experiment_id, cmd, &file_system)?;
 
-            let selected_runs = rerun::runs::get_runs_from_rerun_options(
+            let selected_runs: Vec<usize> = rerun::runs::get_runs_from_rerun_options(
                 run_ids,
                 &experiment,
                 &mut file_system,
@@ -407,10 +407,23 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     )?;
                 }
             }
+
             for run_id in &selected_runs {
-                experiment.runs[*run_id].rerun = Some(experiment.runs.len());
-                experiment.runs.push(experiment.runs[*run_id].clone());
+                let new_id = experiment.runs.len();
+                let old_run = &experiment.runs[*run_id];
+
+                experiment.runs.push(generate_new_run(
+                    new_id,
+                    old_run.program.clone(),
+                    old_run.input.clone(),
+                    experiment.seq,
+                    &experiment.config,
+                    &file_system,
+                )?);
+
+                experiment.runs[*run_id].rerun = Some(new_id);
             }
+
             experiment.save(&experiment.config.experiments_folder, &file_system)?;
             info!("{} new runs have been created.", &selected_runs.len());
             info!(

@@ -267,7 +267,7 @@ fn long_status(
                 run_id,
                 run.input.to_string(),
                 if let Some(r) = run.rerun {
-                    format!("rerun as {NAME_STYLE}{r}{NAME_STYLE:#}")
+                    format!("reran as {NAME_STYLE}{r}{NAME_STYLE:#}")
                 } else {
                     format!("{}", status)
                 },
@@ -413,9 +413,18 @@ pub fn display_job(
                 f,
                 "{TERTIARY_STYLE}afterscript ran sucessfully{TERTIARY_STYLE:#}",
             )?;
+
+            writeln!(f)?;
         }
 
-        writeln!(f)?;
+        if let Some(newid) = run.rerun {
+            writeln!(
+                f,
+                "{NAME_STYLE}this job has been reran as {newid}{NAME_STYLE:#}",
+            )?;
+
+            writeln!(f)?;
+        }
 
         Ok(())
     } else {

@@ -32,24 +32,24 @@ fn config_correct_slurm() {
         program: FieldRef::Regular("a".to_string()),
         input: FieldRef::Regular("b".to_string()),
         err_path: PathBuf::from(tempdir.path())
-            .join("1/a/b/stderr")
+            .join("1/a/0/stderr")
             .canonicalize()
             .unwrap(),
         output_path: PathBuf::from(tempdir.path())
-            .join("1/a/b/stdout")
+            .join("1/a/0/stdout")
             .canonicalize()
             .unwrap(),
         metrics_path: PathBuf::from(tempdir.path())
-            .join("1/a/b/metrics")
+            .join("1/a/0/metrics")
             .canonicalize()
             .unwrap(),
         slurm_id: None,
         work_dir: PathBuf::from(tempdir.path())
-            .join("1/a/b/")
+            .join("1/a/0/")
             .canonicalize()
             .unwrap(),
         afterscript_output_path: None,
-        post_job_output_path: None,
+        postprocessor: None,
         rerun: None,
     }];
 
@@ -97,96 +97,96 @@ fn config_correct_local() {
             program: FieldRef::Regular("b".to_string()),
             input: FieldRef::Regular("d".to_string()),
             err_path: PathBuf::from(tempdir.path())
-                .join("1/b/d/stderr")
+                .join("1/b/0/stderr")
                 .canonicalize()
                 .unwrap(),
             output_path: PathBuf::from(tempdir.path())
-                .join("1/b/d/stdout")
+                .join("1/b/0/stdout")
                 .canonicalize()
                 .unwrap(),
             metrics_path: PathBuf::from(tempdir.path())
-                .join("1/b/d/metrics")
+                .join("1/b/0/metrics")
                 .canonicalize()
                 .unwrap(),
             work_dir: PathBuf::from(tempdir.path())
-                .join("1/b/d/")
+                .join("1/b/0/")
                 .canonicalize()
                 .unwrap(),
             slurm_id: None,
             afterscript_output_path: None,
-            post_job_output_path: None,
+            postprocessor: None,
             rerun: None,
         },
         Run {
             program: FieldRef::Regular("b".to_string()),
             input: FieldRef::Regular("e".to_string()),
             err_path: PathBuf::from(tempdir.path())
-                .join("1/b/e/stderr")
+                .join("1/b/1/stderr")
                 .canonicalize()
                 .unwrap(),
             output_path: PathBuf::from(tempdir.path())
-                .join("1/b/e/stdout")
+                .join("1/b/1/stdout")
                 .canonicalize()
                 .unwrap(),
             metrics_path: PathBuf::from(tempdir.path())
-                .join("1/b/e/metrics")
+                .join("1/b/1/metrics")
                 .canonicalize()
                 .unwrap(),
             work_dir: PathBuf::from(tempdir.path())
-                .join("1/b/e/")
+                .join("1/b/1/")
                 .canonicalize()
                 .unwrap(),
             slurm_id: None,
             afterscript_output_path: None,
-            post_job_output_path: None,
+            postprocessor: None,
             rerun: None,
         },
         Run {
             program: FieldRef::Regular("c".to_string()),
             input: FieldRef::Regular("d".to_string()),
             err_path: PathBuf::from(tempdir.path())
-                .join("1/c/d/stderr")
+                .join("1/c/2/stderr")
                 .canonicalize()
                 .unwrap(),
             output_path: PathBuf::from(tempdir.path())
-                .join("1/c/d/stdout")
+                .join("1/c/2/stdout")
                 .canonicalize()
                 .unwrap(),
             metrics_path: PathBuf::from(tempdir.path())
-                .join("1/c/d/metrics")
+                .join("1/c/2/metrics")
                 .canonicalize()
                 .unwrap(),
             work_dir: PathBuf::from(tempdir.path())
-                .join("1/c/d/")
+                .join("1/c/2/")
                 .canonicalize()
                 .unwrap(),
             slurm_id: None,
             afterscript_output_path: None,
-            post_job_output_path: None,
+            postprocessor: None,
             rerun: None,
         },
         Run {
             program: FieldRef::Regular("c".to_string()),
             input: FieldRef::Regular("e".to_string()),
             err_path: PathBuf::from(tempdir.path())
-                .join("1/c/e/stderr")
+                .join("1/c/3/stderr")
                 .canonicalize()
                 .unwrap(),
             output_path: PathBuf::from(tempdir.path())
-                .join("1/c/e/stdout")
+                .join("1/c/3/stdout")
                 .canonicalize()
                 .unwrap(),
             metrics_path: PathBuf::from(tempdir.path())
-                .join("1/c/e/metrics")
+                .join("1/c/3/metrics")
                 .canonicalize()
                 .unwrap(),
             work_dir: PathBuf::from(tempdir.path())
-                .join("1/c/e/")
+                .join("1/c/3/")
                 .canonicalize()
                 .unwrap(),
             slurm_id: None,
             afterscript_output_path: None,
-            post_job_output_path: None,
+            postprocessor: None,
             rerun: None,
         },
     ];
@@ -207,7 +207,10 @@ fn config_correct_local() {
 
 #[test]
 fn latest_id_invalid_folder() {
-    let error = Experiment::latest_id_from_folder(Path::new("INVALID PATH :)"));
+    let error = Experiment::latest_id_from_folder(Path::new(
+        "INVALID PATH
+:)",
+    ));
     assert!(error.is_err());
     assert_eq!(
         format!("{}", error.unwrap_err().root_cause()),
@@ -267,13 +270,8 @@ fn afterscript_info_when_exists() {
 
     Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
 
-    let result: Result<Option<PathBuf>> = get_afterscript_file(
-        &config,
-        &1,
-        &String::from("a"),
-        &String::from("d"),
-        &REAL_FS,
-    );
+    let result: Result<Option<PathBuf>> =
+        get_afterscript_file(&config, &1, &String::from("a"), 0, &REAL_FS);
 
     assert!(result.is_ok());
     assert!(result.unwrap().is_some());
@@ -283,7 +281,7 @@ fn afterscript_info_when_exists() {
 fn afterscript_info_when_not_exist() {
     let tempdir = TempDir::new("tests").unwrap();
 
-    let mut config = gourd_lib::config::Config {
+    let mut config = Config {
         output_path: PathBuf::from(tempdir.path()),
         metrics_path: PathBuf::from(tempdir.path()),
         experiments_folder: PathBuf::from(tempdir.path()),
@@ -311,165 +309,9 @@ fn afterscript_info_when_not_exist() {
 
     Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
 
-    let result: Result<Option<PathBuf>> = get_afterscript_file(
-        &config,
-        &1,
-        &String::from("a"),
-        &String::from("d"),
-        &REAL_FS,
-    );
+    let result: Result<Option<PathBuf>> =
+        get_afterscript_file(&config, &1, &String::from("a"), 0, &REAL_FS);
 
     assert!(result.is_ok());
     assert!(result.unwrap().is_none());
-}
-
-#[test]
-fn postprocess_job_info_when_exists() {
-    let tempdir = TempDir::new("tests").unwrap();
-
-    let mut config = gourd_lib::config::Config {
-        output_path: PathBuf::from(tempdir.path()),
-        metrics_path: PathBuf::from(tempdir.path()),
-        experiments_folder: PathBuf::from(tempdir.path()),
-        postprocess_output_folder: Some(PathBuf::from(tempdir.path())),
-        ..Default::default()
-    };
-
-    config.programs.insert(
-        String::from("a"),
-        Program {
-            binary: PathBuf::from(tempdir.path()),
-            arguments: vec![],
-            afterscript: None,
-            postprocess_job: Some(String::from("b")),
-            resource_limits: None,
-        },
-    );
-
-    let mut post = BTreeMap::new();
-    post.insert(
-        String::from("b"),
-        Program {
-            binary: PathBuf::from(tempdir.path()),
-            arguments: vec![],
-            afterscript: None,
-            postprocess_job: None,
-            resource_limits: None,
-        },
-    );
-
-    config.postprocess_programs = Some(post.into());
-
-    config.inputs.insert(
-        String::from("d"),
-        Input {
-            input: Some(PathBuf::from(tempdir.path())),
-            arguments: vec![],
-        },
-    );
-
-    Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
-
-    let result: Result<Option<PathBuf>> = get_postprocess_folder(
-        &config,
-        &1,
-        &String::from("a"),
-        &String::from("d"),
-        &REAL_FS,
-    );
-
-    assert!(result.is_ok());
-    assert!(result.unwrap().is_some());
-}
-
-#[test]
-fn postprocess_job_info_when_not_exist() {
-    let tempdir = TempDir::new("tests").unwrap();
-
-    let mut config = gourd_lib::config::Config {
-        output_path: PathBuf::from(tempdir.path()),
-        metrics_path: PathBuf::from(tempdir.path()),
-        experiments_folder: PathBuf::from(tempdir.path()),
-        postprocess_output_folder: Some(PathBuf::from(tempdir.path())),
-        ..Default::default()
-    };
-
-    config.programs.insert(
-        String::from("a"),
-        Program {
-            binary: PathBuf::from(tempdir.path()),
-            arguments: vec![],
-            afterscript: None,
-            postprocess_job: None,
-            resource_limits: None,
-        },
-    );
-
-    config.inputs.insert(
-        String::from("d"),
-        Input {
-            input: Some(PathBuf::from(tempdir.path())),
-            arguments: vec![],
-        },
-    );
-
-    Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
-
-    let result: Result<Option<PathBuf>> = get_postprocess_folder(
-        &config,
-        &1,
-        &String::from("a"),
-        &String::from("d"),
-        &REAL_FS,
-    );
-
-    assert!(result.is_ok());
-    assert!(result.unwrap().is_none());
-}
-
-#[test]
-fn postprocess_job_info_when_error() {
-    let tempdir = TempDir::new("tests").unwrap();
-
-    let mut config = gourd_lib::config::Config {
-        output_path: PathBuf::from(tempdir.path()),
-        metrics_path: PathBuf::from(tempdir.path()),
-        experiments_folder: PathBuf::from(tempdir.path()),
-        ..Default::default()
-    };
-
-    config.programs.insert(
-        String::from("a"),
-        Program {
-            binary: PathBuf::from(tempdir.path()),
-            arguments: vec![],
-            afterscript: None,
-            postprocess_job: Some(String::from("b")),
-            resource_limits: None,
-        },
-    );
-
-    let mut post = BTreeMap::new();
-    post.insert(
-        String::from("b"),
-        Program {
-            binary: PathBuf::from(tempdir.path()),
-            arguments: vec![],
-            afterscript: None,
-            postprocess_job: None,
-            resource_limits: None,
-        },
-    );
-
-    config.postprocess_programs = Some(post.into());
-
-    config.inputs.insert(
-        String::from("d"),
-        Input {
-            input: Some(PathBuf::from(tempdir.path())),
-            arguments: vec![],
-        },
-    );
-
-    assert!(Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).is_err());
 }

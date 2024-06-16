@@ -39,7 +39,6 @@ fn breaking_changes_config_struct() {
         slurm: None,
         resource_limits: None,
         postprocess_resource_limits: None,
-        postprocess_output_folder: None,
         labels: Some(BTreeMap::new()),
     };
 }
@@ -57,7 +56,6 @@ fn breaking_changes_config_file_all_values() {
         metrics_path = "./vulfpeck/"
         experiments_folder = "./parcels/"
         wrapper = "gourd_wrapper"
-        postprocess_output_folder = "./post_job/"
 
         [program]
 
@@ -80,7 +78,6 @@ fn breaking_changes_config_file_all_values() {
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
-            postprocess_output_folder: Some(PathBuf::from("./post_job/")),
             labels: None,
         },
         Config::from_file(file_pathbuf.as_path(), true, &REAL_FS)
@@ -119,7 +116,6 @@ fn breaking_changes_config_file_required_values() {
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
-            postprocess_output_folder: None,
             labels: None,
         },
         Config::from_file(file_pb.as_path(), true, &REAL_FS)
@@ -260,7 +256,6 @@ fn test_globs() {
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
-            postprocess_output_folder: None,
             labels: None,
         },
         Config::from_file(file_pathbuf.as_path(), false, &REAL_FS)
@@ -346,7 +341,7 @@ fn parse_valid_escape_hatch_file() {
               experiments_folder = \"{}/44\"
               input_schema = \"{}\"
               [program.x]
-              binary = \"/usr/bin/sleep\"
+              binary = \"/bin/sleep\"
               [input]
     ",
                 dir.path().to_str().unwrap(),
@@ -371,7 +366,7 @@ fn parse_valid_escape_hatch_file() {
         .unwrap();
 
     let c1 =
-        Config::from_file(f1.as_path(), false, &REAL_FS).expect("Unexpected config read error.");
+        Config::from_file(f1.as_path(), true, &REAL_FS).expect("Unexpected config read error.");
     let c2 = Config {
         output_path: dir.path().join("42"),
         metrics_path: dir.path().join("43"),
@@ -379,7 +374,7 @@ fn parse_valid_escape_hatch_file() {
         programs: vec![(
             "x".to_string(),
             Program {
-                binary: "/usr/bin/sleep".into(),
+                binary: "/bin/sleep".into(),
                 arguments: vec![],
                 afterscript: None,
                 postprocess_job: None,
@@ -421,7 +416,6 @@ fn parse_valid_escape_hatch_file() {
         resource_limits: None,
         postprocess_resource_limits: None,
         wrapper: WRAPPER_DEFAULT(),
-        postprocess_output_folder: None,
         postprocess_programs: None,
         labels: None,
     };

@@ -131,9 +131,6 @@ pub struct FileSystemBasedStatus {
 
     /// The completion of the afterscript, if there.
     pub afterscript_completion: Option<PostprocessCompletion>,
-
-    /// The completion of the postprocess job, if there.
-    pub postprocess_job_completion: Option<PostprocessCompletion>,
 }
 
 /// Structure of slurm based status

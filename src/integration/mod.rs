@@ -192,7 +192,6 @@ macro_rules! config {
                 slurm: None,
                 resource_limits: None,
                 postprocess_resource_limits: None,
-                postprocess_output_folder: None,
                 postprocess_programs: None,
                 labels: None,
             }

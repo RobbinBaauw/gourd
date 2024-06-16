@@ -57,7 +57,6 @@ pub fn init_interactive(
         resource_limits: None,
         postprocess_resource_limits: None,
         wrapper: Default::default(),
-        postprocess_output_folder: None,
         postprocess_programs: None,
         labels: None,
         input_schema: None,
@@ -187,7 +186,6 @@ pub fn write_files(directory: &Path, config: Config, fs: &impl FileOperations) -
         Some(config.output_path),
         Some(config.metrics_path),
         Some(config.experiments_folder),
-        config.postprocess_output_folder,
     ];
 
     debug!("Creating experiment folders.");

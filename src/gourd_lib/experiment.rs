@@ -66,7 +66,7 @@ pub struct Run {
     pub afterscript_output_path: Option<PathBuf>,
 
     /// The path to postprocess job output, optionally.
-    pub post_job_output_path: Option<PathBuf>,
+    pub postprocessor: Option<usize>,
 
     /// If this job has been rerun, a reference to the new one.
     pub rerun: Option<usize>,

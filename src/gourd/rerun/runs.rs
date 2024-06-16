@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use anyhow::Context;
+use anyhow::Result;
 use gourd_lib::bailc;
 use gourd_lib::constants::HELP_STYLE;
 use gourd_lib::ctx;
@@ -22,7 +23,7 @@ pub fn get_runs_from_rerun_options(
     experiment: &Experiment,
     file_system: &mut impl FileOperations,
     script: bool,
-) -> anyhow::Result<Vec<usize>> {
+) -> Result<Vec<usize>> {
     let statuses = get_statuses(experiment, file_system)?;
     if let Some(runs) = run_ids {
         if script {
@@ -42,7 +43,7 @@ pub(super) fn get_what_runs_to_rerun_from_experiment(
     experiment: &Experiment,
     statuses: ExperimentStatus,
     script: bool,
-) -> anyhow::Result<Vec<usize>> {
+) -> Result<Vec<usize>> {
     let finished_runs = get_finished_runs_from_statuses(&statuses);
 
     if finished_runs.is_empty() {
