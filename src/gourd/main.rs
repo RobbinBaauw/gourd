@@ -12,6 +12,10 @@ pub mod local;
 /// with a local installation of SLURM.
 pub mod slurm;
 
+/// Functionality for user-friendly initialisation of new experimental
+/// setups and examples.
+pub mod init;
+
 /// Functionality for retrieving resources (binaries and test cases)
 /// from files, remote servers, and source code.
 pub mod resources;

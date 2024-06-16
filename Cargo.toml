@@ -19,10 +19,14 @@ build = "build.rs"
 # Compile the documentation with this flag.
 documentation = []
 
-# You can turn off fetching of resources from the config here.
-fetching = ["dep:reqwest"]
+# Include built-in examples with this flag.
+builtin-examples = ["tar", "flate2"]
 
-default = ["fetching"]
+# Include fetching of HTTP resources and Git repositories.
+# Note that 'git2' is otherwise included with no default features (https/ssh)
+fetching = ["reqwest", "git2/default"]
+
+default = ["fetching", "builtin-examples"]
 
 # The Gourd command-line application.
 [[bin]]
@@ -67,6 +71,7 @@ clap = { version = "4.5.4", features = ["derive", "cargo"] }
 anstyle = "1.0.7"
 indicatif = "0.17.8"
 indicatif-log-bridge = "0.2.2"
+inquire = "0.7.5"
 
 # To provide human-readable formatting of durations.
 humantime = "2.1.0"
@@ -79,17 +84,32 @@ thiserror = "1"
 tempdir = "0.3.7"
 
 # To log to stdout.
-log = "0.4"
+log = { version = "0.4", features = [] }
 colog = "1.3.0"
+
+# To (de)compress example folders
+flate2 = "1.0"
+tar = "0.4"
+
+# To initialise Git repositories
+git2 = { version = "0.18.3", default-features = false }
 
 [build-dependencies]
 # To generate shell completions for the CLI.
 clap_complete = "4.5.2"
-clap = { version = "4.5.4", features = ["derive", "cargo"] }
+clap = { version = "4.5.4", features = ["derive", "cargo", "string"] }
 anstyle = "1.0.7"
+
+# To (de)compress example folders
+flate2 = { version = "1.0", optional = true}
+tar = { version = "0.4", optional = true }
 
 # To handle errors.
 anyhow = "1"
+
+serde = { version = "1.0", features = ["derive"] }
+
+toml = "0.8.12"
 
 [dev-dependencies]
 # To run benchmarks on stable rust.

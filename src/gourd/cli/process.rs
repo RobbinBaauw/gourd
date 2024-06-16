@@ -12,7 +12,7 @@ use colog::default_builder;
 use colog::formatter;
 use gourd_lib::bailc;
 use gourd_lib::config::Config;
-use gourd_lib::constants::CMD_HELP_STYLE;
+use gourd_lib::constants::CMD_STYLE;
 use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
 use gourd_lib::constants::TERTIARY_STYLE;
@@ -34,11 +34,13 @@ use super::log::LogTokens;
 use super::printing::get_styles;
 use crate::cli::def::CancelStruct;
 use crate::cli::def::Cli;
-use crate::cli::def::Command;
+use crate::cli::def::GourdCommand;
 use crate::cli::def::RunSubcommand;
 use crate::cli::def::StatusStruct;
 use crate::cli::printing::print_version;
 use crate::experiments::ExperimentExt;
+use crate::init::init_experiment_setup;
+use crate::init::list_init_examples;
 use crate::local::run_local;
 use crate::post::postprocess_job::schedule_post_jobs;
 use crate::slurm::checks::get_slurm_options_from_config;
@@ -109,7 +111,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
     }
 
     match &cmd.command {
-        Command::Run(args) => {
+        GourdCommand::Run(args) => {
             debug!("Reading the config: {:?}", cmd.config);
 
             let config = Config::from_file(&cmd.config, false, &file_system)?;
@@ -179,7 +181,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             }
         }
 
-        Command::Status(StatusStruct {
+        GourdCommand::Status(StatusStruct {
             experiment_id,
             run_id,
             follow: blocking,
@@ -211,7 +213,32 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             }
         }
 
-        Command::Cancel(CancelStruct {
+        GourdCommand::Init(init_struct) => {
+            if init_struct.list_examples {
+                list_init_examples()?;
+            } else {
+                match &init_struct.directory {
+                    None => bailc!("No directory specified", ;
+                      "", ;
+                          "You need to specify a directory for init\
+                        , for example: {CMD_STYLE}gourd init test{CMD_STYLE:#}",
+                    ),
+
+                    Some(directory) => init_experiment_setup(
+                        directory,
+                        init_struct.git,
+                        cmd.script,
+                        cmd.dry,
+                        &init_struct.example,
+                        &file_system,
+                    )?,
+                }
+            }
+        }
+
+        GourdCommand::Analyse(_) => panic!("Analyse has not been implemented yet"),
+
+        GourdCommand::Cancel(CancelStruct {
             experiment_id,
             run_ids,
             all,
@@ -243,7 +270,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                                     .ok_or(anyhow!("Could not find run {} on Slurm", id))
                                     .with_context(ctx!(
                                         "You can only cancel runs that have been scheduled on Slurm.", ;
-                                        "Run {CMD_HELP_STYLE}gourd status {}{CMD_HELP_STYLE:#} \
+                                        "Run {CMD_STYLE}gourd status {}{CMD_STYLE:#} \
                                         to check which runs have been scheduled.", experiment.seq
                                     ))
                             })
@@ -261,9 +288,10 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             if id_list.is_empty() {
                 bailc!(
                     "No runs to cancel", ;
-                    "You can only cancel runs that have been scheduled on Slurm.", ;
-                    "Run {CMD_HELP_STYLE}gourd status {}{CMD_HELP_STYLE:#} to check \
-                     which runs have been scheduled.", experiment.seq
+                    "You can only cancel runs that have been scheduled on Slurm.\
+                     Run {CMD_STYLE}gourd status {}{CMD_STYLE:#} to check \
+                     which runs have been scheduled.", experiment.seq;
+                    "",
                 );
             }
 
@@ -281,13 +309,10 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             }
         }
 
-        Command::Init(_) => panic!("Gourd Init has not been implemented yet"),
+        GourdCommand::Version => print_version(cmd.script),
 
-        Command::Analyse(_) => panic!("Analyse has not been implemented yet"),
 
-        Command::Version => print_version(cmd.script),
-
-        Command::Continue(ContinueStruct { experiment_id }) => {
+        GourdCommand::Continue(ContinueStruct { experiment_id }) => {
             let (mut experiment, config) = read_experiment(experiment_id, cmd, &file_system)?;
 
             debug!("Found the newest experiment with id: {}", experiment.seq);

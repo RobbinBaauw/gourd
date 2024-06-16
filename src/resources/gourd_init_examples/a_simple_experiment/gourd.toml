@@ -1,0 +1,9 @@
+output_path = "output"
+metrics_path = "metrics"
+experiments_folder = "experiments"
+
+[program.program]
+binary = "./program"
+
+[input.input]
+input = "./inp"

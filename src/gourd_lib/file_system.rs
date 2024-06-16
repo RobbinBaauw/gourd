@@ -1,15 +1,21 @@
 use std::fs;
 use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 
+use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use git2::Repository;
 use log::debug;
+use log::info;
 use log::trace;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use tar::Archive;
 
+use crate::bailc;
 use crate::error::ctx;
 use crate::error::Ctx;
 
@@ -34,10 +40,13 @@ pub trait FileOperations {
     /// Try to serialize a struct `T` into a toml file.
     fn try_write_toml<T: Serialize>(&self, path: &Path, data: &T) -> Result<()>;
 
-    /// Wirte all bytes to a file.
+    /// Write all files in a .tar directory structure at the provided path.
+    fn write_archive<T: Read>(&self, path: &Path, data: Archive<T>) -> Result<()>;
+
+    /// Write all bytes to a file.
     fn write_bytes_truncate(&self, path: &Path, bytes: &[u8]) -> Result<()>;
 
-    /// Wirte a [String] to a file.
+    /// Write a [String] to a file.
     fn write_utf8_truncate(&self, path: &Path, data: &str) -> Result<()>;
 
     /// Truncates the file and then runs [FileOperations::canonicalize].
@@ -50,6 +59,9 @@ pub trait FileOperations {
     ///
     /// This will fail for files that do not exist.
     fn canonicalize(&self, path: &Path) -> Result<PathBuf>;
+
+    /// Create a new template repository.
+    fn init_git_repository(&self, path: &Path) -> Result<()>;
 }
 
 impl FileOperations for FileSystemInteractor {
@@ -84,6 +96,49 @@ impl FileOperations for FileSystemInteractor {
         )
     }
 
+    fn write_archive<T: Read>(&self, path: &Path, mut data: Archive<T>) -> Result<()> {
+        // Verify the path
+        if path.exists() {
+            bailc!(
+                "The path exists.", ;
+                "A directory or file exists at {path:?}.", ;
+                "Choose a path that is not already taken.",
+            );
+        }
+
+        let canonical_path = self.truncate_and_canonicalize_folder(path)?;
+
+        // Unpack the archive
+        if self.dry_run {
+            // Verify the archive is readable
+            debug!("Reading the archive");
+            for d in data.entries()? {
+                let file = d.with_context(ctx!("Error reading an archived example file.", ;
+                                        "The example is corrupted.", ))?;
+
+                let archive_path = file.path().with_context(
+                    ctx!("Error getting the path of an archived example file.", ;
+                                        "The example is corrupted.", ),
+                )?;
+
+                let mut copied_path = canonical_path.to_path_buf();
+                copied_path.push(&archive_path);
+                debug!(
+                    "Would have written archived file {:?} to {:?} (dry)",
+                    archive_path, copied_path
+                );
+            }
+            Ok(())
+        } else {
+            data.unpack(&canonical_path).with_context(
+                ctx!("Could not unpack an archive to the directory: {:?}", &path;
+                            "Ensure that the archive is not corrupt and that \
+                            you have permissions to write here.",),
+            )?;
+            Ok(())
+        }
+    }
+
     fn write_utf8_truncate(&self, path: &Path, data: &str) -> Result<()> {
         self.write_bytes_truncate(path, data.as_bytes())
     }
@@ -113,12 +168,14 @@ impl FileOperations for FileSystemInteractor {
         }
 
         if let Some(parent) = path.parent() {
+            debug!("Creating directories for {:?}", parent);
             fs::create_dir_all(parent).with_context(ctx!(
               "Could not create parent directories for {parent:?}", ;
               "Ensure that you have sufficient permissions",
             ))?;
         }
 
+        debug!("Creating a file at {:?}", path);
         File::create(path).with_context(ctx!(
            "Could not create {path:?}", ;
            "Ensure that you have sufficient permissions",
@@ -140,6 +197,7 @@ impl FileOperations for FileSystemInteractor {
             return Ok(path.to_path_buf());
         }
 
+        debug!("Creating directories for {:?}", path);
         fs::create_dir_all(path).with_context(ctx!(
            "Could not create {path:?}", ;
            "Ensure that you have sufficient permissions",
@@ -149,5 +207,16 @@ impl FileOperations for FileSystemInteractor {
           "Could not canonicalize {path:?}", ;
           "Ensure that your path is valid",
         ))
+    }
+
+    fn init_git_repository(&self, path: &Path) -> Result<()> {
+        if self.dry_run {
+            info!("Would have initialized a git repo (dry)");
+            return Ok(());
+        }
+
+        Repository::init(path)?;
+        info!("Successfully created a Git repository");
+        Ok(())
     }
 }

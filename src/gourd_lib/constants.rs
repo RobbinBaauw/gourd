@@ -73,8 +73,8 @@ pub const WARNING_STYLE: Style = style_from_fg(AnsiColor::Yellow).bold();
 pub const HELP_STYLE: Style = style_from_fg(AnsiColor::Green).bold().underline();
 
 /// Style of commands in help messages
-pub const CMD_HELP_STYLE: Style = Style::new()
-    .italic()
+pub const CMD_STYLE: Style = Style::new()
+    .bold()
     .bg_color(Some(Ansi(AnsiColor::Green)))
     .fg_color(Some(Ansi(AnsiColor::Black)));
 

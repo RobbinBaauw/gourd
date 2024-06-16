@@ -10,20 +10,32 @@
 #![allow(clippy::missing_docs_in_private_items)]
 
 use std::env;
+use std::fmt::format;
 use std::fs;
+use std::fs::canonicalize;
+use std::fs::File;
 use std::fs::Permissions;
+use std::io::Write;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::Command as StdCommand;
+use std::ptr::copy;
 
+use anyhow::anyhow;
+use anyhow::bail;
 use anyhow::Context;
 use anyhow::Result;
+use clap::Command;
 use clap::CommandFactory;
 use clap_complete::generate_to;
 use clap_complete::shells::Bash;
 use clap_complete::shells::Fish;
 use clap_complete::shells::PowerShell;
 use clap_complete::shells::Zsh;
+
+#[cfg(feature = "builtin-examples")]
+include!("src/resources/build_builtin_examples.rs");
 
 include!("src/gourd/cli/def.rs");
 
@@ -68,7 +80,6 @@ fn main() -> Result<()> {
     // Uncomment for local builds.
     // The point of this is the rebuild the documentation whenever it is updated.
     // We cannot run this on the CI, thus it is disabled by default.
-    // println!("cargo::rerun-if-changed=build.rs");
 
     let target_dir = outdir.parent().unwrap().parent().unwrap().parent().unwrap();
 
@@ -77,12 +88,18 @@ fn main() -> Result<()> {
 
     let _ = fs::create_dir(&completions);
 
-    let mut cmd = Cli::command();
+    let mut completions_command = Cli::command();
 
-    generate_to(Bash, &mut cmd, "gourd", &completions)?;
-    generate_to(Fish, &mut cmd, "gourd", &completions)?;
-    generate_to(PowerShell, &mut cmd, "gourd", &completions)?;
-    generate_to(Zsh, &mut cmd, "gourd", &completions)?;
+    #[cfg(feature = "builtin-examples")]
+    {
+        let tars = target_dir.join("tarballs/");
+        completions_command = build_builtin_examples(&tars, completions_command)?;
+    }
+
+    generate_to(Bash, &mut completions_command, "gourd", &completions)?;
+    generate_to(Fish, &mut completions_command, "gourd", &completions)?;
+    generate_to(PowerShell, &mut completions_command, "gourd", &completions)?;
+    generate_to(Zsh, &mut completions_command, "gourd", &completions)?;
 
     #[cfg(feature = "documentation")]
     {
