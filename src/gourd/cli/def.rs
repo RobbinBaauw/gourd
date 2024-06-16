@@ -138,10 +138,10 @@ pub struct InitStruct {
     #[arg(
     long,
     action = ArgAction::Set,
-    default_value_t = true,             // No flag evaluates to true
-    default_missing_value = "true",     // "--git" evaluates to true
-    num_args = 0..=1,                   // "--git=true" evaluates to true
-    require_equals = false,             // "--git=false" evaluates to false
+    default_value_t = true,             // No flag evaluates to true.
+    default_missing_value = "true",     // "--git" evaluates to true.
+    num_args = 0..=1,                   // "--git=true" evaluates to true.
+    require_equals = false,             // "--git=false" evaluates to false.
     )]
     pub git: bool,
 }

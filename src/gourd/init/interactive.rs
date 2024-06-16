@@ -7,6 +7,7 @@ use anyhow::Result;
 use gourd_lib::bailc;
 use gourd_lib::config::Config;
 use gourd_lib::config::SlurmConfig;
+use gourd_lib::constants::CMD_STYLE;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::file_system::FileOperations;
@@ -42,7 +43,7 @@ pub fn init_interactive(
     if !script_mode {
         info!("");
         info!("The following questions will help you customize a `gourd.toml` experimental setup.");
-        info!("Use 'gourd init -s' to skip customization.");
+        info!("Use {CMD_STYLE}gourd init -s{CMD_STYLE:#} to skip customization.");
         info!("");
     }
 
