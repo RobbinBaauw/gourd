@@ -16,6 +16,7 @@ use std::fs::canonicalize;
 use std::fs::File;
 use std::fs::Permissions;
 use std::io::Write;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::Command as StdCommand;

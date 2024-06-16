@@ -81,5 +81,6 @@ pub fn get_examples() -> BTreeMap<&'static str, InitExample<'static>> {
 /// Retrieves a named example experiment, or [None].
 pub fn get_example(id_input: &str) -> Option<InitExample<'static>> {
     let id = id_input.to_string().replace(['.', '_', ' '], "-");
+    debug!("Translating the example-id: {} to {}", id_input, id);
     get_examples().get(&id as &str).cloned()
 }

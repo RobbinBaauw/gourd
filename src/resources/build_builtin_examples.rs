@@ -19,8 +19,8 @@ const GOURD_INIT_EXAMPLE_FOLDERS: &str = "src/resources/gourd_init_examples";
 fn build_builtin_examples(out_folder: &Path, completions_command: Command) -> Result<Command> {
     let _ = fs::create_dir(out_folder);
 
-    println!("cargo::rerun-if-changed={}", GOURD_INIT_EXAMPLE_FOLDERS);
-    println!("cargo::rerun-if-changed=src/resources/build_builtin_examples.rs");
+    //println!("cargo::rerun-if-changed={}", GOURD_INIT_EXAMPLE_FOLDERS);
+    //println!("cargo::rerun-if-changed=src/resources/build_builtin_examples.rs");
 
     let mut possible_ids: Vec<Str> = vec![];
 
@@ -204,15 +204,20 @@ fn compile_rust_file(path: &Path) -> Result<()> {
 
     let str_path = canon_path.to_str().unwrap();
 
+    let compiled_path = canon_path.with_extension("");
+
+    let str_compiled_path = compiled_path.to_str().unwrap();
+
     let output = run_command(
         "rustc",
-        &vec![str_path],
+        &vec!["-O", str_path, "-o", str_compiled_path],
         Some(canon_path.parent().unwrap().to_owned()),
     )?;
 
-    if (!canon_path.with_extension("").is_file()) {
+
+    if !compiled_path.is_file() {
         Err(anyhow!("Rustc output: {}", output)
-            .context(format!("No rust file generated for {:?}", canon_path)))
+            .context(format!("No rust file generated at {:?}", compiled_path)))
     } else {
         Ok(())
     }

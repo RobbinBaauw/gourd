@@ -163,7 +163,12 @@ fn init_from_example(
                 Use {CMD_HELP_STYLE}gourd init --list-examples{CMD_HELP_STYLE:#} for all options.",
                 get_examples().iter().next().unwrap().0,
             ),
-            Some(example) => example.unpack_to(directory, fs),
+            Some(example) => {
+                info!("Selected example: {}", example.name);
+                info!("   {}", example.description);
+                info!("");
+                example.unpack_to(directory, fs)
+            }
         }
     }
 }
