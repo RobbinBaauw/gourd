@@ -373,7 +373,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
         }) => {
             let (mut experiment, _) = read_experiment(experiment_id, cmd, &file_system)?;
 
-            let selected_runs: Vec<usize> = rerun::runs::get_runs_from_rerun_options(
+            let selected_runs = rerun::runs::get_runs_from_rerun_options(
                 run_ids,
                 &experiment,
                 &mut file_system,

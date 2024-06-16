@@ -13,6 +13,7 @@ use gourd_lib::constants::NAME_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
+use humantime::parse_duration;
 use indicatif::ProgressBar;
 use indicatif::ProgressStyle;
 use inquire::validator::Validation;
@@ -123,11 +124,23 @@ pub fn query_yes_no(question: &str) -> Result<bool> {
 pub fn query_update_resource_limits(rss: &ResourceLimits) -> Result<ResourceLimits> {
     let mut new_rss = *rss;
 
-    new_rss.time_limit = inquire::CustomType::<humantime::Duration>::new("New Time limit:")
-        .with_default(humantime::Duration::from(new_rss.time_limit))
-        .prompt()
-        .with_context(ctx!("",;"",))?
-        .into();
+    new_rss.time_limit = parse_duration(
+        &inquire::Text::new("New Time limit:")
+            .with_default(&humantime::format_duration(new_rss.time_limit).to_string())
+            .with_validator(|input: &str| {
+                if parse_duration(input.trim()).is_ok() {
+                    // todo: when slurm cli holds limits to how long a job can run, replace is_ok()
+                    // with is_ok_and(|x| x < SlurmCli.max_time)
+                    Ok(Validation::Valid)
+                } else {
+                    Ok(Validation::Invalid(
+                        "Please enter a valid time format, e.g. `30s` or `1 day 2 hours`".into(),
+                    ))
+                }
+            })
+            .prompt()
+            .with_context(ctx!("",;"",))?,
+    )?;
 
     loop {
         new_rss.mem_per_cpu = inquire::CustomType::<usize>::new("New memory limit (in MB):")
