@@ -73,6 +73,7 @@ impl Chunkable for Experiment {
                 runs,
                 resource_limits: *resource_limits,
                 slurm_id: None,
+                local_run: false,
             }
         }
 
@@ -112,6 +113,7 @@ impl Chunkable for Experiment {
                                 runs: vec![id],
                                 resource_limits: Some(limit),
                                 slurm_id: None,
+                                local_run: false,
                             },
                         );
                     }
@@ -124,6 +126,7 @@ impl Chunkable for Experiment {
                             runs: vec![id],
                             resource_limits: Some(limit),
                             slurm_id: None,
+                            local_run: false,
                         },
                     )
                 }

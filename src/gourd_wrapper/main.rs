@@ -51,6 +51,8 @@ struct RunConf {
     binary_path: PathBuf,
     /// The path to the input.
     input_path: Option<PathBuf>,
+    /// The path to the working directory.
+    work_dir: PathBuf,
 
     /// The path to the stdout file.
     output_path: PathBuf,
@@ -71,7 +73,7 @@ fn main() {
             ERROR_STYLE,
             err.root_cause()
         );
-        eprintln!("{}help:{:#} The gourd-wrapper program is internal. You should not be invoking it manually", HELP_STYLE, HELP_STYLE);
+        eprintln!("{}help:{:#} The gourd_wrapper program is internal. You should not be invoking it manually", HELP_STYLE, HELP_STYLE);
         exit(1);
     }
 }
@@ -99,8 +101,10 @@ fn process() -> Result<()> {
 
     let clock = start_measuring();
 
+    eprintln!("RUNNING {:?}", &rc.binary_path);
     #[allow(unused_mut)]
     let mut child = Command::new(&rc.binary_path)
+        .current_dir(&rc.work_dir)
         .args(&rc.additional_args)
         .stdin(if let Some(actual_input) = rc.input_path {
             Stdio::from(
@@ -182,6 +186,7 @@ fn process_args(args: &[String], fs: &impl FileOperations) -> Result<RunConf> {
         input_path: input.input.clone(),
         output_path: exp.runs[id].output_path.clone(),
         result_path: exp.runs[id].metrics_path.clone(),
+        work_dir: exp.runs[id].work_dir.clone(),
         err_path: exp.runs[id].err_path.clone(),
         additional_args,
     })

@@ -40,7 +40,6 @@ use crate::cli::def::StatusStruct;
 use crate::cli::printing::print_version;
 use crate::experiments::ExperimentExt;
 use crate::local::run_local;
-use crate::post::afterscript::run_afterscript;
 use crate::post::postprocess_job::schedule_post_jobs;
 use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::chunk::Chunkable;
@@ -92,7 +91,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
     ) -> Result<(Experiment, Config)> {
         debug!("Reading the config: {:?}", cmd.config);
 
-        let config = Config::from_file(&cmd.config, file_system)?;
+        let config = Config::from_file(&cmd.config, false, file_system)?;
 
         let experiment = match experiment_id {
             Some(id) => {
@@ -113,7 +112,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
         Command::Run(args) => {
             debug!("Reading the config: {:?}", cmd.config);
 
-            let config = Config::from_file(&cmd.config, &file_system)?;
+            let config = Config::from_file(&cmd.config, false, &file_system)?;
 
             debug!("Creating a new experiment");
             trace!("The config is: {config:#?}");
@@ -132,15 +131,17 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             debug!("Saved the experiment at {exp_path:?}");
 
             match args.subcommand {
-                RunSubcommand::Local { force } => {
+                RunSubcommand::Local { force, sequential } => {
                     if cmd.dry {
                         info!("Would have ran the experiment (dry)");
                     } else {
-                        run_local(&mut experiment, &exp_path, &file_system, force).await?;
+                        run_local(&mut experiment, &exp_path, &file_system, force, sequential)
+                            .await?;
 
                         info!("Experiment started");
 
-                        blocking_status(&progress, &experiment, &mut file_system)?;
+                        // Run will never unshorten status, hence the false.
+                        blocking_status(&progress, &experiment, &mut file_system, false)?;
 
                         info!("Experiment finished");
                         println!();
@@ -182,31 +183,14 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             experiment_id,
             run_id,
             follow: blocking,
+            full,
             ..
         }) => {
-            debug!("Reading the config: {:?}", cmd.config);
-
-            let config = Config::from_file(&cmd.config, &file_system)?;
-
-            let experiment = match experiment_id {
-                Some(id) => Experiment::experiment_from_folder(
-                    *id,
-                    &config.experiments_folder,
-                    &file_system,
-                )?,
-
-                None => Experiment::latest_experiment_from_folder(
-                    &config.experiments_folder,
-                    &file_system,
-                )?,
-            };
+            let (experiment, _) = read_experiment(experiment_id, cmd, &file_system)?;
 
             debug!("Found the newest experiment with id: {}", experiment.seq);
 
             let statuses = get_statuses(&experiment, &mut file_system)?;
-
-            // TODO: status should do something with these labels
-            let _labels = run_afterscript(&statuses, &experiment, &file_system)?;
 
             match run_id {
                 Some(id) => {
@@ -219,9 +203,9 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     );
 
                     if *blocking {
-                        blocking_status(&progress, &experiment, &mut file_system)?;
+                        blocking_status(&progress, &experiment, &mut file_system, *full)?;
                     } else {
-                        display_statuses(&mut stdout(), &experiment, &statuses)?;
+                        display_statuses(&mut stdout(), &experiment, &statuses, *full)?;
                     }
                 }
             }
@@ -258,10 +242,9 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                                     .clone()
                                     .ok_or(anyhow!("Could not find run {} on Slurm", id))
                                     .with_context(ctx!(
-                                        "", ;
-                                        "You can only cancel runs that have been scheduled on Slurm.
-                                        Run {CMD_HELP_STYLE}gourd status {}{CMD_HELP_STYLE:#} \
-                                        to check which runs have been scheduled.",experiment.seq
+                                        "You can only cancel runs that have been scheduled on Slurm.", ;
+                                        "Run {CMD_HELP_STYLE}gourd status {}{CMD_HELP_STYLE:#} \
+                                        to check which runs have been scheduled.", experiment.seq
                                     ))
                             })
                     })
@@ -278,10 +261,9 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             if id_list.is_empty() {
                 bailc!(
                     "No runs to cancel", ;
-                    "You can only cancel runs that have been scheduled on Slurm.\
-                     Run {CMD_HELP_STYLE}gourd status {}{CMD_HELP_STYLE:#} to check \
-                     which runs have been scheduled.", experiment.seq;
-                    "",
+                    "You can only cancel runs that have been scheduled on Slurm.", ;
+                    "Run {CMD_HELP_STYLE}gourd status {}{CMD_HELP_STYLE:#} to check \
+                     which runs have been scheduled.", experiment.seq
                 );
             }
 
@@ -306,40 +288,17 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
         Command::Version => print_version(cmd.script),
 
         Command::Continue(ContinueStruct { experiment_id }) => {
-            debug!("Reading the config: {:?}", cmd.config);
-
-            let config = Config::from_file(&cmd.config, &file_system)?;
-
-            let mut experiment = match experiment_id {
-                Some(id) => Experiment::experiment_from_folder(
-                    *id,
-                    &config.experiments_folder,
-                    &file_system,
-                )?,
-
-                None => Experiment::latest_experiment_from_folder(
-                    &config.experiments_folder,
-                    &file_system,
-                )?,
-            };
+            let (mut experiment, config) = read_experiment(experiment_id, cmd, &file_system)?;
 
             debug!("Found the newest experiment with id: {}", experiment.seq);
 
             // Scheduling postprocessing jobs
-            if let Environment::Slurm = experiment.env {
-                debug!("Checking for postprocess jobs to be run");
+            debug!("Checking for postprocess jobs to be run");
 
-                let mut statuses = get_statuses(&experiment, &mut file_system)?;
-                schedule_post_jobs(&mut experiment, &mut statuses, &file_system)?;
+            let mut statuses = get_statuses(&experiment, &mut file_system)?;
+            schedule_post_jobs(&mut experiment, &mut statuses, &file_system)?;
 
-                info!("Postprocessing scheduled for available jobs");
-            } else {
-                bailc!(
-                    "Continue is only available for a Slurm experiment, not for a local one", ;
-                    "",;
-                    "",
-                );
-            }
+            info!("Postprocessing scheduled for available jobs");
 
             if experiment.get_unscheduled_runs()?.is_empty() {
                 info!("Nothing more to continue :D");
@@ -349,16 +308,33 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             // Continuing the experiment
             let exp_path = experiment.save(&config.experiments_folder, &file_system)?;
 
-            let s: SlurmHandler<SlurmCli> = SlurmHandler::default();
-            s.check_version()?;
-            s.check_partition(&get_slurm_options_from_config(&config)?.partition)?;
+            if experiment.env == Environment::Local {
+                if cmd.dry {
+                    info!("Would have continued the experiment (dry)");
+                } else {
+                    run_local(&mut experiment, &exp_path, &file_system, true, false).await?;
 
-            if cmd.dry {
-                info!("Would have continued the experiment on slurm (dry)");
-            } else {
-                let sched = s.run_experiment(&config, &mut experiment, exp_path, file_system)?;
-                print_scheduling(&experiment, false)?;
-                info!("Experiment continued you just scheduled {sched} chunks");
+                    info!("Experiment started");
+
+                    // Run will never unshorten status, hence the false.
+                    blocking_status(&progress, &experiment, &mut file_system, false)?;
+
+                    info!("Experiment finished");
+                    println!();
+                }
+            } else if experiment.env == Environment::Slurm {
+                let s: SlurmHandler<SlurmCli> = SlurmHandler::default();
+                s.check_version()?;
+                s.check_partition(&get_slurm_options_from_config(&config)?.partition)?;
+
+                if cmd.dry {
+                    info!("Would have continued the experiment on slurm (dry)");
+                } else {
+                    let sched =
+                        s.run_experiment(&config, &mut experiment, exp_path, file_system)?;
+                    print_scheduling(&experiment, false)?;
+                    info!("Experiment continued you just scheduled {sched} chunks");
+                }
             }
 
             experiment.save(&config.experiments_folder, &file_system)?;

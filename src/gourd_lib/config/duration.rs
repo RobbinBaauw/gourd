@@ -2,8 +2,10 @@ use core::fmt;
 use std::time::Duration;
 
 use serde::de::Visitor;
+use serde::Deserialize;
 use serde::Deserializer;
-use serde::Serializer;
+
+use crate::config::maps::IS_USER_FACING;
 
 /// Deserializing duration from a human-readable string.
 pub fn deserialize_human_time_duration<'de, D>(deserializer: D) -> Result<Duration, D::Error>
@@ -30,13 +32,9 @@ where
         }
     }
 
-    deserializer.deserialize_str(DurationVisitor {})
-}
-
-/// Serialize a duration to a human readable string
-pub fn serialize_human_time_duration<S>(x: &Duration, s: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    s.serialize_str(&humantime::format_duration(*x).to_string())
+    if IS_USER_FACING.with_borrow(|x| *x) {
+        deserializer.deserialize_str(DurationVisitor {})
+    } else {
+        Duration::deserialize(deserializer)
+    }
 }

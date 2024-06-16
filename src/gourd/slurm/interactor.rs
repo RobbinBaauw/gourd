@@ -292,17 +292,18 @@ impl SlurmInteractor for SlurmCli {
 
     fn cancel_jobs(&self, batch_ids: Vec<String>) -> Result<()> {
         for batch_id in batch_ids {
-            debug!("Cancelling batch with id {}", batch_id);
+            debug!("Cancelling batch with id: \"scancel {}\"", batch_id);
+
             if Command::new("scancel")
                 .arg(batch_id.clone())
                 .status()
                 .is_err()
             {
-                return Err(anyhow!(
-                    "Failed to cancel the job with batch id {}",
-                    batch_id
-                ))
-                .with_context(ctx!("", ; "help",));
+                bailc!(
+                    "Failed to cancel the job with batch id {batch_id}", ;
+                    "", ;
+                    "",
+                )
             }
         }
 

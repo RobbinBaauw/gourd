@@ -98,10 +98,15 @@ impl FsState {
     pub fn is_completed(&self) -> bool {
         matches!(self, FsState::Completed(_))
     }
+
+    /// Check if this state means that the run has succeded.
+    pub fn has_succeded(&self) -> bool {
+        matches!(self, FsState::Completed(Measurement { exit_code: 0, .. }))
+    }
 }
 
 /// This possible outcomes of a postprocessing.
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PostprocessCompletion {
     /// The postprocessing job has not yet started.
     Dormant,
@@ -110,14 +115,16 @@ pub enum PostprocessCompletion {
     Pending,
 
     /// The postprocessing job succeded.
-    Success,
+    ///
+    /// Stores the referece to the label assigned to it.
+    Success(Option<String>),
 
     /// The postprocessing job failed with the following exit status.
     Failed,
 }
 
 /// Structure of file based status
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FileSystemBasedStatus {
     /// State of completion of the run
     pub completion: FsState,
@@ -143,7 +150,7 @@ pub struct SlurmBasedStatus {
 }
 
 /// All possible postprocessing statuses of a run.
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Status {
     /// Status retrieved from slurm.
     pub slurm_status: Option<SlurmBasedStatus>,
@@ -223,7 +230,7 @@ pub fn merge_statuses(
                 job_id,
                 Status {
                     slurm_status: slurm_based.get(&job_id).cloned(),
-                    fs_status: fs[&job_id],
+                    fs_status: fs[&job_id].clone(),
                 },
             );
         } else {
@@ -231,7 +238,7 @@ pub fn merge_statuses(
                 job_id,
                 Status {
                     slurm_status: None,
-                    fs_status: fs[&job_id],
+                    fs_status: fs[&job_id].clone(),
                 },
             );
         }
@@ -245,6 +252,7 @@ pub fn blocking_status(
     progress: &MultiProgress,
     experiment: &Experiment,
     fs: &mut impl FileOperations,
+    full: bool,
 ) -> Result<()> {
     let mut complete = 0;
     let mut message = "".to_string();
@@ -255,7 +263,8 @@ pub fn blocking_status(
         let mut buf = BufWriter::new(Vec::new());
 
         let statuses = get_statuses(experiment, fs)?;
-        complete = display_statuses(&mut buf, experiment, &statuses)?;
+
+        complete = display_statuses(&mut buf, experiment, &statuses, full)?;
         message = format!("{}\n", String::from_utf8(buf.into_inner()?)?);
 
         bar.set_prefix(message.clone());

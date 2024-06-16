@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::process::Command;
 use std::process::ExitStatus;
 
@@ -11,10 +12,11 @@ use gourd_lib::error::Ctx;
 pub mod network;
 
 /// Runs a shell script.
-pub fn run_script(arguments: Vec<&str>) -> Result<ExitStatus> {
+pub fn run_script(arguments: Vec<&str>, work_dir: &Path) -> Result<ExitStatus> {
     let mut command = Command::new("sh");
 
     command.args(&arguments);
+    command.current_dir(work_dir);
 
     command
         .spawn()

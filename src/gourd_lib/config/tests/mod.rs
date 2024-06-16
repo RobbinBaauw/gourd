@@ -39,8 +39,7 @@ fn breaking_changes_config_struct() {
         slurm: None,
         resource_limits: None,
         postprocess_resource_limits: None,
-        afterscript_output_folder: None,
-        postprocess_job_output_folder: None,
+        postprocess_output_folder: None,
         labels: Some(BTreeMap::new()),
     };
 }
@@ -58,8 +57,7 @@ fn breaking_changes_config_file_all_values() {
         metrics_path = "./vulfpeck/"
         experiments_folder = "./parcels/"
         wrapper = "gourd_wrapper"
-        afterscript_output_folder = "./after/"
-        postprocess_job_output_folder = "./post_job/"
+        postprocess_output_folder = "./post_job/"
 
         [program]
 
@@ -82,11 +80,11 @@ fn breaking_changes_config_file_all_values() {
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
-            afterscript_output_folder: Some(PathBuf::from("./after/")),
-            postprocess_job_output_folder: Some(PathBuf::from("./post_job/")),
+            postprocess_output_folder: Some(PathBuf::from("./post_job/")),
             labels: None,
         },
-        Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
+        Config::from_file(file_pathbuf.as_path(), true, &REAL_FS)
+            .expect("Unexpected config read error.")
     );
     dir.close().unwrap();
 }
@@ -121,11 +119,11 @@ fn breaking_changes_config_file_required_values() {
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
-            afterscript_output_folder: None,
-            postprocess_job_output_folder: None,
+            postprocess_output_folder: None,
             labels: None,
         },
-        Config::from_file(file_pb.as_path(), &REAL_FS).expect("Unexpected config read error.")
+        Config::from_file(file_pb.as_path(), true, &REAL_FS)
+            .expect("Unexpected config read error.")
     );
     dir.close().unwrap();
 }
@@ -135,7 +133,7 @@ fn config_nonexistent_file() {
     let dir = TempDir::new("config_folder").unwrap();
     let file_pathbuf = dir.path().join("file.toml");
 
-    if Config::from_file(file_pathbuf.as_path(), &REAL_FS).is_ok() {
+    if Config::from_file(file_pathbuf.as_path(), true, &REAL_FS).is_ok() {
         panic!("Error expected.")
     }
 
@@ -154,7 +152,7 @@ fn config_unreadable_file() {
     file.set_permissions(Permissions::from_mode(0o000))
         .expect("Could not set permissions of 'unreadable' test file to 000.");
 
-    if Config::from_file(file_pathbuf.as_path(), &REAL_FS).is_ok() {
+    if Config::from_file(file_pathbuf.as_path(), true, &REAL_FS).is_ok() {
         panic!("Error expected.")
     }
     dir.close().unwrap();
@@ -167,7 +165,7 @@ fn config_unparseable_file() {
 
     File::create(file_pathbuf.as_path()).expect("A file folder could not be created.");
 
-    if Config::from_file(file_pathbuf.as_path(), &REAL_FS).is_ok() {
+    if Config::from_file(file_pathbuf.as_path(), true, &REAL_FS).is_ok() {
         panic!("Error expected.")
     }
     dir.close().unwrap();
@@ -182,7 +180,8 @@ fn config_ok_file() {
 
     assert_eq!(
         Config::default(),
-        Config::from_file(file_pb.as_path(), &REAL_FS).expect("Unexpected config read error.")
+        Config::from_file(file_pb.as_path(), true, &REAL_FS)
+            .expect("Unexpected config read error.")
     );
     dir.close().unwrap();
 }
@@ -201,7 +200,9 @@ fn disallow_glob_names() {
             [program]
         "#,
     );
-    assert!(format!("{:?}", Config::from_file(file_pb.as_path(), &REAL_FS)).contains("_glob_"));
+    assert!(
+        format!("{:?}", Config::from_file(file_pb.as_path(), true, &REAL_FS)).contains("_glob_")
+    );
     dir.close().unwrap();
 }
 
@@ -236,7 +237,7 @@ fn test_globs() {
 
     inputs.insert(
         format!(
-            "{}test_blob{}0",
+            "test_blob{}{}0",
             crate::constants::INTERNAL_PREFIX,
             crate::constants::INTERNAL_GLOB
         ),
@@ -259,11 +260,11 @@ fn test_globs() {
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
-            afterscript_output_folder: None,
-            postprocess_job_output_folder: None,
+            postprocess_output_folder: None,
             labels: None,
         },
-        Config::from_file(file_pathbuf.as_path(), &REAL_FS).expect("Unexpected config read error.")
+        Config::from_file(file_pathbuf.as_path(), false, &REAL_FS)
+            .expect("Unexpected config read error.")
     );
     dir.close().unwrap();
 }
@@ -280,9 +281,10 @@ fn test_globs_invalid_pattern() {
             arguments = ["-f", "glob|***"]
 
             [program]
+            [input]
         "#,
     );
-    assert!(Config::from_file(file_pb.as_path(), &REAL_FS).is_err());
+    assert!(Config::from_file(file_pb.as_path(), false, &REAL_FS).is_err());
 }
 
 #[test]
@@ -299,8 +301,8 @@ fn test_regex_that_do_match() {
             [input]
         "#,
     );
-    let config =
-        Config::from_file(file_pb.as_path(), &REAL_FS).expect("Unexpected config read error.");
+    let config = Config::from_file(file_pb.as_path(), false, &REAL_FS)
+        .expect("Unexpected config read error.");
     assert!(
         regex_lite::Regex::new(config.labels.unwrap().get("stefan").unwrap().regex.as_str())
             .unwrap()
@@ -322,7 +324,7 @@ fn test_invalid_regex_gives_error() {
             [input]
         "#,
     );
-    assert!(Config::from_file(file_pathbuf.as_path(), &REAL_FS).is_err());
+    assert!(Config::from_file(file_pathbuf.as_path(), false, &REAL_FS).is_err());
 }
 
 #[test]
@@ -339,12 +341,13 @@ fn parse_valid_escape_hatch_file() {
         .write_all(
             format!(
                 "
-    output_path = \"{}/42\"
-    metrics_path = \"{}/43\"
-    experiments_folder = \"{}/44\"
-    input_schema = \"{}\"
-    [program.x]
-    binary = \"/bin/sleep\"
+              output_path = \"{}/42\"
+              metrics_path = \"{}/43\"
+              experiments_folder = \"{}/44\"
+              input_schema = \"{}\"
+              [program.x]
+              binary = \"/usr/bin/sleep\"
+              [input]
     ",
                 dir.path().to_str().unwrap(),
                 dir.path().to_str().unwrap(),
@@ -358,16 +361,17 @@ fn parse_valid_escape_hatch_file() {
     file2
         .write_all(
             "
-    [[inputs]]
+    [[input]]
     arguments = [\"hello\"]
-    [[inputs]]
+    [[input]]
     arguments = [\"hi\"]
     "
             .as_bytes(),
         )
         .unwrap();
 
-    let c1 = Config::from_file(f1.as_path(), &REAL_FS).expect("Unexpected config read error.");
+    let c1 =
+        Config::from_file(f1.as_path(), false, &REAL_FS).expect("Unexpected config read error.");
     let c2 = Config {
         output_path: dir.path().join("42"),
         metrics_path: dir.path().join("43"),
@@ -375,7 +379,7 @@ fn parse_valid_escape_hatch_file() {
         programs: vec![(
             "x".to_string(),
             crate::config::Program {
-                binary: "/bin/sleep".into(),
+                binary: "/usr/bin/sleep".into(),
                 arguments: vec![],
                 afterscript: None,
                 postprocess_job: None,
@@ -388,7 +392,7 @@ fn parse_valid_escape_hatch_file() {
         inputs: vec![
             (
                 format!(
-                    "{}{}0",
+                    "0{}{}",
                     crate::constants::INTERNAL_PREFIX,
                     crate::constants::INTERNAL_SCHEMA_INPUTS
                 ),
@@ -399,7 +403,7 @@ fn parse_valid_escape_hatch_file() {
             ),
             (
                 format!(
-                    "{}{}1",
+                    "1{}{}",
                     crate::constants::INTERNAL_PREFIX,
                     crate::constants::INTERNAL_SCHEMA_INPUTS
                 ),
@@ -417,8 +421,7 @@ fn parse_valid_escape_hatch_file() {
         resource_limits: None,
         postprocess_resource_limits: None,
         wrapper: WRAPPER_DEFAULT(),
-        afterscript_output_folder: None,
-        postprocess_job_output_folder: None,
+        postprocess_output_folder: None,
         postprocess_programs: None,
         labels: None,
     };

@@ -51,6 +51,10 @@ pub enum RunSubcommand {
         /// Force running more experiments than recommended.
         #[arg(long)]
         force: bool,
+
+        /// Force running the experiments in sequence rather than concurrently.
+        #[arg(long)]
+        sequential: bool,
     },
 
     /// Create and run an experiment using Slurm.
@@ -77,6 +81,10 @@ pub struct StatusStruct {
     /// Do not exit until all jobs are finished.
     #[arg(long)]
     pub follow: bool,
+
+    /// Do not shorten output even if there is a lot of runs.
+    #[arg(long)]
+    pub full: bool,
 }
 
 /// Arguments supplied with the `continue` command.

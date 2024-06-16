@@ -4,6 +4,7 @@ use std::path::Path;
 use anyhow::Result;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
+use log::trace;
 
 use self::runner::run_locally;
 use crate::slurm::chunk::Chunkable;
@@ -18,13 +19,21 @@ pub async fn run_local(
     exp_path: &Path,
     fs: &impl FileOperations,
     force: bool,
+    sequential: bool,
 ) -> Result<()> {
-    experiment.chunks = experiment.create_chunks(usize::MAX, 1, 0..experiment.runs.len())?;
-    experiment.save(&experiment.config.experiments_folder, fs)?;
+    let runs = experiment.get_unscheduled_runs()?;
+
+    experiment
+        .chunks
+        .append(&mut experiment.create_chunks(usize::MAX, 1, runs.into_iter())?);
+
+    trace!("Running chunks {:#?}", experiment.chunks);
 
     let cmds = wrap(experiment, exp_path, env::consts::ARCH, fs)?;
 
-    run_locally(cmds, force).await?;
+    experiment.save(&experiment.config.experiments_folder, fs)?;
+
+    run_locally(cmds, force, sequential).await?;
 
     Ok(())
 }

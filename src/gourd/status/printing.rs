@@ -14,11 +14,14 @@ use gourd_lib::constants::TERTIARY_STYLE;
 use gourd_lib::constants::WARNING_STYLE;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
+use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
+use gourd_lib::experiment::FieldRef;
 use log::info;
 
 use super::ExperimentStatus;
 use super::FsState;
+use super::PostprocessCompletion;
 use super::SlurmState;
 use super::Status;
 
@@ -88,11 +91,19 @@ impl Display for Status {
             )?;
 
             if let Some(slurm) = &self.slurm_status {
-                writeln!(
-                    f,
-                    "{NAME_STYLE}slurm status?{NAME_STYLE:#} {:#} with exit code {}",
-                    slurm.completion, slurm.exit_code_slurm
-                )?;
+                if slurm.completion.is_completed() {
+                    writeln!(
+                        f,
+                        "{NAME_STYLE}slurm status?{NAME_STYLE:#} {:#} with exit code {}",
+                        slurm.completion, slurm.exit_code_slurm
+                    )?;
+                } else {
+                    writeln!(
+                        f,
+                        "{NAME_STYLE}slurm status?{NAME_STYLE:#} {:#}",
+                        slurm.completion
+                    )?;
+                }
             }
 
             if let FsState::Completed(measurement) = self.fs_status.completion {
@@ -103,8 +114,6 @@ impl Display for Status {
         } else {
             // Short summary.
             write!(f, "{}", self.fs_status.completion)?;
-
-            // TODO: Incorporate slurm status here.
         }
 
         Ok(())
@@ -119,10 +128,9 @@ pub fn display_statuses(
     f: &mut impl Write,
     experiment: &Experiment,
     statuses: &ExperimentStatus,
+    full: bool,
 ) -> Result<usize> {
-    if experiment.runs.len() <= SHORTEN_STATUS_CUTOFF
-        || experiment.env == gourd_lib::experiment::Environment::Local
-    {
+    if experiment.runs.len() <= SHORTEN_STATUS_CUTOFF || full {
         long_status(f, experiment, statuses)?;
     } else {
         short_status(f, experiment, statuses)?;
@@ -149,6 +157,7 @@ fn short_status(
     let runs = &experiment.runs;
 
     writeln!(f, "There are {} runs in total", runs.len())?;
+    writeln!(f, "Showing shortened output...")?;
 
     let mut by_program: BTreeMap<String, (usize, usize, usize, usize)> = BTreeMap::new();
 
@@ -158,7 +167,7 @@ fn short_status(
         }
 
         if let Some(for_this_prog) = by_program.get_mut(&run_data.program.to_string()) {
-            let status = statuses[&run_id];
+            let status = statuses[&run_id].clone();
 
             if status.is_completed() {
                 for_this_prog.0 += 1;
@@ -181,11 +190,29 @@ fn short_status(
 
         writeln!(f, "For program {}:", prog)?;
 
-        writeln!(f, "  {} jobs have been scheduled", sched)?;
-        writeln!(f, "  ... {} of which have completed", completed)?;
-        writeln!(f, "  ... {} of which have failed", failed)?;
-        writeln!(f, "  ... {} of which have succeded", completed - failed)?;
-        writeln!(f, "  {} jobs need to still be scheduled", total - sched)?;
+        if experiment.env == Environment::Slurm {
+            writeln!(f, "  {} jobs have been scheduled", sched)?;
+        } else {
+            writeln!(f, "  {} runs have been created", total)?;
+        }
+        writeln!(
+            f,
+            "  ... {} of which have {TERTIARY_STYLE}completed{TERTIARY_STYLE:#}",
+            completed
+        )?;
+        writeln!(
+            f,
+            "  ... {} of which have {ERROR_STYLE}failed{ERROR_STYLE:#}",
+            failed
+        )?;
+        writeln!(
+            f,
+            "  ... {} of which have {PRIMARY_STYLE}succeded{PRIMARY_STYLE:#}",
+            completed - failed
+        )?;
+        if experiment.env == Environment::Slurm {
+            writeln!(f, "  {} jobs need to still be scheduled", total - sched)?;
+        }
     }
 
     Ok(())
@@ -200,7 +227,7 @@ fn long_status(
 ) -> Result<()> {
     let runs = &experiment.runs;
 
-    let mut by_program: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+    let mut by_program: BTreeMap<FieldRef, Vec<usize>> = BTreeMap::new();
 
     let mut longest_input: usize = 0;
     let mut longest_index: usize = 0;
@@ -209,17 +236,20 @@ fn long_status(
         longest_input = max(longest_input, run_data.input.to_string().len());
         longest_index = max(longest_index, run_id.to_string().len());
 
-        if let Some(for_this_prog) = by_program.get_mut(&run_data.program.to_string()) {
+        if let Some(for_this_prog) = by_program.get_mut(&run_data.program) {
             for_this_prog.push(run_id);
         } else {
-            by_program.insert(run_data.program.clone().to_string(), vec![run_id]);
+            by_program.insert(run_data.program.clone(), vec![run_id]);
         }
     }
 
     for (prog, prog_runs) in by_program {
         writeln!(f)?;
 
-        writeln!(f, "For program {}:", prog)?;
+        match prog {
+            FieldRef::Regular(name) => writeln!(f, "For program {}:", name)?,
+            FieldRef::Postprocess(name) => writeln!(f, "For postprocessor {}:", name)?,
+        }
 
         for run_id in prog_runs {
             let run = &experiment.runs[run_id];
@@ -229,7 +259,7 @@ fn long_status(
 
             write!(
                 f,
-                "  {: >numw$}. {:.<width$}.... {}",
+                "  {: >numw$}. {NAME_STYLE}{:.<width$}{NAME_STYLE:#}.... {}",
                 run_id,
                 run.input.to_string(),
                 status,
@@ -244,8 +274,46 @@ fn long_status(
             }
 
             writeln!(f)?;
+
+            if let Some(PostprocessCompletion::Success(Some(label_text))) =
+                &status.fs_status.afterscript_completion
+            {
+                if let Some(label_map) = &experiment.config.labels {
+                    let display_style = if label_map[label_text].rerun_by_default {
+                        ERROR_STYLE
+                    } else {
+                        PRIMARY_STYLE
+                    };
+
+                    write!(
+                        f,
+                        "  {: >numw$}a {:.<width$}.... \
+                            label: {display_style}{label_text}{display_style:#}",
+                        run_id,
+                        "afterscript",
+                        numw = longest_index,
+                        width = longest_input,
+                    )?;
+                }
+
+                writeln!(f)?;
+            } else if let Some(PostprocessCompletion::Success(None)) =
+                &status.fs_status.afterscript_completion
+            {
+                write!(
+                    f,
+                    "  {: >numw$}a {TERTIARY_STYLE}afterscript ran \
+                            sucessfully{TERTIARY_STYLE:#}",
+                    run_id,
+                    numw = longest_index,
+                )?;
+
+                writeln!(f)?;
+            }
         }
     }
+
+    writeln!(f)?;
 
     Ok(())
 }
@@ -309,6 +377,35 @@ pub fn display_job(
         let status = &statuses[&id];
 
         writeln!(f, "{status:#}")?;
+
+        if let Some(PostprocessCompletion::Success(Some(label_text))) =
+            &status.fs_status.afterscript_completion
+        {
+            if let Some(label_map) = &exp.config.labels {
+                let display_style = if label_map[label_text].rerun_by_default {
+                    ERROR_STYLE
+                } else {
+                    PRIMARY_STYLE
+                };
+
+                writeln!(
+                    f,
+                    "{NAME_STYLE}afterscript ran and assigned \
+                        label{NAME_STYLE:#}: {display_style}{label_text}{display_style:#}",
+                )?;
+            }
+
+            writeln!(f)?;
+        } else if let Some(PostprocessCompletion::Success(None)) =
+            &status.fs_status.afterscript_completion
+        {
+            writeln!(
+                f,
+                "{TERTIARY_STYLE}afterscript ran sucessfully{TERTIARY_STYLE:#}",
+            )?;
+        }
+
+        writeln!(f)?;
 
         Ok(())
     } else {

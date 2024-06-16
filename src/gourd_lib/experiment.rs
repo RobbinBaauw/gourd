@@ -16,7 +16,7 @@ use crate::config::ResourceLimits;
 use crate::file_system::FileOperations;
 
 /// Differentiating between regular and postprocess fields.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum FieldRef {
     /// A reference to a filed stored in a config [BTreeMap].
     Regular(String),
@@ -37,6 +37,7 @@ impl Display for FieldRef {
 
 /// Describes a matching between an algorithm and an input.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct Run {
     /// The unique name of the program to run.
     pub program: FieldRef,
@@ -53,6 +54,9 @@ pub struct Run {
     /// The path to the metrics file.
     pub metrics_path: PathBuf,
 
+    /// The working directory of this run.
+    pub work_dir: PathBuf,
+
     /// Slurm job id, if ran on slurm
     pub slurm_id: Option<String>,
 
@@ -65,6 +69,7 @@ pub struct Run {
 
 /// An enum to distinguish the run context.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub enum Environment {
     /// Local execution.
     Local,
@@ -75,6 +80,7 @@ pub enum Environment {
 
 /// Describes one experiment.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct Experiment {
     /// The pairings of program-input for this experiment.
     pub runs: Vec<Run>,
@@ -144,4 +150,7 @@ pub struct Chunk {
 
     /// The slurm job id of this chunk.
     pub slurm_id: Option<String>,
+
+    /// Whether this job has already run on local.
+    pub local_run: bool,
 }
