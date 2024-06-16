@@ -16,11 +16,7 @@ use log::trace;
 
 use crate::cli::printing::query_update_resource_limits;
 use crate::cli::printing::query_yes_no;
-use crate::rerun::status::aggregate_run_statuses;
-use crate::rerun::status::all_run_statuses;
-use crate::rerun::status::get_finished_runs_from_statuses;
 use crate::rerun::status::status_of_single_run;
-use crate::rerun::status::success_fails_from_table;
 use crate::rerun::update_program_resource_limits;
 use crate::rerun::RerunStatus;
 use crate::slurm::handler::get_limits;
@@ -33,16 +29,10 @@ pub(super) fn check_single_run_failed(
     statuses: &ExperimentStatus,
 ) -> anyhow::Result<usize> {
     match status_of_single_run(specific_run, statuses, experiment)? {
-        RerunStatus::DoesNotExist => bailc!("Run {} does not exist", specific_run;
-            "Experiment {} does not have run #{specific_run}", experiment.seq;
-            "Experiment {} has runs 0-{}.
-            The runs that have finished are: {:?}.",
-            experiment.seq, experiment.runs.len(), get_finished_runs_from_statuses(statuses)
-        ),
-
         RerunStatus::NotFinished => {
-            if !query_yes_no(&format!("Run {specific_run} has not completed yet, \
-                are you sure you want to schedule a re-run? \
+            if !query_yes_no(&format!(
+                "Run {specific_run} has not completed yet, \
+                are you sure? \
                 You can cancel this run with \
                 {CMD_STYLE}gourd cancel {specific_run}{CMD_STYLE:#}"
             ))? {
@@ -54,8 +44,8 @@ pub(super) fn check_single_run_failed(
         }
 
         RerunStatus::FinishedExitZero => {
-            if !query_yes_no(&format!("Run {specific_run} has finished successfully, \
-                are you sure you want to schedule a re-run?"
+            if !query_yes_no(&format!(
+                "Run {specific_run} has finished successfully, are you sure?"
             ))? {
                 bailc!("Rerun cancelled.")
             } else {
@@ -64,8 +54,9 @@ pub(super) fn check_single_run_failed(
         }
 
         RerunStatus::FinishedSuccessLabel(l) => {
-            if !query_yes_no(&format!("Run {specific_run} has finished successfully, \
-                with label {NAME_STYLE} {l} {NAME_STYLE:#}. Are you sure you want to schedule a re-run?"
+            if !query_yes_no(&format!(
+                "Run {specific_run} has finished successfully, \
+                with label {NAME_STYLE}{l}{NAME_STYLE:#}. Are you sure?"
             ))? {
                 bailc!("Rerun cancelled.")
             } else {
@@ -74,23 +65,19 @@ pub(super) fn check_single_run_failed(
         }
 
         RerunStatus::FailedExitCode(c) => {
-            debug!("Scheduling rerun for run #{} that failed with exit code {}", specific_run, c);
+            debug!(
+                "Scheduling rerun for run #{} that failed with exit code {}",
+                specific_run, c
+            );
             Ok(*specific_run)
         }
 
         RerunStatus::FailedErrorLabel(l) => {
-            debug!("Scheduling rerun for run #{} that failed with label {}", specific_run, l);
+            debug!(
+                "Scheduling rerun for run #{} that failed with label {}",
+                specific_run, l
+            );
             Ok(*specific_run)
-        }
-
-        RerunStatus::RerunAs(r) => {
-            if !query_yes_no(&format!("Run {specific_run} has been rerun as {r}, \
-                are you sure you want to schedule a re-run?"
-            ))? {
-                bailc!("Rerun cancelled.")
-            } else {
-                Ok(*specific_run)
-            }
         }
     }
 }
@@ -107,31 +94,25 @@ pub(super) fn check_multiple_runs_failed(
             .filter_map(|r| check_single_run_failed(r, experiment, statuses).ok())
             .collect())
     } else {
-        let all_statuses = all_run_statuses(list, experiment, statuses.clone())?;
-        let table = aggregate_run_statuses(&all_statuses)?;
-
-        let (failed, success) = success_fails_from_table(table);
+        let failed: Vec<usize> = list
+            .iter()
+            .filter(|id| statuses[id].has_failed() && statuses[id].is_completed())
+            .copied()
+            .collect();
 
         let choices = vec!["Rerun only failed", "Rerun all", "Cancel"];
         match Select::new(
             &format!(
-                "There are {HELP_STYLE}{failed}{HELP_STYLE:#} failed runs \
-                and {HELP_STYLE}{success}{HELP_STYLE:#} successful runs. What would you like to do?"
+                "There are {HELP_STYLE}{}{HELP_STYLE:#} failed runs \
+                and {HELP_STYLE}{}{HELP_STYLE:#} total runs. What would you like to do?",
+                failed.len(),
+                list.len()
             ),
             choices,
         )
         .prompt()?
         {
-            "Rerun only failed" => Ok(list
-                .iter()
-                .filter_map(|l| {
-                    if status_of_single_run(l, statuses, experiment).is_ok_and(|s| s.is_fail()) {
-                        Some(*l)
-                    } else {
-                        None
-                    }
-                })
-                .collect()),
+            "Rerun only failed" => Ok(failed),
             "Rerun all" => Ok(list.to_vec()),
             "Cancel" => Err(anyhow!("Rerun cancelled.")),
             _ => unreachable!(),
