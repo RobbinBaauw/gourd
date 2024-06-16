@@ -311,7 +311,6 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
         GourdCommand::Version => print_version(cmd.script),
 
-
         GourdCommand::Continue(ContinueStruct { experiment_id }) => {
             let (mut experiment, config) = read_experiment(experiment_id, cmd, &file_system)?;
 
