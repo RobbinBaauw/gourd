@@ -32,13 +32,16 @@ pub fn list_init_examples() -> Result<()> {
         "This version of gourd was not compiled with built-in examples.", ;
         "To include these, build with the \"builtin-examples\" feature.",
     );
+
     #[cfg(feature = "builtin-examples")]
     {
         use crate::init::builtin_examples::get_examples;
+
         for example in get_examples() {
             println!("\"{}\" - {}", example.0, example.1.name);
             println!("    {}", example.1.description)
         }
+
         Ok(())
     }
 }
@@ -67,11 +70,12 @@ pub fn init_experiment_setup(
 
     match template {
         None => init_interactive(directory, script_mode, fs)?,
-        Some(t) => init_example(t, directory, fs)?,
+        Some(t) => init_from_example(t, directory, fs)?,
     }
 
     if use_git {
         debug!("Initialising a Git repository.");
+
         fs.init_git_repository(directory).with_context(
             ctx!("Error creating a Git repository, the experimental setup was still created.", ;
                 "Use the '--git=false' option to skip Git." ,),
@@ -134,21 +138,23 @@ fn check_init_directory(directory: &Path) -> Result<()> {
 }
 
 /// Retrieves and unpacks the example denoted by the provided example-id.
-fn init_example(
+fn init_from_example(
     #[allow(unused)] id: &str,
     #[allow(unused)] directory: &Path,
     #[allow(unused)] fs: &impl FileOperations,
 ) -> Result<()> {
     #[cfg(not(feature = "builtin-examples"))]
     bailc!(
-        "Cannot use the -e flag", ;
+        "Cannot use the -e flag.", ;
         "This version of gourd was not compiled with built-in examples.", ;
         "To include these, build with the \"builtin-examples\" feature.",
     );
+
     #[cfg(feature = "builtin-examples")]
     {
         use crate::init::builtin_examples::get_example;
         use crate::init::builtin_examples::get_examples;
+
         match get_example(id) {
             None => bailc!(
                 "Invalid example name.", ;
@@ -161,3 +167,7 @@ fn init_example(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/mod.rs"]
+mod tests;

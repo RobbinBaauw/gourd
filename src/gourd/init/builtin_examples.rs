@@ -70,7 +70,7 @@ pub fn get_examples() -> BTreeMap<&'static str, InitExample<'static>> {
 
             directory_tarball: include_bytes!(concat!(
                 env!("OUT_DIR"),
-                "/../../../tarballs/a-simple-experiment.tar.gz"
+                "/../../../tarballs/a_simple_experiment.tar.gz"
             )),
         },
     );
@@ -80,10 +80,6 @@ pub fn get_examples() -> BTreeMap<&'static str, InitExample<'static>> {
 
 /// Retrieves a named example experiment, or [None].
 pub fn get_example(id_input: &str) -> Option<InitExample<'static>> {
-    let id = id_input
-        .to_string()
-        .replace(".", "-")
-        .replace("_", "-")
-        .replace(" ", "-");
+    let id = id_input.to_string().replace(['.', '_', ' '], "-");
     get_examples().get(&id as &str).cloned()
 }
