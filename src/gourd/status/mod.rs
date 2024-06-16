@@ -100,7 +100,7 @@ impl FsState {
     }
 
     /// Check if this state means that the run has succeded.
-    pub fn has_succeded(&self) -> bool {
+    pub fn has_succeeded(&self) -> bool {
         matches!(self, FsState::Completed(Measurement { exit_code: 0, .. }))
     }
 }
@@ -193,19 +193,22 @@ pub type ExperimentStatus = BTreeMap<usize, Status>;
 /// A struct that can attest the statuses or some or all running jobs.
 pub trait StatusProvider<T, ST> {
     /// Try to get the statuses of jobs.
-    fn get_statuses(connection: &T, experiment: &Experiment) -> Result<BTreeMap<usize, ST>>;
+    fn get_statuses(connection: &mut T, experiment: &Experiment) -> Result<BTreeMap<usize, ST>>;
 }
 
 /// Get the status of the provided experiment.
-pub fn get_statuses(experiment: &Experiment, fs: &impl FileOperations) -> Result<ExperimentStatus> {
+pub fn get_statuses(
+    experiment: &Experiment,
+    fs: &mut impl FileOperations,
+) -> Result<ExperimentStatus> {
     let fs_status = FileBasedProvider::get_statuses(fs, experiment)?;
 
-    let slurm = SlurmCli {
+    let mut slurm = SlurmCli {
         versions: SLURM_VERSIONS.to_vec(),
     };
 
     let slurm_status = if experiment.env == Environment::Slurm {
-        Some(SlurmBasedProvider::get_statuses(&slurm, experiment)?)
+        Some(SlurmBasedProvider::get_statuses(&mut slurm, experiment)?)
     } else {
         None
     };

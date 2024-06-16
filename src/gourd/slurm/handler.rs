@@ -74,7 +74,10 @@ where
 
         let mut counter = 0;
         for (chunk_id, chunk) in chunks_to_iterate.iter_mut().enumerate() {
-            if chunk.slurm_id.is_some() {
+            if matches!(
+                chunk.status,
+                gourd_lib::experiment::ChunkRunStatus::Scheduled(_)
+            ) {
                 continue;
             }
 

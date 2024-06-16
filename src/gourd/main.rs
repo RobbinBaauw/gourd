@@ -36,9 +36,11 @@ pub mod experiments;
 /// pipeline jobs, and retrieval of their status.
 pub mod post;
 
+/// Rerun subcommand helper functions
+pub mod rerun;
 /// Convenience functions for unit tests.
 #[cfg(test)]
-mod test_utils;
+pub mod test_utils;
 
 /// The main CLI entry-point of the `gourd` utility.
 ///

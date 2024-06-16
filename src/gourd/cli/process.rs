@@ -18,7 +18,6 @@ use gourd_lib::constants::PRIMARY_STYLE;
 use gourd_lib::constants::TERTIARY_STYLE;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
-use gourd_lib::experiment::Chunk;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
@@ -34,20 +33,19 @@ use super::def::ContinueStruct;
 use super::def::RerunOptions;
 use super::log::LogTokens;
 use super::printing::get_styles;
-use crate::cli::def::CancelStruct;
 use super::printing::query_yes_no;
+use crate::cli::def::CancelStruct;
 use crate::cli::def::Cli;
 use crate::cli::def::GourdCommand;
 use crate::cli::def::RunSubcommand;
 use crate::cli::def::StatusStruct;
 use crate::cli::printing::print_version;
-use crate::cli::rerun::get_runs_from_rerun_options;
-use crate::cli::rerun::query_changing_limits_for_programs;
 use crate::experiments::ExperimentExt;
 use crate::init::init_experiment_setup;
 use crate::init::list_init_examples;
 use crate::local::run_local;
 use crate::post::postprocess_job::schedule_post_jobs;
+use crate::rerun;
 use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::chunk::Chunkable;
 use crate::slurm::handler::SlurmHandler;
@@ -143,10 +141,8 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     if cmd.dry {
                         info!("Would have ran the experiment (dry)");
                     } else {
-                        experiment.chunks =
-                            experiment.create_chunks(usize::MAX, 1, 0..experiment.runs.len())?;
-                        experiment.save(&experiment.config.experiments_folder, &file_system)?;
-                        run_local(&mut experiment, &exp_path, &file_system, force, sequential).await?;
+                        run_local(&mut experiment, &exp_path, &file_system, force, sequential)
+                            .await?;
 
                         info!("Experiment started");
 
@@ -166,7 +162,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     if cmd.dry {
                         info!("Would have scheduled the experiment on slurm (dry)");
                     } else {
-                        s.run_experiment(&config, &mut experiment, exp_path, file_system)?;
+                        s.run_experiment(&config, &mut experiment, exp_path.clone(), file_system)?;
                         print_scheduling(&experiment, true)?;
                         info!("Experiment started");
                     }
@@ -187,6 +183,9 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     experiment.seq
                 );
             }
+            if cmd.script {
+                println!("{}", exp_path.display());
+            }
         }
 
         GourdCommand::Status(StatusStruct {
@@ -197,8 +196,6 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             ..
         }) => {
             let (experiment, _) = read_experiment(experiment_id, cmd, &file_system)?;
-
-            debug!("Found the newest experiment with id: {}", experiment.seq);
 
             let statuses = get_statuses(&experiment, &mut file_system)?;
 
@@ -322,8 +319,6 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
         GourdCommand::Continue(ContinueStruct { experiment_id }) => {
             let (mut experiment, config) = read_experiment(experiment_id, cmd, &file_system)?;
 
-            debug!("Found the newest experiment with id: {}", experiment.seq);
-
             // Scheduling postprocessing jobs
             debug!("Checking for postprocess jobs to be run");
 
@@ -372,75 +367,56 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             experiment.save(&config.experiments_folder, &file_system)?;
         }
 
-        Command::Rerun(RerunOptions {
+        GourdCommand::Rerun(RerunOptions {
             experiment_id,
-            run_id,
-            list,
+            run_ids,
         }) => {
-            let (mut experiment, _) = read_experiment(experiment_id, &cmd, &file_system)?;
+            let (mut experiment, _) = read_experiment(experiment_id, cmd, &file_system)?;
 
-            let selected_runs =
-                get_runs_from_rerun_options(run_id, list, &experiment, &file_system)?;
+            let selected_runs = rerun::runs::get_runs_from_rerun_options(
+                run_ids,
+                &experiment,
+                &mut file_system,
+                cmd.script,
+            )?;
 
             trace!("Selected runs: {:?}", selected_runs);
 
-            match experiment.env {
-                Environment::Local => {
-                    info!("Rerunning {} runs", selected_runs.len());
-                    experiment.chunks.push(Chunk {
-                        runs: selected_runs
-                            .iter()
-                            .map(|r| {
-                                experiment.runs.push(experiment.runs[*r].clone());
-                                experiment.runs.len() - 1
-                            })
-                            .collect(),
-                        resource_limits: None,
-                        slurm_id: None,
-                        local_run: false,
+            if experiment.env == Environment::Slurm && !cmd.script {
+                let statuses = get_statuses(&experiment, &mut file_system)?;
+                let (out_of_memory, out_of_time) = selected_runs
+                    .iter()
+                    .map(|r| statuses[r].clone())
+                    .fold((0, 0), |(oom, oot), s| match s.slurm_status {
+                        Some(s) => match s.completion {
+                            SlurmState::OutOfMemory => (oom + 1, oot),
+                            SlurmState::Timeout => (oom, oot + 1),
+                            _ => (oom, oot),
+                        },
+                        None => (oom, oot),
                     });
-                    let exp_path =
-                        experiment.save(&experiment.config.experiments_folder, &file_system)?;
-                    run_local(&mut experiment, exp_path.as_path(), &file_system, false, false)
-                    .await?;
-                    info!("Rerunning jobs...");
-                    blocking_status(&progress, &experiment, &mut file_system, false)?;
-                    info!("Reruns finished.");
-                }
-                Environment::Slurm => {
-                    let statuses = get_statuses(&experiment, &file_system)?;
-                    let (out_of_memory, out_of_time) = selected_runs
-                        .iter()
-                        .map(|r| statuses[r].clone())
-                        .fold((0, 0), |(oom, oot), s| match s.slurm_status {
-                            Some(s) => match s.completion {
-                                SlurmState::OutOfMemory => (oom + 1, oot),
-                                SlurmState::Timeout => (oom, oot + 1),
-                                _ => (oom, oot),
-                            },
-                            None => (oom, oot),
-                        });
 
-                    if query_yes_no(&format!(
-                        "{} runs ran out of memory and {} runs ran out of time. Do you want to change the resource limits for their programs?",
-                        out_of_memory, out_of_time
-                    ))? {
-                        query_changing_limits_for_programs(&selected_runs, &mut experiment)?;
-                    }
-
-                    for run_id in &selected_runs {
-                        experiment.runs.push(experiment.runs[*run_id].clone());
-                    }
-                    experiment.save(&experiment.config.experiments_folder, &file_system)?;
-
-                    info!(
-                        "{} new runs have been created.
-                    Run {CMD_HELP_STYLE} gourd continue -i {} {CMD_HELP_STYLE:#} to schedule them",
-                        &selected_runs.len(),
-                        experiment.seq
-                    );
+                if query_yes_no(&format!(
+                    "{} runs ran out of memory and {} runs ran out of time.\
+                     Do you want to change the resource limits for their programs?",
+                    out_of_memory, out_of_time
+                ))? {
+                    rerun::checks::query_changing_limits_for_programs(
+                        &selected_runs,
+                        &mut experiment,
+                    )?;
                 }
             }
+            for run_id in &selected_runs {
+                experiment.runs[*run_id].rerun = Some(experiment.runs.len());
+                experiment.runs.push(experiment.runs[*run_id].clone());
+            }
+            experiment.save(&experiment.config.experiments_folder, &file_system)?;
+            info!("{} new runs have been created.", &selected_runs.len());
+            info!(
+                "Run {CMD_STYLE} gourd continue {} {CMD_STYLE:#} to schedule them",
+                experiment.seq
+            );
         }
     }
 

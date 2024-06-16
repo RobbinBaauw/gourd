@@ -14,6 +14,7 @@ use gourd_lib::constants::SLURM_VERSIONS;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Chunk;
+use gourd_lib::experiment::ChunkRunStatus;
 use gourd_lib::experiment::Experiment;
 use log::debug;
 use log::trace;
@@ -197,7 +198,7 @@ impl SlurmInteractor for SlurmCli {
             .to_string();
 
         trace!("This chunk was scheduled with id: {batch_id}");
-        chunk.slurm_id = Some(batch_id.clone());
+        chunk.status = ChunkRunStatus::Scheduled(batch_id.clone());
 
         for (job_subid, run_id) in chunk.runs.iter().enumerate() {
             let job_id = format!("{}_{}", batch_id, job_subid);

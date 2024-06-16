@@ -3,14 +3,16 @@ use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
+use anyhow::Result;
 use chrono::DateTime;
 use chrono::Local;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::config::{Config, Label};
+use crate::config::Config;
 use crate::config::Input;
+use crate::config::Label;
 use crate::config::Program;
 use crate::config::ResourceLimits;
 use crate::file_system::FileOperations;
@@ -65,6 +67,9 @@ pub struct Run {
 
     /// The path to postprocess job output, optionally.
     pub post_job_output_path: Option<PathBuf>,
+
+    /// If this job has been rerun, a reference to the new one.
+    pub rerun: Option<usize>,
 }
 
 /// An enum to distinguish the run context.
@@ -138,7 +143,11 @@ impl Experiment {
 
     /// Get the label by name.
     pub fn get_label(&self, name: &String) -> Result<Label> {
-        self.config.labels.as_ref().and_then(|labels| labels.get(name).cloned()).ok_or(anyhow!("Label not found"))
+        self.config
+            .labels
+            .as_ref()
+            .and_then(|labels| labels.get(name).cloned())
+            .ok_or(anyhow!("Label not found"))
     }
 }
 
@@ -153,9 +162,31 @@ pub struct Chunk {
     /// The resource limits of this chunk.
     pub resource_limits: Option<ResourceLimits>,
 
-    /// The slurm job id of this chunk.
-    pub slurm_id: Option<String>,
+    /// Whether this chunk has been run or not.
+    pub status: ChunkRunStatus,
+}
 
-    /// Whether this job has already run on local.
-    pub local_run: bool,
+/// The run status of a chunk.
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub enum ChunkRunStatus {
+    /// The job hasn't started yet
+    Pending,
+
+    /// The job has started running locally.
+    RanLocally,
+
+    /// The run is scheduled on Slurm with a slurm id
+    Scheduled(String),
+}
+
+impl Chunk {
+    /// Get the slurm id of the chunk if it is scheduled.
+    ///
+    /// Returns None if it is running locally or not ran yet.
+    pub fn get_slurm_id(&self) -> Option<String> {
+        match self.status {
+            ChunkRunStatus::Scheduled(ref id) => Some(id.clone()),
+            _ => None,
+        }
+    }
 }

@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use anyhow::Result;
+use gourd_lib::experiment::ChunkRunStatus;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
 
@@ -40,7 +41,7 @@ pub fn wrap(
     let mut chunks_to_iterate = experiment.chunks.clone();
 
     for (chunk_id, chunk) in chunks_to_iterate.iter_mut().enumerate() {
-        if chunk.local_run {
+        if matches!(chunk.status, ChunkRunStatus::RanLocally) {
             continue;
         }
 
@@ -59,7 +60,7 @@ pub fn wrap(
             result.push(cmd);
         }
 
-        chunk.local_run = true;
+        chunk.status = ChunkRunStatus::RanLocally;
     }
 
     experiment.chunks = chunks_to_iterate;

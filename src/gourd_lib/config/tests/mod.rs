@@ -378,7 +378,7 @@ fn parse_valid_escape_hatch_file() {
         experiments_folder: dir.path().join("44"),
         programs: vec![(
             "x".to_string(),
-            crate::config::Program {
+            Program {
                 binary: "/usr/bin/sleep".into(),
                 arguments: vec![],
                 afterscript: None,

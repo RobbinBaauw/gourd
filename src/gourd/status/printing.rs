@@ -162,7 +162,7 @@ fn short_status(
     let mut by_program: BTreeMap<String, (usize, usize, usize, usize)> = BTreeMap::new();
 
     for (run_id, run_data) in runs.iter().enumerate() {
-        if by_program.contains_key(&run_data.program.to_string()) {
+        if !by_program.contains_key(&run_data.program.to_string()) {
             by_program.insert(run_data.program.clone().to_string(), (0, 0, 0, 0));
         }
 
@@ -248,12 +248,16 @@ fn long_status(
 
         match prog {
             FieldRef::Regular(name) => writeln!(f, "For program {}:", name)?,
-            FieldRef::Postprocess(name) => writeln!(f, "For postprocessor {}:", name)?,
+            FieldRef::Postprocess(name) => writeln!(f, "For postprocess {}:", name)?,
         }
 
         for run_id in prog_runs {
             let run = &experiment.runs[run_id];
-            let status = &statuses[&run_id];
+            let status = if let Some(rerun_id) = run.rerun {
+                statuses[&rerun_id].clone()
+            } else {
+                statuses[&run_id].clone()
+            };
 
             // TODO: introduce logic to handle all possible mismatches.
 
@@ -262,7 +266,11 @@ fn long_status(
                 "  {: >numw$}. {NAME_STYLE}{:.<width$}{NAME_STYLE:#}.... {}",
                 run_id,
                 run.input.to_string(),
-                status,
+                if let Some(r) = run.rerun {
+                    format!("rerun as {NAME_STYLE}{r}{NAME_STYLE:#}")
+                } else {
+                    format!("{}", status)
+                },
                 width = longest_input,
                 numw = longest_index
             )?;
@@ -270,6 +278,8 @@ fn long_status(
             if status.fs_status.completion == FsState::Pending {
                 if let Some(ss) = &status.slurm_status {
                     write!(f, " on slurm: {}", ss.completion)?;
+                } else if run.slurm_id.is_some() {
+                    write!(f, " {ERROR_STYLE}deleted from slurm{ERROR_STYLE:#}")?;
                 }
             }
 

@@ -7,6 +7,7 @@ use gourd_lib::file_system::FileOperations;
 use log::trace;
 
 use self::runner::run_locally;
+use crate::slurm::chunk::Chunkable;
 use crate::wrapper::wrap;
 
 /// The (first iteration) thread pool implementation.
@@ -20,8 +21,14 @@ pub async fn run_local(
     force: bool,
     sequential: bool,
 ) -> Result<()> {
-    trace!("Running chunks {:#?}", experiment.chunks);
+    let runs = experiment.get_unscheduled_runs()?;
+
+    experiment
+        .chunks
+        .append(&mut experiment.create_chunks(usize::MAX, 1, runs.into_iter())?);
+
     let cmds = wrap(experiment, exp_path, env::consts::ARCH, fs)?;
+    trace!("Running chunks {:#?}", experiment.chunks);
 
     experiment.save(&experiment.config.experiments_folder, fs)?;
 

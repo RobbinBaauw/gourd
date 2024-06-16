@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use gourd_lib::config::ResourceLimits;
 use gourd_lib::experiment::Chunk;
+use gourd_lib::experiment::ChunkRunStatus;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::experiment::Run;
 
@@ -72,8 +73,7 @@ impl Chunkable for Experiment {
             Chunk {
                 runs,
                 resource_limits: *resource_limits,
-                slurm_id: None,
-                local_run: false,
+                status: ChunkRunStatus::Pending,
             }
         }
 
@@ -112,8 +112,7 @@ impl Chunkable for Experiment {
                             Chunk {
                                 runs: vec![id],
                                 resource_limits: Some(limit),
-                                slurm_id: None,
-                                local_run: false,
+                                status: ChunkRunStatus::Pending,
                             },
                         );
                     }
@@ -125,8 +124,7 @@ impl Chunkable for Experiment {
                         Chunk {
                             runs: vec![id],
                             resource_limits: Some(limit),
-                            slurm_id: None,
-                            local_run: false,
+                            status: ChunkRunStatus::Pending,
                         },
                     )
                 }

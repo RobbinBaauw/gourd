@@ -28,7 +28,7 @@ where
     T: FileOperations,
 {
     fn get_statuses(
-        fs: &T,
+        fs: &mut T,
         experiment: &Experiment,
     ) -> Result<BTreeMap<usize, FileSystemBasedStatus>> {
         let mut statuses = BTreeMap::new();
@@ -59,7 +59,7 @@ where
             let mut afterscript_completion = None;
             let mut postprocess_job_completion = None;
 
-            if run.afterscript_output_path.is_some() && completion.has_succeded() {
+            if run.afterscript_output_path.is_some() && completion.has_succeeded() {
                 afterscript_completion = Some(
                     Self::get_afterscript_status(run_id, experiment, fs).with_context(ctx!(
                         "Could not determine the afterscript status", ;

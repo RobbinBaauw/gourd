@@ -95,6 +95,7 @@ impl ExperimentExt for Experiment {
                         conf, &seq, prog_name, input_name, fs,
                     )?,
                     slurm_id: None,
+                    rerun: None,
                 });
             }
         }

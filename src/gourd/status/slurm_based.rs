@@ -42,7 +42,7 @@ where
 {
     #[cfg(not(tarpaulin_include))]
     fn get_statuses(
-        connection: &T,
+        connection: &mut T,
         experiment: &Experiment,
     ) -> Result<BTreeMap<usize, SlurmBasedStatus>> {
         use gourd_lib::bailc;
@@ -59,7 +59,7 @@ where
                 experiment
                     .chunks
                     .iter()
-                    .filter_map(|x| x.slurm_id.clone())
+                    .filter_map(|x| x.get_slurm_id())
                     .collect(),
             )?,
         )?;

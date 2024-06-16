@@ -37,7 +37,7 @@ fn non_matching_arch() {
         Some(vec!["--target=thumbv7em-none-eabihf"]),
     );
 
-    let input = tmp.path().join("test1");
+    let input = tmp.join("test1");
 
     fs::write(&input, "4").unwrap();
 
@@ -90,7 +90,7 @@ fn matching_arch() {
     const NUM_RETURNER_RS: &str = include_str!("test_resources/num_returner.rs");
 
     let (out, tmp) = get_compiled_example(NUM_RETURNER_RS, None);
-    let input = tmp.path().join("test1");
+    let input = tmp.join("test1");
 
     fs::write(&input, "4").unwrap();
 

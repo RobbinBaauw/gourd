@@ -79,7 +79,7 @@ pub fn filter_runs_for_post_job(runs: &mut ExperimentStatus) -> Result<Vec<&usiz
     let mut filtered = vec![];
 
     for (run_id, status) in runs {
-        if status.fs_status.completion.has_succeded()
+        if status.fs_status.completion.has_succeeded()
             && status.fs_status.completion.is_completed()
             && !matches!(
                 status.fs_status.postprocess_job_completion,
@@ -111,8 +111,6 @@ pub fn post_job_for_run(
         },
     );
 
-    experiment.save(&experiment.config.experiments_folder, fs)?;
-
     experiment.runs.push(Run {
         program: FieldRef::Postprocess(postprocess_name.clone()),
         input: FieldRef::Postprocess(input_name),
@@ -123,6 +121,7 @@ pub fn post_job_for_run(
         afterscript_output_path: None,
         post_job_output_path: None, // these two can be updated to allow pipelining
         slurm_id: None,
+        rerun: None,
     });
 
     Ok(())

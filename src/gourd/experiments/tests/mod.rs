@@ -50,6 +50,7 @@ fn config_correct_slurm() {
             .unwrap(),
         afterscript_output_path: None,
         post_job_output_path: None,
+        rerun: None,
     }];
 
     let test_experiment = Experiment {
@@ -114,6 +115,7 @@ fn config_correct_local() {
             slurm_id: None,
             afterscript_output_path: None,
             post_job_output_path: None,
+            rerun: None,
         },
         Run {
             program: FieldRef::Regular("b".to_string()),
@@ -137,6 +139,7 @@ fn config_correct_local() {
             slurm_id: None,
             afterscript_output_path: None,
             post_job_output_path: None,
+            rerun: None,
         },
         Run {
             program: FieldRef::Regular("c".to_string()),
@@ -160,6 +163,7 @@ fn config_correct_local() {
             slurm_id: None,
             afterscript_output_path: None,
             post_job_output_path: None,
+            rerun: None,
         },
         Run {
             program: FieldRef::Regular("c".to_string()),
@@ -183,6 +187,7 @@ fn config_correct_local() {
             slurm_id: None,
             afterscript_output_path: None,
             post_job_output_path: None,
+            rerun: None,
         },
     ];
 

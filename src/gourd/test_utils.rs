@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs;
+use std::path::PathBuf;
 use std::process::Command;
 
 use anstyle::AnsiColor;
@@ -19,14 +20,11 @@ use crate::experiments::ExperimentExt;
 
 pub const REAL_FS: FileSystemInteractor = FileSystemInteractor { dry_run: false };
 
-pub fn get_compiled_example(
-    contents: &str,
-    extra_args: Option<Vec<&str>>,
-) -> (std::path::PathBuf, TempDir) {
-    let tmp = TempDir::new("match").unwrap();
+pub fn get_compiled_example(contents: &str, extra_args: Option<Vec<&str>>) -> (PathBuf, PathBuf) {
+    let tmp = TempDir::new("match").unwrap().into_path();
 
-    let source = tmp.path().join("prog.rs");
-    let out = tmp.path().join("prog");
+    let source = tmp.join("prog.rs");
+    let out = tmp.join("prog");
 
     fs::write(&source, contents).unwrap();
 

@@ -15,6 +15,7 @@ use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use indicatif::ProgressBar;
 use indicatif::ProgressStyle;
+use inquire::validator::Validation;
 
 /// Util function for getting the style for the CLI
 #[cfg(not(tarpaulin_include))]
@@ -112,7 +113,9 @@ pub fn generate_progress_bar(len: u64) -> Result<ProgressBar> {
 
 /// Ask the user a yes/no question
 pub fn query_yes_no(question: &str) -> Result<bool> {
-    let response = inquire::Confirm::new(&format!("{question} [y/n]: ")).prompt()?;
+    let response = inquire::Confirm::new(&format!("{question} [y/n]: "))
+        .prompt()
+        .with_context(ctx!("",;"",))?;
     Ok(response)
 }
 
@@ -120,55 +123,40 @@ pub fn query_yes_no(question: &str) -> Result<bool> {
 pub fn query_update_resource_limits(rss: &ResourceLimits) -> Result<ResourceLimits> {
     let mut new_rss = *rss;
 
-    new_rss.time_limit = humantime::parse_duration(
-        &inquire::Text::new("New Time Limit:")
-            .with_default(&humantime::format_duration(new_rss.time_limit).to_string())
-            .with_validator(|input: &str| {
-                if humantime::parse_duration(input.trim()).is_ok() {
-                    // todo: when slurm cli holds limits to how long a job can run, replace is_ok()
-                    // with is_ok_and(|x| x < SlurmCli.max_time)
-                    Ok(inquire::validator::Validation::Valid)
-                } else {
-                    Ok(inquire::validator::Validation::Invalid(
-                        "Please enter a valid time format, e.g. `30s` or `1 day 2 hours`".into(),
-                    ))
-                }
-            })
-            .prompt()?,
-    )?;
+    new_rss.time_limit = inquire::CustomType::<humantime::Duration>::new("New Time limit:")
+        .with_default(humantime::Duration::from(new_rss.time_limit))
+        .prompt()
+        .with_context(ctx!("",;"",))?
+        .into();
 
     loop {
-        new_rss.mem_per_cpu = inquire::Text::new("New Memory Limit:")
-            .with_default(&new_rss.mem_per_cpu.to_string())
-            .with_validator(|input: &str| {
-                if input.parse::<u64>().is_ok() {
-                    Ok(inquire::validator::Validation::Valid)
-                } else {
-                    Ok(inquire::validator::Validation::Invalid(
-                        "Memory limit must be a number. Units in MB".into(),
-                    ))
-                }
-            })
-            .prompt()?
-            .parse()?;
-        if new_rss.mem_per_cpu != 0 || query_yes_no("A memory limit of zero gives the job access to the memory of the entire node. Are you sure you want to do this?")? {
+        new_rss.mem_per_cpu = inquire::CustomType::<usize>::new("New memory limit (in MB):")
+            .with_default(new_rss.mem_per_cpu)
+            .prompt()
+            .with_context(ctx!("",;"",))?;
+        if new_rss.mem_per_cpu != 0
+            || query_yes_no(
+                "A memory limit of zero gives the job \
+        access to the memory of the entire node. Are you sure you want to do this?",
+            )?
+        {
             break;
         }
     }
 
-    new_rss.cpus = inquire::Text::new("New CPU Limit:")
-        .with_default(&new_rss.cpus.to_string())
-        .with_validator(|input: &str| {
-            if input.parse::<u64>().is_ok_and(|x| x > 0) {
-                Ok(inquire::validator::Validation::Valid)
+    new_rss.cpus = inquire::CustomType::<usize>::new("New CPU limit:")
+        .with_default(new_rss.cpus)
+        .with_validator(|input: &usize| {
+            if *input > 0 {
+                Ok(Validation::Valid)
             } else {
-                Ok(inquire::validator::Validation::Invalid(
-                    "CPUs to use must be a number > 0".into(),
+                Ok(Validation::Invalid(
+                    "CPUs per task need to be at least 1".into(),
                 ))
             }
         })
-        .prompt()?
-        .parse()?;
+        .prompt()
+        .with_context(ctx!("",;"",))?;
 
     Ok(new_rss)
 }
