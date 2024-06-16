@@ -25,6 +25,7 @@ use anyhow::anyhow;
 use anyhow::bail;
 use anyhow::Context;
 use anyhow::Result;
+use clap::Command;
 use clap::CommandFactory;
 use clap_complete::generate_to;
 use clap_complete::shells::Bash;
@@ -86,12 +87,18 @@ fn main() -> Result<()> {
 
     let _ = fs::create_dir(&completions);
 
-    let mut cmd = Cli::command();
+    let mut completions_command = Cli::command();
 
-    generate_to(Bash, &mut cmd, "gourd", &completions)?;
-    generate_to(Fish, &mut cmd, "gourd", &completions)?;
-    generate_to(PowerShell, &mut cmd, "gourd", &completions)?;
-    generate_to(Zsh, &mut cmd, "gourd", &completions)?;
+    #[cfg(feature = "builtin-examples")]
+    {
+        let tars = target_dir.join("tarballs/");
+        completions_command = build_builtin_examples(&tars, completions_command)?;
+    }
+
+    generate_to(Bash, &mut completions_command, "gourd", &completions)?;
+    generate_to(Fish, &mut completions_command, "gourd", &completions)?;
+    generate_to(PowerShell, &mut completions_command, "gourd", &completions)?;
+    generate_to(Zsh, &mut completions_command, "gourd", &completions)?;
 
     #[cfg(feature = "documentation")]
     {
@@ -128,11 +135,6 @@ fn main() -> Result<()> {
         #[cfg(unix)]
         fs::set_permissions(&installer, Permissions::from_mode(0o755));
     }
-
-    #[cfg(feature = "builtin-examples")]
-    let tars = target_dir.join("tarballs/");
-    #[cfg(feature = "builtin-examples")]
-    build_builtin_examples(&tars)?;
 
     Ok(())
 }

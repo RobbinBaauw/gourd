@@ -34,12 +34,13 @@ use super::log::LogTokens;
 use super::printing::get_styles;
 use crate::cli::def::CancelStruct;
 use crate::cli::def::Cli;
-use crate::cli::def::Command;
+use crate::cli::def::GourdCommand;
 use crate::cli::def::RunSubcommand;
 use crate::cli::def::StatusStruct;
 use crate::cli::printing::print_version;
 use crate::experiments::ExperimentExt;
 use crate::init::init_experiment_setup;
+use crate::init::list_init_examples;
 use crate::local::run_local;
 use crate::post::postprocess_job::schedule_post_jobs;
 use crate::slurm::checks::get_slurm_options_from_config;
@@ -110,7 +111,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
     }
 
     match &cmd.command {
-        Command::Run(args) => {
+        GourdCommand::Run(args) => {
             debug!("Reading the config: {:?}", cmd.config);
 
             let config = Config::from_file(&cmd.config, false, &file_system)?;
@@ -180,7 +181,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             }
         }
 
-        Command::Status(StatusStruct {
+        GourdCommand::Status(StatusStruct {
             experiment_id,
             run_id,
             follow: blocking,
@@ -212,69 +213,24 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             }
         }
 
-        Command::Init(init_struct) => {
-            let template = match &init_struct.example {
-                // The user has not specified an example name. Use the default template.
-                None => {
-                    if cmd.script {
-                        debug!("No template provided, initialising in script mode.");
-                    } else {
-                        debug!("No template provided, initialising interactively.");
-                    }
-                    None
-                }
-
-                // The user has specified an example ID. Check that it exists.
-                Some(_) => {
-                    #[cfg(not(feature = "builtin-examples"))]
-                    bailc!(
-                        "Cannot use the -e flag", ;
-                        "This version of gourd was not compiled with built-in examples.", ;
-                        "To include these, build with the \"builtin-examples\" feature",
-                    );
-
-                    #[cfg(feature = "builtin-examples")]
-                    {
-                        use crate::init::builtin_examples::get_example;
-                        use crate::init::builtin_examples::get_examples;
-
-                        let example_id = &init_struct.example.as_ref().unwrap();
-
-                        match get_example(example_id) {
-                            // The example does not exist. Bail.
-                            None => {
-                                bailc!(
-                                    "Example not found.", ;
-                                    "The example '{example_id}' does not exist.", ;
-                                    "Try a valid example, like '{}'",
-                                    get_examples().keys().next().unwrap()
-                                )
-                            }
-
-                            // Print the name and description, use the example.
-                            Some(t) => {
-                                info!("Using the following example: {}", t.name);
-                                info!("{}", t.description);
-
-                                Some(t)
-                            }
-                        }
-                    }
-                }
-            };
-
-            // The directory's validity is checked within the method.
-            init_experiment_setup(
-                &init_struct.directory,
-                init_struct.no_git,
-                cmd.script,
-                cmd.dry,
-                template,
-                &file_system,
-            )?;
+        GourdCommand::Init(init_struct) => {
+            if init_struct.list_examples {
+                list_init_examples()?;
+            } else {
+                init_experiment_setup(
+                    &init_struct.directory,
+                    init_struct.git,
+                    cmd.script,
+                    cmd.dry,
+                    &init_struct.example,
+                    &file_system,
+                )?;
+            }
         }
 
-        Command::Cancel(CancelStruct {
+        GourdCommand::Analyse(_) => panic!("Analyse has not been implemented yet"),
+
+        GourdCommand::Cancel(CancelStruct {
             experiment_id,
             run_ids,
             all,
@@ -344,11 +300,10 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             }
         }
 
-        Command::Analyse(_) => panic!("Analyse has not been implemented yet"),
+        GourdCommand::Version => print_version(cmd.script),
 
-        Command::Version => print_version(cmd.script),
 
-        Command::Continue(ContinueStruct { experiment_id }) => {
+        GourdCommand::Continue(ContinueStruct { experiment_id }) => {
             let (mut experiment, config) = read_experiment(experiment_id, cmd, &file_system)?;
 
             debug!("Found the newest experiment with id: {}", experiment.seq);

@@ -97,7 +97,7 @@ git2 = { version = "0.18.3", default-features = false }
 [build-dependencies]
 # To generate shell completions for the CLI.
 clap_complete = "4.5.2"
-clap = { version = "4.5.4", features = ["derive", "cargo"] }
+clap = { version = "4.5.4", features = ["derive", "cargo", "string"] }
 anstyle = "1.0.7"
 
 # To (de)compress example folders

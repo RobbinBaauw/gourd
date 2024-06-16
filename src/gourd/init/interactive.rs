@@ -10,6 +10,7 @@ use gourd_lib::config::SlurmConfig;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::file_system::FileOperations;
+use inquire::error::InquireResult;
 use inquire::validator::ValueRequiredValidator;
 use inquire::InquireError;
 use log::debug;
@@ -21,33 +22,22 @@ pub fn init_interactive(
     script_mode: bool,
     fs: &impl FileOperations,
 ) -> Result<()> {
-    /// This macro will inquire the user about something.
-    macro_rules! ask {{$default: expr, $inq: expr} => {
-      if script_mode {
-          Ok($default)
-      } else {
-          match $inq  {
-          Ok(answer) => Ok(answer),
-          Err(e) => match e {
-                InquireError::OperationCanceled => {
-                    bailc!(
-                        "The operation was canceled using the ESC key.", ;
-                        "",;
-                        "",
-                    )
+    /// This will inquire the user about something.
+    fn ask<T>(default: T, inq: InquireResult<T>, script_mode: bool) -> Result<T> {
+        if script_mode {
+            Ok(default)
+        } else {
+            match inq {
+                Ok(answer) => Ok(answer),
+                Err(InquireError::OperationCanceled) => bailc!(
+                    "The operation was canceled using the ESC key.", ; "",; "",),
+                Err(InquireError::OperationInterrupted) => {
+                    bailc!("The operation was interrupted using Ctrl+C.", ; "",; "",)
                 }
-                InquireError::OperationInterrupted => {
-                    bailc!(
-                        "The operation was interrupted using Ctrl+C.", ;
-                        "",;
-                        "",
-                    )
-                }
-                _ => Err(e)
+                other => other.with_context(ctx!("Could not print a prompt", ; "", )),
             }
-          }
-      }
-    };}
+        }
+    }
 
     if !script_mode {
         info!("");
@@ -73,11 +63,12 @@ pub fn init_interactive(
         input_schema: None,
     };
 
-    let slurm = ask!(
+    let slurm = ask(
         true,
         inquire::Confirm::new("Include options for Slurm?")
             .with_help_message("These will allow the experiment to run on a cluster computer.")
-            .prompt()
+            .prompt(),
+        script_mode,
     )?;
 
     if slurm {
@@ -94,57 +85,63 @@ pub fn init_interactive(
             additional_args: None,
         };
 
-        slurm_config.experiment_name = ask!(
+        slurm_config.experiment_name = ask(
             "my-experiment".to_string(),
             inquire::Text::new("Slurm experiment name: ")
                 .with_validator(ValueRequiredValidator::default())
                 .with_help_message("This will be used to name jobs submitted to Slurm.")
-                .prompt()
+                .prompt(),
+            script_mode,
         )?;
 
-        slurm_config.array_count_limit = ask!(
+        slurm_config.array_count_limit = ask(
             10,
             inquire::CustomType::new("Slurm array count limit: ")
                 .with_formatter(&|num: usize| format!("{}", num))
                 .with_default(10)
                 .with_help_message("The number of job arrays that can be scheduled at once.")
-                .prompt()
+                .prompt(),
+            script_mode,
         )?;
 
-        slurm_config.array_size_limit = ask!(
+        slurm_config.array_size_limit = ask(
             1000,
             inquire::CustomType::new("Slurm array size limit: ")
                 .with_formatter(&|num: usize| format!("{}", num))
                 .with_default(10)
                 .with_help_message("The number of runs that can be scheduled in one job array.")
-                .prompt()
+                .prompt(),
+            script_mode,
         )?;
 
-        let enter_slurm_data_now = ask!(
+        let enter_slurm_data_now = ask(
             false,
             inquire::Confirm::new("Enter Slurm credentials now?")
                 .with_help_message(
-                    "Choosing 'no' will leave the 'account' and 'partition' blank for now."
+                    "Choosing 'no' will leave the 'account' and 'partition' blank for now.",
                 )
-                .prompt()
+                .prompt(),
+            script_mode,
         )?;
 
         if enter_slurm_data_now {
-            slurm_config.account = ask!(
+            slurm_config.account = ask(
                 "".to_string(),
                 inquire::Text::new("Slurm account to use: ")
                     .with_validator(ValueRequiredValidator::default())
                     .with_help_message(
-                        "This should be provided by the administrator of your supercomputer."
+                        "This should be provided by the administrator of your supercomputer.",
                     )
-                    .prompt()
+                    .prompt(),
+                script_mode,
             )?;
 
-            slurm_config.partition = ask!(
+            slurm_config.partition = ask(
                 "".to_string(),
                 inquire::Text::new("Slurm partition to use: ")
                     .with_help_message("Most supercomputers use this to choose types of nodes.")
-                    .prompt()
+                    .prompt(),
+                script_mode,
             )?;
         }
 

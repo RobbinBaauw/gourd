@@ -61,7 +61,7 @@ pub trait FileOperations {
     fn canonicalize(&self, path: &Path) -> Result<PathBuf>;
 
     /// Create a new template repository.
-    fn init_template_repository(&self, path: &Path) -> Result<()>;
+    fn init_git_repository(&self, path: &Path) -> Result<()>;
 }
 
 impl FileOperations for FileSystemInteractor {
@@ -209,14 +209,13 @@ impl FileOperations for FileSystemInteractor {
         ))
     }
 
-    fn init_template_repository(&self, path: &Path) -> Result<()> {
+    fn init_git_repository(&self, path: &Path) -> Result<()> {
         if self.dry_run {
             info!("Would have initialized a git repo (dry)");
             return Ok(());
         }
 
-        Repository::init(path).with_context(ctx!("Error initialising a Git repository.", ;
-                                "You can use '--no-git' to skip this.", ))?;
+        Repository::init(path)?;
         info!("Successfully created a Git repository");
         Ok(())
     }

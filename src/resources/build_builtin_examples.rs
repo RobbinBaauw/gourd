@@ -1,3 +1,9 @@
+use std::ops::Deref;
+
+use clap::builder::PossibleValuesParser;
+use clap::builder::Str;
+use clap::builder::ValueParser;
+use clap::ValueHint;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use tar::Archive;
@@ -5,11 +11,18 @@ use tar::Builder;
 
 const GOURD_INIT_EXAMPLE_FOLDERS: &str = "src/resources/gourd_init_examples";
 
-fn build_builtin_examples(out_folder: &Path) -> Result<()> {
+/// Creates tarballs for examples that should be included in the `gourd`
+/// runtime.
+///
+/// Also returns the updated CLI command while including completions of the
+/// example.
+fn build_builtin_examples(out_folder: &Path, completions_command: Command) -> Result<Command> {
     let _ = fs::create_dir(out_folder);
 
-    // println!("cargo::rerun-if-changed={}", GOURD_INIT_EXAMPLE_FOLDERS);
-    // println!("cargo::rerun-if-changed=src/resources/build_builtin_examples.rs");
+    println!("cargo::rerun-if-changed={}", GOURD_INIT_EXAMPLE_FOLDERS);
+    println!("cargo::rerun-if-changed=src/resources/build_builtin_examples.rs");
+
+    let mut possible_ids: Vec<Str> = vec![];
 
     for e in PathBuf::from(GOURD_INIT_EXAMPLE_FOLDERS)
         .read_dir()
@@ -24,19 +37,53 @@ fn build_builtin_examples(out_folder: &Path) -> Result<()> {
             println!("Generating example tarball for {:?}", path);
 
             let mut tar_path = PathBuf::from(out_folder);
+            let file_name = path
+                .file_name()
+                .context("Could not get the directory name")?;
 
-            tar_path.push(
-                path.file_name()
-                    .context("Could not get the directory name")?,
-            );
+            tar_path.push(file_name);
             tar_path.set_extension("tar.gz");
 
+            let id_str = Str::from(
+                &file_name
+                    .to_str()
+                    .context("Invalid characters in example subfolder name")?
+                    .to_owned()
+                    .replace(" ", "-")
+                    .replace("_", "-"),
+            );
+
+            if (id_str.contains(".")) {
+                println!(
+                    "cargo:warning=The '.' character is invalid for a folder name \
+                in \"resources/gourd_init_examples\": {}.",
+                    id_str
+                );
+                continue;
+            }
+
+            if possible_ids.contains(&id_str) {
+                println!(
+                    "cargo:warning=There are two subfolders matching the \"{}\" example ID.",
+                    &id_str
+                );
+                continue;
+            }
+
             println!("The output file is {:?}", &tar_path);
-            generate_example_tarball(path, &tar_path)?;
+            generate_example_tarball(&path, &tar_path)?;
+
+            possible_ids.push(id_str);
         }
     }
 
-    Ok(())
+    Ok(
+        completions_command.mut_subcommand("init", |init_subcommand| {
+            init_subcommand.mut_arg("example", |example_arg| {
+                example_arg.value_parser(ValueParser::from(possible_ids))
+            })
+        }),
+    )
 }
 
 /// Creates a `gourd init` example at the specified path.
@@ -46,10 +93,7 @@ fn build_builtin_examples(out_folder: &Path) -> Result<()> {
 /// It compresses the folder contents into a `.tar.gz` archive (excluding the
 /// folder itself), while also compiling `.rs` filesinto platform-native
 /// binaries. The archive will be created at the provided 'tarball' path.
-fn generate_example_tarball(
-    subfolder_path: PathBuf,
-    tarball_output_path: &Path,
-) -> Result<()> {
+fn generate_example_tarball(subfolder_path: &Path, tarball_output_path: &Path) -> Result<()> {
     if !subfolder_path.is_dir() {
         bail!(
             "The subfolder path {:?} is not a directory.",
@@ -74,7 +118,7 @@ fn generate_example_tarball(
     let mut tar = tar::Builder::new(gz);
 
     println!("Writing the folder contents to {:?}", tarball_output_path);
-    append_files_to_tarball(&mut tar, PathBuf::from("."), &subfolder_path)?;
+    append_files_to_tarball(&mut tar, PathBuf::from("."), subfolder_path)?;
 
     println!("Finalizing the archive.");
     tar.finish();

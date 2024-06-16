@@ -61,7 +61,7 @@ impl FileOperations for EmptyFilesystem {
         bail!("File not found")
     }
 
-    fn init_template_repository(&self, _: &Path) -> Result<()> {
+    fn init_git_repository(&self, _: &Path) -> Result<()> {
         bail!("File not found")
     }
 }

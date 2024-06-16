@@ -15,7 +15,7 @@ use clap::Subcommand;
 pub struct Cli {
     /// The main command issued.
     #[command(subcommand)]
-    pub command: Command,
+    pub command: GourdCommand,
 
     /// Disable interactive mode, for use in scripts.
     #[arg(short, long, global = true)]
@@ -123,20 +123,27 @@ pub struct CancelStruct {
 #[derive(Args, Debug, Clone)]
 pub struct InitStruct {
     /// The directory in which to initialise a new experimental setup.
-    #[arg(value_name = "directory")]
+    #[arg()]
     pub directory: PathBuf,
 
     /// The name of an example experiment in gourd-tutorial(7).
     #[arg(short, long)]
     pub example: Option<String>,
 
-    /// Do not give interactive prompts, create a default setup.
+    /// List the available example options.
     #[arg(short, long)]
-    pub quick: bool,
+    pub list_examples: bool,
 
-    /// Do not initialize a git repository.
-    #[arg(short = 'g', long = "no-git")]
-    pub no_git: bool,
+    /// Initialise a git repository for the setup.
+    #[arg(
+    long,
+    action = ArgAction::Set,
+    default_value_t = true,             // No flag evaluates to true
+    default_missing_value = "true",     // "--git" evaluates to true
+    num_args = 0..=1,                   // "--git=true" evaluates to true
+    require_equals = false,             // "--git=false" evaluates to false
+    )]
+    pub git: bool,
 }
 
 /// Arguments supplied with the `analyse` command.
@@ -145,7 +152,7 @@ pub struct AnalyseStruct {}
 
 /// Enum for root-level `gourd` commands.
 #[derive(Subcommand, Debug)]
-pub enum Command {
+pub enum GourdCommand {
     /// Create an experiment from configuration and run it.
     #[command()]
     Run(RunStruct),
