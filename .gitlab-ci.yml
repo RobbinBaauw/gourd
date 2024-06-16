@@ -31,7 +31,7 @@ check:
   <<: *rust_container_stable
   stage: build
   script:
-    - cargo check --release --no-default-features --features fetching
+    - cargo check --release
 
 build:
   <<: *rust_container_stable

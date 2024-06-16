@@ -10,7 +10,7 @@ use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use gourd_lib::bailc;
-use gourd_lib::constants::CMD_HELP_STYLE;
+use gourd_lib::constants::CMD_STYLE;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::file_system::FileOperations;
@@ -91,8 +91,8 @@ pub fn init_experiment_setup(
         info!("");
         info!("The experimental setup is ready in {:?}!", directory);
         info!("To create an experiment, use these commands:");
-        info!(" >  {CMD_HELP_STYLE}cd {:?}{CMD_HELP_STYLE:#}", directory);
-        info!(" >  {CMD_HELP_STYLE}gourd run{CMD_HELP_STYLE:#}");
+        info!(" >  {CMD_STYLE}cd {:?}{CMD_STYLE:#}", directory);
+        info!(" >  {CMD_STYLE}gourd run{CMD_STYLE:#}");
     }
 
     Ok(())
@@ -160,7 +160,7 @@ fn init_from_example(
                 "Invalid example name.", ;
                 "An example called \"{}\" does not exist.", id ;
                 "Try a valid example, such as \"{}\". \
-                Use {CMD_HELP_STYLE}gourd init --list-examples{CMD_HELP_STYLE:#} for all options.",
+                Use {CMD_STYLE}gourd init --list-examples{CMD_STYLE:#} for all options.",
                 get_examples().iter().next().unwrap().0,
             ),
             Some(example) => {

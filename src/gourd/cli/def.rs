@@ -124,7 +124,7 @@ pub struct CancelStruct {
 pub struct InitStruct {
     /// The directory in which to initialise a new experimental setup.
     #[arg()]
-    pub directory: PathBuf,
+    pub directory: Option<PathBuf>,
 
     /// The name of an example experiment in gourd-tutorial(7).
     #[arg(short, long)]

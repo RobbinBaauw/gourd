@@ -12,7 +12,7 @@ use colog::default_builder;
 use colog::formatter;
 use gourd_lib::bailc;
 use gourd_lib::config::Config;
-use gourd_lib::constants::CMD_HELP_STYLE;
+use gourd_lib::constants::CMD_STYLE;
 use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
 use gourd_lib::constants::TERTIARY_STYLE;
@@ -217,14 +217,22 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             if init_struct.list_examples {
                 list_init_examples()?;
             } else {
-                init_experiment_setup(
-                    &init_struct.directory,
-                    init_struct.git,
-                    cmd.script,
-                    cmd.dry,
-                    &init_struct.example,
-                    &file_system,
-                )?;
+                match &init_struct.directory {
+                    None => bailc!("No directory specified", ;
+                      "", ;
+                          "You need to specify a directory for init\
+                        , for example: {CMD_STYLE}gourd init test{CMD_STYLE:#}",
+                    ),
+
+                    Some(directory) => init_experiment_setup(
+                        directory,
+                        init_struct.git,
+                        cmd.script,
+                        cmd.dry,
+                        &init_struct.example,
+                        &file_system,
+                    )?,
+                }
             }
         }
 
@@ -262,7 +270,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                                     .ok_or(anyhow!("Could not find run {} on Slurm", id))
                                     .with_context(ctx!(
                                         "You can only cancel runs that have been scheduled on Slurm.", ;
-                                        "Run {CMD_HELP_STYLE}gourd status {}{CMD_HELP_STYLE:#} \
+                                        "Run {CMD_STYLE}gourd status {}{CMD_STYLE:#} \
                                         to check which runs have been scheduled.", experiment.seq
                                     ))
                             })
@@ -280,9 +288,10 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             if id_list.is_empty() {
                 bailc!(
                     "No runs to cancel", ;
-                    "You can only cancel runs that have been scheduled on Slurm.", ;
-                    "Run {CMD_HELP_STYLE}gourd status {}{CMD_HELP_STYLE:#} to check \
-                     which runs have been scheduled.", experiment.seq
+                    "You can only cancel runs that have been scheduled on Slurm.\
+                     Run {CMD_STYLE}gourd status {}{CMD_STYLE:#} to check \
+                     which runs have been scheduled.", experiment.seq;
+                    "",
                 );
             }
 

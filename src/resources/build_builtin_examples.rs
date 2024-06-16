@@ -52,6 +52,7 @@ fn build_builtin_examples(out_folder: &Path, completions_command: Command) -> Re
                     .replace([' ', '_'], "-"),
             );
 
+
             if (id_str.contains('.')) {
                 println!(
                     "cargo:warning=The '.' character is invalid for a folder name \

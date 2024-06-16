@@ -45,7 +45,7 @@ impl InitExample<'_> {
         config_path.push("gourd.toml");
 
         debug!("Checking for a \"gourd.toml\" at {:?}.", config_path);
-        match Config::from_file(&config_path, file_system) {
+        match Config::from_file(&config_path, false, file_system) {
             Err(e) => {
                 debug!("Configuration check failed: {}", e.root_cause());
                 warn!("The \"gourd.toml\" configuration in this example is missing or invalid.");
