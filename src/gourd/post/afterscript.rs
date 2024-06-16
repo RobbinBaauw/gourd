@@ -1,5 +1,5 @@
-use std::collections::BTreeMap;
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process::ExitStatus;
 
@@ -10,54 +10,49 @@ use gourd_lib::bailc;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
-use gourd_lib::file_system::FileOperations;
+use log::debug;
+use log::trace;
 
 use crate::resources::run_script;
-use crate::status::ExperimentStatus;
-use crate::status::PostprocessCompletion;
-use crate::status::SlurmState;
 
 /// Runs the afterscript on jobs that are completed and do not yet have an
 /// afterscript output.
-pub fn run_afterscript(
-    statuses: &ExperimentStatus,
-    experiment: &Experiment,
-    file_system: &impl FileOperations,
-) -> Result<BTreeMap<usize, String>> {
-    let runs = filter_runs_for_afterscript(statuses);
+pub fn run_afterscript(run_id: usize, experiment: &Experiment) -> Result<()> {
+    let run = &experiment.runs[run_id];
+    let after_out_path = &run.afterscript_output_path;
+    let res_path = run.output_path.clone();
 
-    let mut labels = BTreeMap::new();
-    for run_id in runs {
-        let run = &experiment.runs[*run_id];
-        let after_out_path = &run.afterscript_output_path;
-        let res_path = run.output_path.clone();
+    if after_out_path.is_none() {
+        return Ok(());
+    }
 
-        if after_out_path.is_none() {
-            continue;
-        }
+    trace!("Checking afterscript for {run_id}");
 
-        let after_output = after_out_path
-            .clone()
-            .ok_or(anyhow!("Could not get the afterscript information"))
-            .with_context(ctx!(
-                "Could not get the afterscript information", ;
-                "",
-            ))?;
+    let after_output = after_out_path
+        .clone()
+        .ok_or(anyhow!("Could not get the afterscript information"))
+        .with_context(ctx!(
+            "Could not get the afterscript information", ;
+            "",
+        ))?;
 
-        let program = &experiment.get_program(run)?;
+    let program = &experiment.get_program(run)?;
 
-        let afterscript = program
-            .afterscript
-            .clone()
-            .ok_or(anyhow!("Could not get the afterscript information"))
-            .with_context(ctx!(
-                "Could not get the afterscript information", ;
-                "",
-            ))?;
-        let exit_status = run_afterscript_for_run(&afterscript, &res_path, &after_output)?;
+    let afterscript = program
+        .afterscript
+        .clone()
+        .ok_or(anyhow!("Could not get the afterscript information"))
+        .with_context(ctx!(
+            "Could not get the afterscript information", ;
+            "",
+        ))?;
 
-        if !exit_status.success() {
-            bailc!("Afterscript failed with exit code {}",
+    debug!("Running afterscript for {run_id}");
+    let exit_status =
+        run_afterscript_for_run(&afterscript, &res_path, &after_output, &run.work_dir)?;
+
+    if !exit_status.success() {
+        bailc!("Afterscript failed with exit code {}",
                 exit_status
                     .code()
                     .ok_or(anyhow!("Status does not exist"))
@@ -65,29 +60,9 @@ pub fn run_afterscript(
                         "Could not get the exit code of the execution", ;
                         "",
                     ))? ; "", ; "", );
-        }
-
-        add_label_to_run(*run_id, &mut labels, experiment, after_output, file_system)?;
-    }
-    Ok(labels)
-}
-
-/// Find the completed jobs where afterscript did not run yet.
-pub fn filter_runs_for_afterscript(runs: &ExperimentStatus) -> Vec<&usize> {
-    let mut filtered = vec![];
-
-    for (run_id, status) in runs {
-        if status.slurm_status.is_some() {
-            if let (&SlurmState::Success, &Some(PostprocessCompletion::Dormant)) = (
-                &status.slurm_status.unwrap().completion,
-                &status.fs_status.afterscript_completion,
-            ) {
-                filtered.push(run_id);
-            }
-        }
     }
 
-    filtered
+    Ok(())
 }
 
 /// Runs the afterscript on given jobs.
@@ -95,6 +70,7 @@ pub fn run_afterscript_for_run(
     after_path: &PathBuf,
     res_path: &PathBuf,
     out_path: &PathBuf,
+    work_dir: &Path,
 ) -> Result<ExitStatus> {
     fs::metadata(after_path).with_context(ctx!(
         "Could not find the afterscript at {:?}", &after_path;
@@ -109,50 +85,24 @@ pub fn run_afterscript_for_run(
     let args = vec![
         after_path.as_os_str().to_str().with_context(ctx!(
             "Could not turn {after_path:?} into a string", ;
-            "Check that the afterscript path is valid",
+            "",
         ))?,
         res_path.as_os_str().to_str().with_context(ctx!(
             "Could not turn {res_path:?} into a string", ;
-            "Check that the job result path is valid",
+            "",
         ))?,
         out_path.as_os_str().to_str().with_context(ctx!(
             "Could not turn {out_path:?} into a string", ;
-            "Check that the output path is valid",
+            "",
         ))?,
     ];
 
-    let exit_status = run_script(args).with_context(ctx!(
+    let exit_status = run_script(args, work_dir).with_context(ctx!(
         "Could not run the afterscript at {after_path:?} with job results at {res_path:?}", ;
         "Check that the afterscript is correct and job results exist at {:?}", res_path,
     ))?;
 
     Ok(exit_status)
-}
-
-/// Assigns a label to a run.
-fn add_label_to_run(
-    run_id: usize,
-    labels: &mut BTreeMap<usize, String>,
-    experiment: &Experiment,
-    after_output: PathBuf,
-    file_system: &impl FileOperations,
-) -> Result<()> {
-    if let Some(label_map) = &experiment.config.labels {
-        let text = file_system.read_utf8(&after_output)?;
-
-        let mut keys = label_map.keys().collect::<Vec<&String>>();
-        keys.sort_by(|a, b| label_map[*b].priority.cmp(&label_map[*a].priority));
-
-        for l in keys {
-            let label = &label_map[l];
-            if label.regex.is_match(&text) {
-                labels.insert(run_id, l.clone());
-                break;
-            }
-        }
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]

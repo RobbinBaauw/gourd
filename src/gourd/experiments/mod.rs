@@ -71,22 +71,27 @@ impl ExperimentExt for Experiment {
                     err_path: fs.truncate_and_canonicalize(
                         &conf
                             .output_path
-                            .join(format!("{}/{}/error_{}", seq, prog_name, input_name)),
+                            .join(format!("{}/{}/{}/stderr", seq, prog_name, input_name)),
                     )?,
                     metrics_path: fs.truncate_and_canonicalize(
                         &conf
                             .metrics_path
-                            .join(format!("{}/{}/metrics_{}", seq, prog_name, input_name)),
+                            .join(format!("{}/{}/{}/metrics", seq, prog_name, input_name)),
                     )?,
                     output_path: fs.truncate_and_canonicalize(
                         &conf
                             .output_path
-                            .join(format!("{}/{}/output_{}", seq, prog_name, input_name)),
+                            .join(format!("{}/{}/{}/stdout", seq, prog_name, input_name)),
                     )?,
-                    afterscript_output_path: get_afterscript_info(
+                    work_dir: fs.truncate_and_canonicalize_folder(
+                        &conf
+                            .output_path
+                            .join(format!("{}/{}/{}/", seq, prog_name, input_name)),
+                    )?,
+                    afterscript_output_path: get_afterscript_file(
                         conf, &seq, prog_name, input_name, fs,
                     )?,
-                    post_job_output_path: get_postprocess_job_info(
+                    post_job_output_path: get_postprocess_folder(
                         conf, &seq, prog_name, input_name, fs,
                     )?,
                     slurm_id: None,
@@ -166,7 +171,7 @@ impl ExperimentExt for Experiment {
 }
 
 /// Constructs an afterscript path based on values in the config.
-pub fn get_afterscript_info(
+pub fn get_afterscript_file(
     config: &Config,
     seq: &usize,
     prog_name: &String,
@@ -176,25 +181,20 @@ pub fn get_afterscript_info(
     let postprocessing = &config.programs[prog_name].afterscript;
 
     if postprocessing.is_some() {
-        let after_folder = match config.afterscript_output_folder.clone() {
-            Some(after_path) => Ok(after_path),
-            None => Err(anyhow!(
-                "No afterscript output folder specified, but afterscript exists"
-            )),
-        }?;
-
-        let path = &after_folder.join(format!("{}/{}/afterscript_{}", seq, prog_name, input_name));
+        let path = &config
+            .output_path
+            .join(format!("{}/{}/{}/", seq, prog_name, input_name));
 
         let afterscript_output_path = fs.truncate_and_canonicalize_folder(path)?;
 
-        Ok(Some(afterscript_output_path))
+        Ok(Some(afterscript_output_path.join("afterscript")))
     } else {
         Ok(None)
     }
 }
 
 /// Constructs a postprocess job output path based on values in the config.
-pub fn get_postprocess_job_info(
+pub fn get_postprocess_folder(
     config: &Config,
     seq: &usize,
     prog_name: &String,
@@ -204,7 +204,7 @@ pub fn get_postprocess_job_info(
     let postprocessing = &config.programs[prog_name].postprocess_job;
 
     if postprocessing.is_some() {
-        let postprocess_folder = match config.postprocess_job_output_folder.clone() {
+        let postprocess_folder = match config.postprocess_output_folder.clone() {
             Some(postpr_path) => Ok(postpr_path),
             None => Err(anyhow!(
                 "No postprocess job output folder specified, but postprocess job exists"
@@ -212,14 +212,11 @@ pub fn get_postprocess_job_info(
             .with_context(ctx!("", ; "", )),
         }?;
 
-        let path = postprocess_folder.join(format!(
-            "{}/{}/postprocess_job_{}",
-            seq, prog_name, input_name
-        ));
+        let path = postprocess_folder.join(format!("{}/{}/{}/", seq, prog_name, input_name));
 
-        let postprocess_job_output_path = fs.truncate_and_canonicalize_folder(&path)?;
+        let postprocess_output_path = fs.truncate_and_canonicalize_folder(&path)?;
 
-        Ok(Some(postprocess_job_output_path))
+        Ok(Some(postprocess_output_path))
     } else {
         Ok(None)
     }

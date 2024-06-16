@@ -4,16 +4,16 @@ experiments_folder = "target/tests/local"
 
 [program.b]
 arguments = []
-binary = "test binary"
+binary = "./test binary"
 
 [program.c]
 arguments = []
-binary = "test binary 2"
+binary = "./test binary 2"
 
 [input.d]
-input = "test input"
+input = "./test input"
 arguments = []
 
 [input.e]
-input = "test input 2"
+input = "./test input 2"
 arguments = []

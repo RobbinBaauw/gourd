@@ -49,6 +49,7 @@ fn get_unscheduled_runs_test() {
         runs: vec![0, 1],
         resource_limits: Some(resource_limits),
         slurm_id: None,
+        local_run: false,
     }];
 
     experiment.resource_limits = Some(resource_limits);
@@ -98,6 +99,7 @@ fn create_chunks_basic_test() {
         runs: vec![0, 1],
         resource_limits: Some(resource_limits),
         slurm_id: None,
+        local_run: false,
     }];
     experiment.resource_limits = Some(resource_limits);
 
@@ -111,16 +113,19 @@ fn create_chunks_basic_test() {
             Chunk {
                 runs: vec![2, 3, 4],
                 resource_limits: Some(resource_limits),
-                slurm_id: None
+                slurm_id: None,
+                local_run: false,
             },
             Chunk {
                 runs: vec![5, 6, 7],
                 resource_limits: Some(resource_limits),
-                slurm_id: None
+                slurm_id: None,
+                local_run: false,
             },
             Chunk {
                 runs: vec![8],
                 resource_limits: Some(resource_limits),
+                local_run: false,
                 slurm_id: None
             }
         )
@@ -189,6 +194,7 @@ fn create_chunks_greedy_test() {
         runs: vec![],
         resource_limits: Some(resource_limits_b),
         slurm_id: None,
+        local_run: false,
     }];
     experiment.resource_limits = Some(resource_limits_b);
 
@@ -221,6 +227,7 @@ fn create_chunks_greedy_test() {
                 // Run 10: prog_B, input_A (same limits)
                 runs: vec![5, 6, 7, 8, 9, 10],
                 resource_limits: Some(resource_limits_b),
+                local_run: false,
                 slurm_id: None
             },
             Chunk {
@@ -228,6 +235,7 @@ fn create_chunks_greedy_test() {
                 // Run 15: prog_B, input_B (same limits)
                 runs: vec![11, 12, 13, 14, 15, 16],
                 resource_limits: Some(resource_limits_b),
+                local_run: false,
                 slurm_id: None
             }
         ),
@@ -242,16 +250,19 @@ fn create_chunks_greedy_test() {
             Chunk {
                 runs: vec![0, 1, 2, 3, 4, 5],
                 resource_limits: Some(resource_limits_b),
+                local_run: false,
                 slurm_id: None
             },
             Chunk {
                 runs: vec![6, 7, 8, 9, 10, 11],
                 resource_limits: Some(resource_limits_b),
+                local_run: false,
                 slurm_id: None
             },
             Chunk {
                 runs: vec![12, 13, 14, 15, 16, 17],
                 resource_limits: Some(resource_limits_b),
+                local_run: false,
                 slurm_id: None
             }
         ),
@@ -278,6 +289,7 @@ fn create_chunks_greedy_test() {
                 // The chunk has 5/6 runs (not full)
                 runs: vec![0, 1, 2, 3, 4],
                 resource_limits: Some(resource_limits_a),
+                local_run: false,
                 slurm_id: None
             },
             Chunk {
@@ -285,6 +297,7 @@ fn create_chunks_greedy_test() {
                 // Run 15: prog_B, input_B (same limits)
                 runs: vec![17, 18, 19],
                 resource_limits: Some(resource_limits_b),
+                local_run: false,
                 slurm_id: None
             },
         ),

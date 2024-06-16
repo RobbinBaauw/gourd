@@ -5,13 +5,12 @@ use std::time::Duration;
 
 use anyhow::Context;
 use anyhow::Result;
+use maps::IS_USER_FACING;
 use serde::Deserialize;
 use serde::Serialize;
 
 use crate::constants::AFTERSCRIPT_DEFAULT;
-use crate::constants::AFTERSCRIPT_OUTPUT_DEFAULT;
 use crate::constants::EMPTY_ARGS;
-use crate::constants::INPUTS_DEFAULT;
 use crate::constants::INTERNAL_PREFIX;
 use crate::constants::INTERNAL_SCHEMA_INPUTS;
 use crate::constants::POSTPROCESS_JOBS_DEFAULT;
@@ -38,10 +37,9 @@ pub use maps::InputMap;
 pub use maps::ProgramMap;
 pub use regex::Regex;
 
-use self::maps::UserDeserializer;
-
 /// A pair of a path to a binary and cli arguments.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Hash, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct Program {
     /// The path to the executable.
     pub binary: PathBuf,
@@ -78,6 +76,7 @@ pub struct Program {
 ///
 /// Will run `test a b c`
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Hash, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct Input {
     /// The path to the input.
     ///
@@ -95,22 +94,25 @@ pub struct Input {
 /// ### TOML struct that can be used to provide inputs.
 /// structure is:
 /// ```toml
-/// [[inputs]]
+/// [[input]]
 /// input = "/path/to/input"
 /// arguments = [ "arg1", "arg2" ]
 ///
-/// [[inputs]]
+/// [[input]]
 /// input = "/path/to/input2"
 /// arguments = [ "arg1", "arg2" ]
 /// ```
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Hash, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct InputSchema {
     /// 0 or more `[[input]]` instances
+    #[serde(rename = "input")]
     pub inputs: Vec<Input>,
 }
 
 /// A label that can be assigned to a job based on the afterscript output.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct Label {
     /// The regex to run over the afterscript output. If there's a match, this
     /// label is assigned.
@@ -154,8 +156,8 @@ pub struct Config {
 
     /// The list of inputs for each of them.
     ///
-    /// The name of an input cannot contain `glob|`.
-    #[serde(rename = "input", default = "INPUTS_DEFAULT")]
+    /// The name of an input cannot contain '_i_'.
+    #[serde(rename = "input")]
     pub inputs: InputMap,
 
     /// A path to a TOML file that contains input combinations.
@@ -178,15 +180,11 @@ pub struct Config {
     pub wrapper: String,
 
     /// The path to a folder where the afterscript outputs will be stored.
-    #[serde(default = "AFTERSCRIPT_OUTPUT_DEFAULT")]
-    pub afterscript_output_folder: Option<PathBuf>,
-
-    /// The path to a folder where the afterscript outputs will be stored.
     #[serde(default = "POSTPROCESS_JOB_OUTPUT_DEFAULT")]
-    pub postprocess_job_output_folder: Option<PathBuf>,
+    pub postprocess_output_folder: Option<PathBuf>,
 
     /// The list of postprocessing programs.
-    #[serde(default = "POSTPROCESS_JOBS_DEFAULT")]
+    #[serde(rename = "postprocess_program", default = "POSTPROCESS_JOBS_DEFAULT")]
     pub postprocess_programs: Option<ProgramMap>,
 
     /// Allow custom labels to be assigned based on the afterscript output.
@@ -263,10 +261,7 @@ pub struct SBatchArg {
 #[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, Serialize, Deserialize)]
 pub struct ResourceLimits {
     /// Maximum time allowed _for each_ job.
-    #[serde(
-        serialize_with = "duration::serialize_human_time_duration",
-        deserialize_with = "duration::deserialize_human_time_duration"
-    )]
+    #[serde(deserialize_with = "duration::deserialize_human_time_duration")]
     pub time_limit: Duration,
 
     /// CPUs to use per job
@@ -291,8 +286,7 @@ impl Default for Config {
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
-            afterscript_output_folder: AFTERSCRIPT_OUTPUT_DEFAULT(),
-            postprocess_job_output_folder: POSTPROCESS_JOB_OUTPUT_DEFAULT(),
+            postprocess_output_folder: POSTPROCESS_JOB_OUTPUT_DEFAULT(),
             postprocess_programs: None,
             labels: Some(BTreeMap::new()),
         }
@@ -303,13 +297,19 @@ impl Config {
     /// Load a `Config` struct instance from a TOML file at the provided path.
     /// Returns a valid `Config` or an explanatory
     /// `GourdError::ConfigLoadError`.
-    pub fn from_file<F: FileOperations>(path: &Path, fs: &F) -> Result<Config> {
-        let mut initial: Config = Config::deserialize(UserDeserializer::new(&fs.read_utf8(path)?))
-            .with_context(ctx!(
-              "Could not parse {path:?}", ;
-              "More help and examples can be found with \
-              {PRIMARY_STYLE}man gourd.toml{PRIMARY_STYLE:#}",
-            ))?;
+    pub fn from_file<F: FileOperations>(path: &Path, skip_checks: bool, fs: &F) -> Result<Config> {
+        // Why? see the comment on the variable.
+        if !skip_checks {
+            IS_USER_FACING.with_borrow_mut(|x| *x = true);
+        }
+
+        let mut initial: Config = fs.try_read_toml(path).with_context(ctx!(
+          "Could not parse {path:?}", ;
+          "More help and examples can be found with \
+          {PRIMARY_STYLE}man gourd.toml{PRIMARY_STYLE:#}",
+        ))?;
+
+        IS_USER_FACING.with_borrow_mut(|x| *x = false);
 
         if let Some(schema) = &initial.input_schema {
             initial.inputs = Self::parse_schema_inputs(schema.as_path(), initial.inputs, fs)?;
@@ -328,7 +328,7 @@ impl Config {
         let hi = fso.try_read_toml::<InputSchema>(path_buf)?;
         for (idx, input) in hi.inputs.iter().enumerate() {
             inputs.insert(
-                format!("{}{}{}", INTERNAL_PREFIX, INTERNAL_SCHEMA_INPUTS, idx),
+                format!("{}{}{}", idx, INTERNAL_PREFIX, INTERNAL_SCHEMA_INPUTS),
                 input.clone(),
             );
         }

@@ -1,28 +1,18 @@
-use std::collections::BTreeMap;
 use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
-use std::time::Duration;
 
 use gourd_lib::config::Config;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileSystemInteractor;
-use gourd_lib::measurement::Measurement;
 use tempdir::TempDir;
 
 use crate::experiments::ExperimentExt;
-use crate::post::afterscript::add_label_to_run;
-use crate::post::afterscript::filter_runs_for_afterscript;
 use crate::post::afterscript::run_afterscript_for_run;
-use crate::post::afterscript::PostprocessCompletion;
-use crate::status::FileSystemBasedStatus;
-use crate::status::FsState;
-use crate::status::SlurmBasedStatus;
-use crate::status::SlurmState;
-use crate::status::Status;
+use crate::post::labels::assign_label;
 
 const PREPROGRAMMED_SH_SCRIPT: &str = r#"
 #!/bin/sh
@@ -35,78 +25,6 @@ edition = "2021"
 
 [dependencies]
 "#;
-
-#[test]
-fn test_filter_runs_for_afterscript_good_weather() {
-    let mut runs: BTreeMap<usize, Status> = BTreeMap::new();
-    runs.insert(
-        0,
-        Status {
-            fs_status: FileSystemBasedStatus {
-                completion: crate::status::FsState::Pending,
-                afterscript_completion: Some(PostprocessCompletion::Dormant),
-                postprocess_job_completion: None,
-            },
-            slurm_status: None,
-        },
-    );
-    runs.insert(
-        1,
-        Status {
-            fs_status: FileSystemBasedStatus {
-                completion: FsState::Completed(Measurement {
-                    wall_micros: Duration::from_nanos(0),
-                    exit_code: 0,
-                    rusage: None,
-                }),
-                afterscript_completion: Some(PostprocessCompletion::Dormant),
-                postprocess_job_completion: None,
-            },
-            slurm_status: Some(SlurmBasedStatus {
-                completion: SlurmState::Success,
-                exit_code_program: 0,
-                exit_code_slurm: 0,
-            }),
-        },
-    );
-    runs.insert(
-        2,
-        Status {
-            fs_status: FileSystemBasedStatus {
-                completion: FsState::Completed(Measurement {
-                    wall_micros: Duration::from_nanos(0),
-                    exit_code: 1,
-                    rusage: None,
-                }),
-                afterscript_completion: Some(PostprocessCompletion::Dormant),
-                postprocess_job_completion: None,
-            },
-            slurm_status: None,
-        },
-    );
-    runs.insert(
-        3,
-        Status {
-            fs_status: FileSystemBasedStatus {
-                completion: FsState::Completed(Measurement {
-                    wall_micros: Duration::from_nanos(0),
-                    exit_code: 0,
-                    rusage: None,
-                }),
-                afterscript_completion: Some(PostprocessCompletion::Success),
-                postprocess_job_completion: None,
-            },
-            slurm_status: None,
-        },
-    );
-
-    let res = filter_runs_for_afterscript(&runs);
-
-    assert_eq!(res.len(), 1);
-
-    let paths = res[0];
-    assert_eq!(*paths, 1);
-}
 
 #[test]
 fn test_run_afterscript_for_run_good_weather() {
@@ -122,7 +40,13 @@ fn test_run_afterscript_for_run_good_weather() {
 
     let output_path = tmp_dir.path().join("afterscript_output.toml");
 
-    assert!(run_afterscript_for_run(&afterscript_path, &results_path, &output_path).is_ok());
+    assert!(run_afterscript_for_run(
+        &afterscript_path,
+        &results_path,
+        &output_path,
+        tmp_dir.path()
+    )
+    .is_ok());
 
     let mut contents = String::new();
     assert!(fs::File::open(output_path)
@@ -147,7 +71,13 @@ fn test_run_afterscript_for_run_bad_weather() {
 
     let output_path = tmp_dir.path().join("afterscript_output.toml");
 
-    assert!(run_afterscript_for_run(&PathBuf::from(""), &results_path, &output_path).is_err());
+    assert!(run_afterscript_for_run(
+        &PathBuf::from(""),
+        &results_path,
+        &output_path,
+        tmp_dir.path()
+    )
+    .is_err());
 
     drop(results_file);
 
@@ -163,7 +93,6 @@ fn test_add_label_to_run() {
              output_path = "./goose"
              metrics_path = "./🪿/"
              experiments_folder = "/tmp/gourd/experiments/"
-             afterscript_output_folder = "/tmp/gourd/after/"
              [program.a]
              binary = "/bin/sleep"
              arguments = []
@@ -188,18 +117,21 @@ fn test_add_label_to_run() {
         .write_all("hello".as_bytes())
         .expect("The test file could not be written.");
 
-    let conf = Config::from_file(file_pb.as_path(), &fs).unwrap();
+    let conf = Config::from_file(file_pb.as_path(), true, &fs).unwrap();
     let exp =
         Experiment::from_config(&conf, chrono::Local::now(), Environment::Local, &fs).unwrap();
-    let mut labels = BTreeMap::new();
     assert!(conf.labels.is_some());
-    add_label_to_run(0, &mut labels, &exp, dir.path().join("after.txt"), &fs)
-        .expect("tested fn failed");
-    assert_eq!(labels.get(&0).unwrap(), "found_hello");
+    assert_eq!(
+        assign_label(&exp, &dir.path().join("after.txt"), &fs).expect("tested fn failed"),
+        Some("found_hello".to_string())
+    );
+
     after_file
         .write_all("hello world".as_bytes())
         .expect("The test file could not be written.");
-    add_label_to_run(0, &mut labels, &exp, dir.path().join("after.txt"), &fs)
-        .expect("tested fn failed");
-    assert_eq!(labels.get(&0).unwrap(), "found_world");
+
+    assert_eq!(
+        assign_label(&exp, &dir.path().join("after.txt"), &fs).expect("tested fn failed"),
+        Some("found_world".to_string())
+    );
 }

@@ -3,7 +3,6 @@ use std::fs::remove_file;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-use std::path::PathBuf;
 
 use tempdir::TempDir;
 
@@ -26,10 +25,13 @@ fn test_sh_script() {
     let tmp_file = File::create(&file_path).unwrap();
     fs::write(&file_path, PREPROGRAMMED_SH_SCRIPT).unwrap();
 
-    let res = run_script(vec!["-C", &(file_path.into_os_string().to_str().unwrap())]);
+    let res = run_script(
+        vec!["-C", &(file_path.into_os_string().to_str().unwrap())],
+        tmp_dir.path(),
+    );
     assert!(res.is_ok());
 
-    let full_path = PathBuf::from("./filename");
+    let full_path = tmp_dir.path().join("./filename");
     assert!(Path::exists(&full_path));
 
     let mut file = File::open(&full_path).unwrap();

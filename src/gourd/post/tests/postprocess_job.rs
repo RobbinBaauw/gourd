@@ -69,7 +69,7 @@ fn test_filter_runs_for_afterscript_good_weather() {
                     rusage: None,
                 }),
                 afterscript_completion: None,
-                postprocess_job_completion: Some(PostprocessCompletion::Success),
+                postprocess_job_completion: Some(PostprocessCompletion::Success(None)),
             },
             slurm_status: None,
         },

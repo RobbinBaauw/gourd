@@ -10,12 +10,7 @@ use std::path::PathBuf;
 /// architecture.
 use std::process::Command;
 
-use anyhow::anyhow;
-use anyhow::Context;
 use anyhow::Result;
-use gourd_lib::bailc;
-use gourd_lib::ctx;
-use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
 
@@ -35,36 +30,39 @@ fn verify_arch(_: &PathBuf, _: &str, _: &impl FileOperations) -> Result<()> {
 ///
 /// The results and outputs will be located in `config.output_dir`.
 pub fn wrap(
-    experiment: &Experiment,
+    experiment: &mut Experiment,
     experiment_path: &Path,
     arch: &str,
     fs: &impl FileOperations,
 ) -> Result<Vec<Command>> {
     let mut result = Vec::new();
 
-    if experiment.chunks.len() != 1 {
-        bailc!(
-          "Wrapping locally requires exactly one chunk", ;
-          "",;
-          "You may be running too many programs on local",
-        );
+    let mut chunks_to_iterate = experiment.chunks.clone();
+
+    for (chunk_id, chunk) in chunks_to_iterate.iter_mut().enumerate() {
+        if chunk.local_run {
+            continue;
+        }
+
+        for (chunk_rel, run_id) in chunk.runs.iter().enumerate() {
+            let run = &experiment.runs[*run_id];
+            let program = &experiment.get_program(run)?;
+
+            verify_arch(&program.binary, arch, fs)?;
+
+            let mut cmd = Command::new(&experiment.config.wrapper);
+
+            cmd.arg(format!("{}", chunk_id))
+                .arg(experiment_path)
+                .arg(format!("{}", chunk_rel));
+
+            result.push(cmd);
+        }
+
+        chunk.local_run = true;
     }
 
-    for (chunk_rel, run_id) in experiment.chunks[0].runs.iter().enumerate() {
-        let run = &experiment.runs[*run_id];
-        let program = &experiment.get_program(run)?;
-
-        verify_arch(&program.binary, arch, fs)?;
-
-        let mut cmd = Command::new(&experiment.config.wrapper);
-
-        // The number of the first chunk is 0.
-        cmd.arg("0")
-            .arg(experiment_path)
-            .arg(format!("{}", chunk_rel));
-
-        result.push(cmd);
-    }
+    experiment.chunks = chunks_to_iterate;
 
     Ok(result)
 }

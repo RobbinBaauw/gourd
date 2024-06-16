@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::path::PathBuf;
 
 use anyhow::anyhow;
 use anyhow::Context;
@@ -10,10 +11,10 @@ use gourd_lib::experiment::Experiment;
 use gourd_lib::experiment::FieldRef;
 use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
+use log::debug;
 
 use crate::status::ExperimentStatus;
 use crate::status::PostprocessCompletion;
-use crate::status::SlurmState;
 
 /// Schedules the postprocessing job for jobs that are completed and do not yet
 /// have a postprocess job output.
@@ -23,7 +24,6 @@ pub fn schedule_post_jobs(
     fs: &impl FileOperations,
 ) -> Result<()> {
     let runs = filter_runs_for_post_job(statuses)?;
-    let _length = runs.len();
 
     for run_id in runs {
         let run = &experiment.runs[*run_id];
@@ -33,6 +33,8 @@ pub fn schedule_post_jobs(
         if post_out_path.is_none() {
             continue;
         }
+
+        debug!("Adding postprocessing run for job {run_id}");
 
         let post_output = post_out_path
             .clone()
@@ -63,6 +65,7 @@ pub fn schedule_post_jobs(
             postprocess,
             &res_path,
             &post_output,
+            run.work_dir.clone(),
             experiment,
             fs,
         )?
@@ -76,13 +79,14 @@ pub fn filter_runs_for_post_job(runs: &mut ExperimentStatus) -> Result<Vec<&usiz
     let mut filtered = vec![];
 
     for (run_id, status) in runs {
-        if status.slurm_status.is_some() {
-            if let (SlurmState::Success, Some(PostprocessCompletion::Dormant)) = (
-                &status.slurm_status.unwrap().completion,
-                &status.fs_status.postprocess_job_completion,
-            ) {
-                filtered.push(run_id);
-            }
+        if status.fs_status.completion.has_succeded()
+            && status.fs_status.completion.is_completed()
+            && !matches!(
+                status.fs_status.postprocess_job_completion,
+                Some(PostprocessCompletion::Success(_))
+            )
+        {
+            filtered.push(run_id);
         }
     }
 
@@ -95,6 +99,7 @@ pub fn post_job_for_run(
     postprocess_name: String,
     postprocess_input: &Path,
     postprocess_out: &Path,
+    work_dir: PathBuf,
     experiment: &mut Experiment,
     fs: &impl FileOperations,
 ) -> Result<()> {
@@ -111,15 +116,10 @@ pub fn post_job_for_run(
     experiment.runs.push(Run {
         program: FieldRef::Postprocess(postprocess_name.clone()),
         input: FieldRef::Postprocess(input_name),
-        err_path: fs.truncate_and_canonicalize(
-            &postprocess_out.join(format!("error_{}", postprocess_name)),
-        )?,
-        metrics_path: fs.truncate_and_canonicalize(
-            &postprocess_out.join(format!("metrics_{}", postprocess_name)),
-        )?,
-        output_path: fs.truncate_and_canonicalize(
-            &postprocess_out.join(format!("output_{}", postprocess_name)),
-        )?,
+        err_path: fs.truncate_and_canonicalize(&postprocess_out.join("stderr"))?,
+        metrics_path: fs.truncate_and_canonicalize(&postprocess_out.join("metrics"))?,
+        output_path: fs.truncate_and_canonicalize(&postprocess_out.join("stdout"))?,
+        work_dir: work_dir.to_path_buf(),
         afterscript_output_path: None,
         post_job_output_path: None, // these two can be updated to allow pipelining
         slurm_id: None,

@@ -69,7 +69,7 @@ fn non_matching_arch() {
         .create_chunks(usize::MAX, 1, 0..experiment.runs.len())
         .unwrap();
 
-    match wrap(&experiment, &PathBuf::from("/"), "x86_64", &REAL_FS) {
+    match wrap(&mut experiment, &PathBuf::from("/"), "x86_64", &REAL_FS) {
         Err(err) => {
             assert!(format!("{}", err.root_cause()).contains("not match the expected architecture"))
         }
@@ -123,7 +123,7 @@ fn matching_arch() {
         .unwrap();
 
     let cmds = wrap(
-        &experiment,
+        &mut experiment,
         &PathBuf::from("/"),
         env::consts::ARCH,
         &REAL_FS,
