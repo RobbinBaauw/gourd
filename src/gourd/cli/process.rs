@@ -293,10 +293,9 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             if id_list.is_empty() {
                 bailc!(
                     "No runs to cancel", ;
-                    "You can only cancel runs that have been scheduled on Slurm.\
-                     Run {CMD_STYLE}gourd status {}{CMD_STYLE:#} to check \
-                     which runs have been scheduled.", experiment.seq;
-                    "",
+                    "You can only cancel runs that have been scheduled on Slurm.", ;
+                     "Run {CMD_STYLE}gourd status {}{CMD_STYLE:#} to check \
+                     which runs have been scheduled.", experiment.seq
                 );
             }
 

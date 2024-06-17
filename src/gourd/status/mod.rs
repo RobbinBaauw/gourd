@@ -105,32 +105,15 @@ impl FsState {
     }
 }
 
-/// This possible outcomes of a postprocessing.
-#[derive(Debug, Clone, PartialEq)]
-pub enum PostprocessCompletion {
-    /// The postprocessing job has not yet started.
-    Dormant,
-
-    /// The postprocessing job is still running.
-    Pending,
-
-    /// The postprocessing job succeded.
-    ///
-    /// Stores the referece to the label assigned to it.
-    Success(Option<String>),
-
-    /// The postprocessing job failed with the following exit status.
-    Failed,
-}
-
 /// Structure of file based status
 #[derive(Debug, Clone, PartialEq)]
 pub struct FileSystemBasedStatus {
     /// State of completion of the run
     pub completion: FsState,
 
-    /// The completion of the afterscript, if there.
-    pub afterscript_completion: Option<PostprocessCompletion>,
+    /// If the afterscript completed successfully, this will contain the label,
+    /// if one was assigned.
+    pub afterscript_completion: Option<Option<String>>,
 }
 
 /// Structure of slurm based status
@@ -171,7 +154,7 @@ impl Status {
     }
 
     /// Check if we know this job to have failed.
-    pub fn has_failed(&self) -> bool {
+    pub fn has_failed(&self, experiment: &Experiment) -> bool {
         let a = match self.fs_status.completion {
             FsState::Completed(Measurement { exit_code, .. }) => exit_code != 0,
             _ => false,
@@ -212,7 +195,17 @@ impl Status {
             Some(_) => false,
             None => false,
         };
-        a || b
+        let c = match &self.fs_status.afterscript_completion {
+            Some(Some(label)) => {
+                if let Some(labels) = &experiment.config.labels {
+                    labels[label].rerun_by_default
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        };
+        a || b || c
     }
 
     /// Check if we know this job to be scheduled.

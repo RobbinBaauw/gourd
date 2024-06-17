@@ -68,7 +68,7 @@ pub(super) fn check_single_run_failed(
     specific_run: &usize,
     experiment: &Experiment,
     statuses: &ExperimentStatus,
-) -> anyhow::Result<usize> {
+) -> Result<usize> {
     match status_of_single_run(specific_run, statuses, experiment)? {
         RerunStatus::NotFinished => {
             if !query_yes_no(&format!(
@@ -78,7 +78,7 @@ pub(super) fn check_single_run_failed(
                 {CMD_STYLE}gourd cancel {specific_run}{CMD_STYLE:#}"
             ))? {
                 // todo: confirm that this is how gourd cancel works
-                bailc!("Rerun cancelled..")
+                bailc!("Rerun cancelled..", ; "", ; "",);
             } else {
                 Ok(*specific_run)
             }
@@ -125,17 +125,19 @@ pub(super) fn check_single_run_failed(
 
 /// Check the statuses of a list of runs and ask the user what to rerun.
 pub(super) fn check_multiple_runs_failed(
-    list: &[usize],
+    user_list: &[usize],
     experiment: &Experiment,
     statuses: &ExperimentStatus,
-) -> anyhow::Result<Vec<usize>> {
+) -> Result<Vec<usize>> {
+    let mut list = user_list.to_vec();
+    list.dedup();
     if list.len() < RERUN_LIST_PROMPT_CUTOFF {
         Ok(list
             .iter()
             .filter_map(|r| check_single_run_failed(r, experiment, statuses).ok())
             .collect())
     } else {
-        let failed = re_runnable(experiment, statuses);
+        let failed = re_runnable(list.iter().copied(), experiment, statuses);
 
         let choices = vec!["Rerun only failed", "Rerun all", "Cancel"];
         match Select::new(
@@ -161,7 +163,7 @@ pub(super) fn check_multiple_runs_failed(
 pub fn query_changing_limits_for_programs(
     runs: &[usize],
     experiment: &mut Experiment,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     loop {
         let mut run_programs = BTreeMap::new();
 

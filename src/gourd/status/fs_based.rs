@@ -11,7 +11,6 @@ use gourd_lib::measurement::Metrics;
 use log::trace;
 
 use super::FileSystemBasedStatus;
-use super::PostprocessCompletion;
 use super::StatusProvider;
 use crate::post::afterscript::run_afterscript;
 use crate::post::labels::assign_label;
@@ -83,7 +82,7 @@ impl FileBasedProvider {
         run_id: usize,
         exp: &Experiment,
         fs: &impl FileOperations,
-    ) -> Result<PostprocessCompletion> {
+    ) -> Result<Option<String>> {
         let run = &exp.runs[run_id];
 
         let file = run
@@ -99,8 +98,6 @@ impl FileBasedProvider {
             run_afterscript(run_id, exp)?;
         }
 
-        Ok(PostprocessCompletion::Success(assign_label(
-            exp, &file, fs,
-        )?))
+        assign_label(exp, &file, fs)
     }
 }

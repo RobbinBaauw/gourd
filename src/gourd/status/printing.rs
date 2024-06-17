@@ -21,7 +21,6 @@ use log::info;
 
 use super::ExperimentStatus;
 use super::FsState;
-use super::PostprocessCompletion;
 use super::SlurmState;
 use super::Status;
 
@@ -179,7 +178,7 @@ fn short_status(
                 for_this_prog.0 += 1;
             }
 
-            if status.has_failed() {
+            if status.has_failed(experiment) {
                 for_this_prog.1 += 1;
             }
 
@@ -291,9 +290,7 @@ fn long_status(
 
             writeln!(f)?;
 
-            if let Some(PostprocessCompletion::Success(Some(label_text))) =
-                &status.fs_status.afterscript_completion
-            {
+            if let Some(Some(label_text)) = &status.fs_status.afterscript_completion {
                 if let Some(label_map) = &experiment.config.labels {
                     let display_style = if label_map[label_text].rerun_by_default {
                         ERROR_STYLE
@@ -313,9 +310,7 @@ fn long_status(
                 }
 
                 writeln!(f)?;
-            } else if let Some(PostprocessCompletion::Success(None)) =
-                &status.fs_status.afterscript_completion
-            {
+            } else if let Some(None) = &status.fs_status.afterscript_completion {
                 write!(
                     f,
                     "  {: >numw$}a {TERTIARY_STYLE}afterscript ran \
@@ -394,9 +389,7 @@ pub fn display_job(
 
         writeln!(f, "{status:#}")?;
 
-        if let Some(PostprocessCompletion::Success(Some(label_text))) =
-            &status.fs_status.afterscript_completion
-        {
+        if let Some(Some(label_text)) = &status.fs_status.afterscript_completion {
             if let Some(label_map) = &exp.config.labels {
                 let display_style = if label_map[label_text].rerun_by_default {
                     ERROR_STYLE
@@ -412,9 +405,7 @@ pub fn display_job(
             }
 
             writeln!(f)?;
-        } else if let Some(PostprocessCompletion::Success(None)) =
-            &status.fs_status.afterscript_completion
-        {
+        } else if let Some(None) = &status.fs_status.afterscript_completion {
             writeln!(
                 f,
                 "{TERTIARY_STYLE}afterscript ran sucessfully{TERTIARY_STYLE:#}",
