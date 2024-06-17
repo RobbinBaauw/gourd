@@ -373,7 +373,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
         }) => {
             let (mut experiment, _) = read_experiment(experiment_id, cmd, &file_system)?;
 
-            let selected_runs: Vec<usize> = rerun::runs::get_runs_from_rerun_options(
+            let selected_runs = rerun::runs::get_runs_from_rerun_options(
                 run_ids,
                 &experiment,
                 &mut file_system,
@@ -425,11 +425,17 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             }
 
             experiment.save(&experiment.config.experiments_folder, &file_system)?;
-            info!("{} new runs have been created.", &selected_runs.len());
-            info!(
-                "Run {CMD_STYLE} gourd continue {} {CMD_STYLE:#} to schedule them",
-                experiment.seq
-            );
+
+            if selected_runs.is_empty() {
+                info!("No new runs to schedule");
+                info!("Goodbye");
+            } else {
+                info!("{} new runs have been created", &selected_runs.len());
+                info!(
+                    "Run {CMD_STYLE} gourd continue {} {CMD_STYLE:#} to schedule them",
+                    experiment.seq
+                );
+            }
         }
     }
 
