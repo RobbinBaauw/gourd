@@ -20,6 +20,7 @@ use log::trace;
 use crate::cli::def::Cli;
 use crate::cli::printing::query_update_resource_limits;
 use crate::cli::printing::query_yes_no;
+use crate::init::interactive::ask;
 use crate::rerun::runs::re_runnable;
 use crate::rerun::status::status_of_single_run;
 use crate::rerun::update_program_resource_limits;
@@ -140,7 +141,7 @@ pub(super) fn check_multiple_runs_failed(
         let failed = re_runnable(list.iter().copied(), experiment, statuses);
 
         let choices = vec!["Rerun only failed", "Rerun all", "Cancel"];
-        match Select::new(
+        match ask(Select::new(
             &format!(
                 "There are {HELP_STYLE}{}{HELP_STYLE:#} failed runs \
                 and {HELP_STYLE}{}{HELP_STYLE:#} total runs. What would you like to do?",
@@ -149,11 +150,11 @@ pub(super) fn check_multiple_runs_failed(
             ),
             choices,
         )
-        .prompt()?
+        .prompt())?
         {
             "Rerun only failed" => Ok(failed),
             "Rerun all" => Ok(list.to_vec()),
-            "Cancel" => Err(anyhow!("Rerun cancelled.")),
+            "Cancel" => bailc!("Rerun cancelled", ; "", ; "",),
             _ => unreachable!(),
         }
     }
@@ -178,10 +179,7 @@ pub fn query_changing_limits_for_programs(
         choices.dedup();
         choices.push("Done".to_string());
 
-        match Select::new("Update resource limits?", choices)
-            .prompt()?
-            .as_str()
-        {
+        match ask(Select::new("Update resource limits?", choices).prompt())?.as_str() {
             "Done" => break,
             x => {
                 let mut changed = vec![];

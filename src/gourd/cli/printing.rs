@@ -17,6 +17,8 @@ use indicatif::ProgressBar;
 use indicatif::ProgressStyle;
 use inquire::validator::Validation;
 
+use crate::init::interactive::ask;
+
 /// Util function for getting the style for the CLI
 #[cfg(not(tarpaulin_include))]
 pub fn get_styles() -> clap::builder::Styles {
@@ -113,9 +115,7 @@ pub fn generate_progress_bar(len: u64) -> Result<ProgressBar> {
 
 /// Ask the user a yes/no question
 pub fn query_yes_no(question: &str) -> Result<bool> {
-    let response = inquire::Confirm::new(&format!("{question} [y/n]: "))
-        .prompt()
-        .with_context(ctx!("",;"",))?;
+    let response = ask(inquire::Confirm::new(&format!("{question} [y/n]: ")).prompt())?;
     Ok(response)
 }
 
@@ -123,17 +123,19 @@ pub fn query_yes_no(question: &str) -> Result<bool> {
 pub fn query_update_resource_limits(rss: &ResourceLimits) -> Result<ResourceLimits> {
     let mut new_rss = *rss;
 
-    new_rss.time_limit = inquire::CustomType::<humantime::Duration>::new("New Time limit:")
-        .with_default(humantime::Duration::from(new_rss.time_limit))
-        .prompt()
-        .with_context(ctx!("",;"",))?
-        .into();
+    new_rss.time_limit = ask(
+        inquire::CustomType::<humantime::Duration>::new("New Time limit:")
+            .with_default(humantime::Duration::from(new_rss.time_limit))
+            .prompt(),
+    )?
+    .into();
 
     loop {
-        new_rss.mem_per_cpu = inquire::CustomType::<usize>::new("New memory limit (in MB):")
-            .with_default(new_rss.mem_per_cpu)
-            .prompt()
-            .with_context(ctx!("",;"",))?;
+        new_rss.mem_per_cpu = ask(
+            inquire::CustomType::<usize>::new("New memory limit (in MB):")
+                .with_default(new_rss.mem_per_cpu)
+                .prompt(),
+        )?;
         if new_rss.mem_per_cpu != 0
             || query_yes_no(
                 "A memory limit of zero gives the job \
@@ -144,7 +146,7 @@ pub fn query_update_resource_limits(rss: &ResourceLimits) -> Result<ResourceLimi
         }
     }
 
-    new_rss.cpus = inquire::CustomType::<usize>::new("New CPU limit:")
+    new_rss.cpus = ask(inquire::CustomType::<usize>::new("New CPU limit:")
         .with_default(new_rss.cpus)
         .with_validator(|input: &usize| {
             if *input > 0 {
@@ -155,8 +157,7 @@ pub fn query_update_resource_limits(rss: &ResourceLimits) -> Result<ResourceLimi
                 ))
             }
         })
-        .prompt()
-        .with_context(ctx!("",;"",))?;
+        .prompt())?;
 
     Ok(new_rss)
 }

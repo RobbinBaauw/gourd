@@ -1,5 +1,5 @@
 /// Interactive configuration of an experiment setup template.
-mod interactive;
+pub mod interactive;
 
 /// Tarballs of built-in example templates (optional feature)
 pub mod builtin_examples;

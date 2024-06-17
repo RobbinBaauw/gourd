@@ -8,6 +8,7 @@ use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
 use inquire::Select;
 
+use crate::init::interactive::ask;
 use crate::rerun::checks::check_multiple_runs_failed;
 use crate::status::get_statuses;
 use crate::status::ExperimentStatus;
@@ -76,11 +77,7 @@ pub(super) fn get_what_runs_to_rerun_from_experiment(
         format!("Rerun only failed ({} runs)", failed_runs.len()),
         format!("Rerun all finished ({} runs)", all_not_rerun.len()),
     ];
-    match Select::new("What would you like to do?", choices.clone())
-        .prompt()
-        .with_context(ctx!("",;"",))?
-        .as_str()
-    {
+    match ask(Select::new("What would you like to do?", choices.clone()).prompt())?.as_str() {
         x if x == choices[1] => Ok::<Vec<usize>, anyhow::Error>(all_not_rerun),
         x if x == choices[0] => Ok::<Vec<usize>, anyhow::Error>(failed_runs),
         x => unreachable!("got: {:?}", x),
