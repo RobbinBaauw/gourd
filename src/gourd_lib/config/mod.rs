@@ -323,8 +323,8 @@ impl Config {
             {
                 bailc!(
                   "Intersection not empty", ;
-                  "Programs in the config cannot have the same names", ;
-                  "The name \"{overlap}\" appears twice",
+                  "Program names in the config must be unique", ;
+                  "The name \"{overlap}\" appears twice: {:?}", initial
                 );
             }
         }

@@ -23,9 +23,11 @@
 //! - the gourd output folders
 
 mod example;
+mod init;
 mod rerun;
 mod run;
 mod version;
+mod workflow;
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -69,7 +71,7 @@ macro_rules! gourd {
         {
             let backtrace = std::env::var("RUST_BACKTRACE").unwrap_or("0".to_string());
             std::env::set_var("RUST_BACKTRACE", "0");
-            let out = Command::new($env.gourd_path).args(&[$($arg),*]).output().unwrap();
+            let out = std::process::Command::new($env.gourd_path).args(&[$($arg),*]).output().unwrap();
             std::env::set_var("RUST_BACKTRACE", backtrace);
             out
         }
@@ -117,6 +119,32 @@ fn compile_example(dir: &PathBuf, contents: &str, extra_args: Option<Vec<&str>>)
     out
 }
 
+fn new_program(
+    prog: &mut ProgramMap,
+    name: &str,
+    dir: &PathBuf,
+    contents: &str,
+    extra_args: Vec<&str>,
+    post: Option<&str>,
+) {
+    prog.insert(
+        name.to_string(),
+        Program {
+            binary: compile_example(dir, contents, None),
+            arguments: extra_args.iter().map(|s| s.to_string()).collect(),
+            afterscript: None,
+            postprocess_job: post.map(|p| p.to_string()),
+            resource_limits: None,
+        },
+    );
+}
+
+fn new_input(inputs: &mut BTreeMap<String, PathBuf>, name: &str, dir: &Path, contents: &str) {
+    let path = dir.join(name);
+    std::fs::write(dir.join(name), contents).unwrap();
+    inputs.insert(name.to_string(), path);
+}
+
 fn init() -> TestEnv {
     // 1. find gourd cli executable
     let gourd_path = PathBuf::from(env!("CARGO_BIN_EXE_gourd"));
@@ -142,29 +170,61 @@ fn init() -> TestEnv {
     // you can debug by looking in the ./target folder instead of wherever
     // /private/var/ tempdir decided to dump
     let temp_dir = TempDir::new_in(env!("CARGO_TARGET_TMPDIR"), "resources").unwrap();
+    let p = temp_dir.path().to_path_buf();
+    // initialise the programs and input files available in the testing environment.
+    let mut programs = ProgramMap::default();
+    let mut input_files = BTreeMap::new();
 
-    // compile examples
-    let fib_out = compile_example(
-        &PathBuf::from(temp_dir.path()),
+    // compiled examples
+    new_program(
+        &mut programs,
+        "fibonacci",
+        &p,
         include_str!("test_resources/fibonacci.rs"),
+        vec![],
         None,
     );
 
-    // initialise the programs and input files available in the testing environment.
-    let mut programs = ProgramMap::default();
-    #[allow(unused_mut)]
-    let mut input_files = BTreeMap::new();
-
-    programs.insert(
-        "fibonacci".to_string(),
-        Program {
-            binary: fib_out,
-            arguments: vec![],
-            afterscript: None,
-            postprocess_job: None,
-            resource_limits: None,
-        },
+    new_program(
+        &mut programs,
+        "slow_fib",
+        &p,
+        include_str!("test_resources/slow_fib.rs"),
+        vec![],
+        None,
     );
+
+    new_program(
+        &mut programs,
+        "fast_fib",
+        &p,
+        include_str!("test_resources/fast_fib.rs"),
+        vec![],
+        Some("fast_fast_fib"),
+    );
+
+    new_program(
+        &mut programs,
+        "hello",
+        &p,
+        include_str!("test_resources/hello.rs"),
+        vec!["hello"],
+        None,
+    );
+
+    new_program(
+        &mut programs,
+        "fast_fast_fib",
+        &p,
+        include_str!("test_resources/fast_fib.rs"),
+        vec!["-f"],
+        None,
+    );
+
+    // construct some inputs
+    new_input(&mut input_files, "input_ten", &p, "10");
+    new_input(&mut input_files, "input_forty_two", &p, "42");
+    new_input(&mut input_files, "input_hello", &p, "you");
 
     // finally, construct the test environment
     TestEnv {
@@ -186,7 +246,7 @@ macro_rules! config {
                 metrics_path: $env.temp_dir.path().join("metrics"),
                 experiments_folder: $env.temp_dir.path().join("experiments"),
                 programs: $crate::keep(&$env.programs.clone(), &[$($prog.to_string()),*]),
-                inputs: std::collections::BTreeMap::<String, Input>::from([$($inp),*]).into(),
+                inputs: std::collections::BTreeMap::<String, gourd_lib::config::Input>::from([$($inp),*]).into(),
                 wrapper: $env.wrapper_path.to_str().unwrap().to_string(),
                 input_schema: None,
                 slurm: None,
@@ -194,6 +254,25 @@ macro_rules! config {
                 postprocess_resource_limits: None,
                 postprocess_programs: None,
                 labels: None,
+            }
+        }
+    };
+
+    ($env:expr; $($prog:expr),*; $($inp:expr),*; $($post:expr),*; $label:expr) => {
+        {
+            gourd_lib::config::Config {
+                output_path: $env.temp_dir.path().join("out"),
+                metrics_path: $env.temp_dir.path().join("metrics"),
+                experiments_folder: $env.temp_dir.path().join("experiments"),
+                programs: $crate::keep(&$env.programs.clone(), &[$($prog.to_string()),*]),
+                inputs: std::collections::BTreeMap::<String, gourd_lib::config::Input>::from([$($inp),*]).into(),
+                wrapper: $env.wrapper_path.to_str().unwrap().to_string(),
+                input_schema: None,
+                slurm: None,
+                resource_limits: None,
+                postprocess_resource_limits: None,
+                postprocess_programs: Some($crate::keep(&$env.programs.clone(), &[$($post.to_string()),*])),
+                labels: $label,
             }
         }
     };

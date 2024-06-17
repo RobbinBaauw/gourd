@@ -1,6 +1,6 @@
 // This file does NOT belong in a module.
 // It is a resource compiled independently in the unit tests for `runner.rs`.
-
+#![allow(unused)]
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let mut input_line = String::new();

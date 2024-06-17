@@ -1,5 +1,3 @@
-use std::process::Command;
-
 use gourd_lib::config::Input;
 
 use crate::config;

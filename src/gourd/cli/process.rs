@@ -362,7 +362,10 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                 }
             }
 
-            experiment.save(&config.experiments_folder, &file_system)?;
+            let p = experiment.save(&config.experiments_folder, &file_system)?;
+            if cmd.script {
+                println!("{}", p.display());
+            }
         }
 
         GourdCommand::Rerun(RerunOptions {

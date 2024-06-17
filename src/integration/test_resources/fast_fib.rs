@@ -1,5 +1,6 @@
 // This file does NOT belong in a module.
 // It is a resource compiled independently in the unit tests for `runner.rs`.
+#![allow(unused)]
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -13,7 +14,7 @@ fn main() {
     if fast {
         println!("{}", fibonacci(x));
     } else {
-        let y = fibonacci(x + 10000000);
+        let _y = fibonacci(x + 10000000);
         println!("{}", fibonacci(x));
     }
 }
