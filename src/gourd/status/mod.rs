@@ -172,10 +172,47 @@ impl Status {
 
     /// Check if we know this job to have failed.
     pub fn has_failed(&self) -> bool {
-        match self.fs_status.completion {
+        let a = match self.fs_status.completion {
             FsState::Completed(Measurement { exit_code, .. }) => exit_code != 0,
             _ => false,
-        }
+        };
+        let b = match self.slurm_status {
+            Some(SlurmBasedStatus {
+                completion: SlurmState::BootFail,
+                ..
+            }) => true,
+            Some(SlurmBasedStatus {
+                completion: SlurmState::Cancelled,
+                ..
+            }) => true,
+            Some(SlurmBasedStatus {
+                completion: SlurmState::Deadline,
+                ..
+            }) => true,
+            Some(SlurmBasedStatus {
+                completion: SlurmState::NodeFail,
+                ..
+            }) => true,
+            Some(SlurmBasedStatus {
+                completion: SlurmState::OutOfMemory,
+                ..
+            }) => true,
+            Some(SlurmBasedStatus {
+                completion: SlurmState::Preempted,
+                ..
+            }) => true,
+            Some(SlurmBasedStatus {
+                completion: SlurmState::Timeout,
+                ..
+            }) => true,
+            Some(SlurmBasedStatus {
+                completion: SlurmState::SlurmFail,
+                ..
+            }) => true,
+            Some(_) => false,
+            None => false,
+        };
+        a || b
     }
 
     /// Check if we know this job to be scheduled.

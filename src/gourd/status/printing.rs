@@ -29,14 +29,20 @@ impl Display for SlurmState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SlurmState::BootFail => write!(f, "{ERROR_STYLE}boot failed{ERROR_STYLE:#}"),
-            SlurmState::Cancelled => write!(f, "{WARNING_STYLE}cancelled{WARNING_STYLE:#}"),
-            SlurmState::Deadline => write!(f, "{ERROR_STYLE}deadline reached{ERROR_STYLE:#}"),
-            SlurmState::NodeFail => write!(f, "{ERROR_STYLE}node failed{ERROR_STYLE:#}"),
-            SlurmState::OutOfMemory => write!(f, "{WARNING_STYLE}out of memory{WARNING_STYLE:#}"),
-            SlurmState::Preempted => write!(f, "{ERROR_STYLE}preempted{ERROR_STYLE:#}"),
-            SlurmState::Suspended => write!(f, "{ERROR_STYLE}suspended{ERROR_STYLE:#}"),
-            SlurmState::Timeout => write!(f, "{WARNING_STYLE}timed out{WARNING_STYLE:#}"),
-            SlurmState::SlurmFail => write!(f, "{ERROR_STYLE}job failed{ERROR_STYLE:#}"),
+            SlurmState::Cancelled => {
+                write!(f, "{WARNING_STYLE}slurm job cancelled{WARNING_STYLE:#}")
+            }
+            SlurmState::Deadline => {
+                write!(f, "{ERROR_STYLE}slurm job deadline reached{ERROR_STYLE:#}")
+            }
+            SlurmState::NodeFail => write!(f, "{ERROR_STYLE}slurm node failed{ERROR_STYLE:#}"),
+            SlurmState::OutOfMemory => {
+                write!(f, "{WARNING_STYLE}slurm job out of memory{WARNING_STYLE:#}")
+            }
+            SlurmState::Preempted => write!(f, "{ERROR_STYLE}slurm job preempted{ERROR_STYLE:#}"),
+            SlurmState::Suspended => write!(f, "{ERROR_STYLE}slurm job suspended{ERROR_STYLE:#}"),
+            SlurmState::Timeout => write!(f, "{WARNING_STYLE}slurm job timed out{WARNING_STYLE:#}"),
+            SlurmState::SlurmFail => write!(f, "{ERROR_STYLE}slurm job failed{ERROR_STYLE:#}"),
             SlurmState::Success => write!(f, "{PRIMARY_STYLE}job finished!{PRIMARY_STYLE:#}"),
             SlurmState::Pending => write!(f, "{TERTIARY_STYLE}pending..{TERTIARY_STYLE:#}"),
             SlurmState::Running => write!(f, "{TERTIARY_STYLE}running...{TERTIARY_STYLE:#}"),
@@ -279,7 +285,7 @@ fn long_status(
                 if let Some(ss) = &status.slurm_status {
                     write!(f, " on slurm: {}", ss.completion)?;
                 } else if run.slurm_id.is_some() {
-                    write!(f, " {ERROR_STYLE}deleted from slurm{ERROR_STYLE:#}")?;
+                    write!(f, " {WARNING_STYLE}not found on slurm{WARNING_STYLE:#}")?;
                 }
             }
 

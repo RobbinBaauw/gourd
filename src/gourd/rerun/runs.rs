@@ -65,11 +65,7 @@ pub(super) fn get_what_runs_to_rerun_from_experiment(
         .filter(|id| experiment.runs[*id].rerun.is_none() && statuses[id].is_completed())
         .collect();
 
-    let failed_runs: Vec<usize> = all_not_rerun
-        .clone()
-        .into_iter()
-        .filter(|id| statuses[id].has_failed())
-        .collect();
+    let failed_runs: Vec<usize> = re_runnable(experiment, &statuses);
 
     if script {
         return Ok(failed_runs);
@@ -88,4 +84,12 @@ pub(super) fn get_what_runs_to_rerun_from_experiment(
         x if x == choices[0] => Ok::<Vec<usize>, anyhow::Error>(failed_runs),
         x => unreachable!("got: {:?}", x),
     }
+}
+
+/// Get the list of runs that have failed and are re_runnable.
+pub(super) fn re_runnable(experiment: &Experiment, statuses: &ExperimentStatus) -> Vec<usize> {
+    (0..experiment.runs.len())
+        .filter(|id| experiment.runs[*id].rerun.is_none() && statuses[id].is_completed())
+        .filter(|id| statuses[id].has_failed())
+        .collect()
 }

@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use anyhow::anyhow;
 use anyhow::Context;
+use anyhow::Result;
 use gourd_lib::bailc;
 use gourd_lib::constants::CMD_STYLE;
 use gourd_lib::constants::HELP_STYLE;
@@ -9,18 +10,58 @@ use gourd_lib::constants::NAME_STYLE;
 use gourd_lib::constants::RERUN_LIST_PROMPT_CUTOFF;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
+use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
+use gourd_lib::file_system::FileOperations;
 use inquire::Select;
 use log::debug;
 use log::trace;
 
+use crate::cli::def::Cli;
 use crate::cli::printing::query_update_resource_limits;
 use crate::cli::printing::query_yes_no;
+use crate::rerun::runs::re_runnable;
 use crate::rerun::status::status_of_single_run;
 use crate::rerun::update_program_resource_limits;
 use crate::rerun::RerunStatus;
 use crate::slurm::handler::get_limits;
+use crate::status::get_statuses;
 use crate::status::ExperimentStatus;
+use crate::status::SlurmState;
+
+/// Ask the user if they want to change any resource limits for the current
+/// experiment.
+pub fn query_changing_resource_limits(
+    experiment: &mut Experiment,
+    cmd: &Cli,
+    selected_runs: &[usize],
+    file_system: &mut impl FileOperations,
+) -> Result<()> {
+    if experiment.env == Environment::Slurm && !cmd.script {
+        let statuses = get_statuses(experiment, file_system)?;
+        let (out_of_memory, out_of_time) =
+            selected_runs
+                .iter()
+                .map(|r| statuses[r].clone())
+                .fold((0, 0), |(oom, oot), s| match s.slurm_status {
+                    Some(s) => match s.completion {
+                        SlurmState::OutOfMemory => (oom + 1, oot),
+                        SlurmState::Timeout => (oom, oot + 1),
+                        _ => (oom, oot),
+                    },
+                    None => (oom, oot),
+                });
+
+        if query_yes_no(&format!(
+            "{} runs ran out of memory and {} runs ran out of time.\
+                     Do you want to change the resource limits for their programs?",
+            out_of_memory, out_of_time
+        ))? {
+            query_changing_limits_for_programs(selected_runs, experiment)?;
+        }
+    }
+    Ok(())
+}
 
 /// Check the status of a single run and ask the user what to rerun.
 pub(super) fn check_single_run_failed(
@@ -94,11 +135,7 @@ pub(super) fn check_multiple_runs_failed(
             .filter_map(|r| check_single_run_failed(r, experiment, statuses).ok())
             .collect())
     } else {
-        let failed: Vec<usize> = list
-            .iter()
-            .filter(|id| statuses[id].has_failed() && statuses[id].is_completed())
-            .copied()
-            .collect();
+        let failed = re_runnable(experiment, statuses);
 
         let choices = vec!["Rerun only failed", "Rerun all", "Cancel"];
         match Select::new(

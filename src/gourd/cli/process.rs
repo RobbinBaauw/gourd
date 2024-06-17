@@ -33,7 +33,6 @@ use super::def::ContinueStruct;
 use super::def::RerunOptions;
 use super::log::LogTokens;
 use super::printing::get_styles;
-use super::printing::query_yes_no;
 use crate::cli::def::CancelStruct;
 use crate::cli::def::Cli;
 use crate::cli::def::GourdCommand;
@@ -47,6 +46,7 @@ use crate::init::list_init_examples;
 use crate::local::run_local;
 use crate::post::postprocess_job::schedule_post_jobs;
 use crate::rerun;
+use crate::rerun::checks::query_changing_resource_limits;
 use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::chunk::Chunkable;
 use crate::slurm::handler::SlurmHandler;
@@ -57,7 +57,6 @@ use crate::status::chunks::print_scheduling;
 use crate::status::get_statuses;
 use crate::status::printing::display_job;
 use crate::status::printing::display_statuses;
-use crate::status::SlurmState;
 
 /// This function parses command that gourd was run with.
 pub async fn parse_command() {
@@ -382,31 +381,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
             trace!("Selected runs: {:?}", selected_runs);
 
-            if experiment.env == Environment::Slurm && !cmd.script {
-                let statuses = get_statuses(&experiment, &mut file_system)?;
-                let (out_of_memory, out_of_time) = selected_runs
-                    .iter()
-                    .map(|r| statuses[r].clone())
-                    .fold((0, 0), |(oom, oot), s| match s.slurm_status {
-                        Some(s) => match s.completion {
-                            SlurmState::OutOfMemory => (oom + 1, oot),
-                            SlurmState::Timeout => (oom, oot + 1),
-                            _ => (oom, oot),
-                        },
-                        None => (oom, oot),
-                    });
-
-                if query_yes_no(&format!(
-                    "{} runs ran out of memory and {} runs ran out of time.\
-                     Do you want to change the resource limits for their programs?",
-                    out_of_memory, out_of_time
-                ))? {
-                    rerun::checks::query_changing_limits_for_programs(
-                        &selected_runs,
-                        &mut experiment,
-                    )?;
-                }
-            }
+            query_changing_resource_limits(&mut experiment, cmd, &selected_runs, &mut file_system)?;
 
             for run_id in &selected_runs {
                 let new_id = experiment.runs.len();
