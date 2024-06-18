@@ -79,22 +79,24 @@
             Tell \Prog{gourd} to use the given filename as \File{gourd.toml}, the configuration
             file that defines the experimental setup.
             By default, the file is expected in the current working directory at \File{./gourd.toml}.
-            \item[\Opt{-d}, \Opt{--dry-run}]
+            \item[\Opt{-d}, \Opt{--dry}]
             Run \Prog{gourd} in dry-run mode, printing all operations (such as writing to files or scheduling runs)
             without executing them.
             \item[\Opt{-h}, \Opt{--help}]
             Display usage instructions for the \Prog{gourd} utility or any of its commands.
+            This option extends to all of the subcommands of \Prog{gourd}, for example running
+            \Prog{gourd} \Arg{status} \Arg{-h} will display help about the \Arg{status} subcommand.
             \item[\Opt{-s}, \Opt{--script}]
             Tell \Prog{gourd} to use a script-friendly interface, that is, one that does not use
             interactive user prompts.
             \item[\Opt{-v}, \Opt{-vv}, \Opt{--verbose}]
-            Run \Prog{gourd} with verbose output, where \Opt{-vv} enables even more logging.
+            Run \Prog{gourd} with verbose debugging output, where \Opt{-vv} enables even more logging.
         \end{Description}
 
     \section{COMMANDS}
 
         Using \Prog{gourd} is as simple as invoking one of its commands, such as
-        \Prog{gourd}~\Arg{status}.
+        \Prog{gourd} \Arg{status}.
         Command-line arguments are generally not necessary; to design and run
         experiments, a \File{gourd.toml} file should be in the current directory.
         The following is a summary of available commands.
@@ -110,6 +112,8 @@
             Schedule the incomplete part of a partial experiment.
             \item[\Prog{gourd} \Arg{cancel}]
             Cancel scheduled runs.
+            \item[\Prog{gourd} \Arg{rerun}]
+            Rerun (possibly) failed runs.
             \item[\Prog{gourd} \Arg{analyse}]
             Output metrics of completed runs.
             \item[\Prog{gourd} \Arg{version}]
@@ -126,12 +130,12 @@
                 Using Slurm, additional configuration arguments are required; see
                 \Prog{gourd.toml(5)}.
 
-                In principle, however, using \Prog{gourd}~\Arg{run} works in the same way for both
+                In principle, however, using \Prog{gourd} \Arg{run} works in the same way for both
                 Slurm and local execution.
                 A \File{gourd.toml} configuration file should be present in the current directory,
                 formally describing the experiment that is to be created and run.
                 Because most options are specified in this file, it is usually sufficient to type
-                \Prog{gourd}~\Arg{run}~\Arg{slurm}|\Arg{local} to run an experiment.
+                \Prog{gourd} \Arg{run} \Arg{slurm}|\Arg{local} to run an experiment.
 
                 See the manual page for \Prog{gourd-tutorial(7)} for a step-by-step guide on
                 designing experiments to run.
@@ -161,7 +165,7 @@
                         \emph{Local} will use the login node only and not the actual
                         supercomputer.
 
-                        Running using \Arg{run}~\Arg{local} will perform the experiments in
+                        Running using \Arg{run} \Arg{local} will perform the experiments in
                         parallel based on the number of available CPU cores.
                         Resource limits set in the configuration will not be honoured.
                         While running, experiment status is displayed continuously (see the
@@ -184,20 +188,20 @@
                                   from the cluster nodes.
                         \end{itemize}
 
-                        When \Prog{gourd}~\Arg{run}~\Arg{slurm} is called, the experiment's runs
+                        When \Prog{gourd} \Arg{run} \Arg{slurm} is called, the experiment's runs
                         are not executed immediately; instead, they are submitted as \emph{job arrays}
                         to the \Prog{Slurm} scheduler.
                         The experiment's runs are then in the supercomputer's queue (status ``pending'').
                         The time until the runs are actually executed depends on many factors, which
                         may include the supercomputer load and the size of your experiment; this
                         delay can range from seconds to days.
-                        For this reason, \Prog{gourd}~\Arg{run}~\Arg{slurm} does not show the
-                        continuous status of an experiment unless the \oOpt{-f,~--follow} flag is
+                        For this reason, \Prog{gourd} \Arg{run} \Arg{slurm} does not show the
+                        continuous status of an experiment unless the \oOpt{-f, --follow} flag is
                         used.
 
                         On successful scheduling, the Slurm IDs of the job arrays that make
                         up the experiment will be shown, and the command will exit.
-                        To view the experiment's status, see the \Prog{gourd}~\Arg{status} section
+                        To view the experiment's status, see the \Prog{gourd} \Arg{status} section
                         of this manual.
 
                         Running on Slurm has many configurable options.
@@ -240,7 +244,7 @@
         \subsection{GOURD STATUS}
 
             \subsubsection{Summary}
-                The \Prog{gourd}~\Arg{status} command displays the status of an existing experiment,
+                The \Prog{gourd} \Arg{status} command displays the status of an existing experiment,
                 that is, one that has been created by \Prog{gourd} \Arg{run}, but not necessarily
                 one that has fully executed.
                 This command can also display detailed status of an individual run using the \Opt{-i} flag.
@@ -264,38 +268,38 @@
                 \end{Description}
 
             \subsection{Experiment status}
-                By default, \Prog{gourd}~\Arg{status} uses the \File{gourd.toml} file to determine the
-                location of experiment files generated using \Prog{gourd}~\Arg{run}.
+                By default, \Prog{gourd} \Arg{status} uses the \File{gourd.toml} file to determine the
+                location of experiment files generated using \Prog{gourd} \Arg{run}.
                 It finds the most recent experiment (unless \Opt{-i} is specified) and shows a summary
                 containing the status of each run, and, if completed, the run's basic timing metrics.
                 The command also shows a summary of each run's error status, if any.
 
-            \subsection{Run status}
-                With the \OptArg{-i}{ run-id} argument, \Prog{gourd}~\Arg{status} will retrieve detailed
-                run information including the arguments that the binary was called with, RUsage metrics
-                if successful, and detailed error status if it has failed.
-                The file paths provided make it easy to inspect the output of a run, whether it has
-                succeeded or failed.
-            
-            \subsubsection{Afterscripts}
-                To postprocess the output of the runs, there are two options available: afterscipts and Slurm 
-                postprocessing jobs. Afterscripts are scripts that run locally (so for DelftBlue they do not 
-                get scheduled as separate jobs) and are thus meant for quick and non-complicated postprocessing 
-                (such as getting the first line of the output file). For long and complicated postprocessing 
-                with a significant computational cost, we support Slurm postprocessing jobs. A program being 
-                evaluated can have both an afterscript and a postprocessing Slurm job, one of them, or neither.
+                \subsection{Run status}
+                    With the \OptArg{-i}{ run-id} argument, \Prog{gourd} \Arg{status} will retrieve detailed
+                    run information including the arguments that the binary was called with, RUsage metrics
+                    if successful, and detailed error status if it has failed.
+                    The file paths provided make it easy to inspect the output of a run, whether it has
+                    succeeded or failed.
 
-                An afterscript is optional and specified per program. To indicate the use of an afterscript,
-                the path to the script file needs to be specified in the gourd.toml under the chosen program. 
-                Multiple programs can use the same script. Furthermore, if at least one program has an 
-                afterscript, a path to a folder that will store the afterscript output needs to be specified 
-                (once for the entire experiment, analogous to metrics and output paths). The afterscript can 
-                be used to assign labels to runs as a means of specifying custom status.
-                
-                An afterscript should take as arguments the path to the input file and the path to a folder 
-                for output. The output folder has been created and is empty. It is the responsibility of the 
-                afterscript to create and write to any files in that directory.
-        
+                \subsubsection{Afterscripts}
+                    To postprocess the output of the runs, there are two options available: afterscipts and Slurm
+                    postprocessing jobs. Afterscripts are scripts that run locally (so for DelftBlue they do not
+                    get scheduled as separate jobs) and are thus meant for quick and non-complicated postprocessing
+                    (such as getting the first line of the output file). For long and complicated postprocessing
+                    with a significant computational cost, we support Slurm postprocessing jobs. A program being
+                    evaluated can have both an afterscript and a postprocessing Slurm job, one of them, or neither.
+
+                    An afterscript is optional and specified per program. To indicate the use of an afterscript,
+                    the path to the script file needs to be specified in the gourd.toml under the chosen program.
+                    Multiple programs can use the same script. Furthermore, if at least one program has an
+                    afterscript, a path to a folder that will store the afterscript output needs to be specified
+                    (once for the entire experiment, analogous to metrics and output paths). The afterscript can
+                    be used to assign labels to runs as a means of specifying custom status.
+
+                    An afterscript should take as arguments the path to the input file and the path to a folder
+                    for output. The output folder has been created and is empty. It is the responsibility of the
+                    afterscript to create and write to any files in that directory.
+
         \subsection{GOURD CONTINUE}
 
             \subsubsection{Summary}
@@ -305,26 +309,26 @@
                 of 10,000 each if that is the maximum number of queued supercomputer jobs.
 
             \subsubsection{Postprocessing Slurm jobs}
-                As discussed when describing \Prog{gourd}~\Arg{status}, to postprocess the output of the runs,
-                there are two options available: afterscipts and Slurm postprocessing jobs. Afterscripts are 
-                scripts that run locally (so for DelftBlue they do not get scheduled as separate jobs) and are 
-                thus meant for quick and non-complicated postprocessing (such as getting the first line of the 
-                output file). For long and complicated postprocessing with a significant computational cost, 
-                we support Slurm postprocessing jobs. A program being evaluated can have both an afterscript 
+                As discussed when describing \Prog{gourd} \Arg{status}, to postprocess the output of the runs,
+                there are two options available: afterscipts and Slurm postprocessing jobs. Afterscripts are
+                scripts that run locally (so for DelftBlue they do not get scheduled as separate jobs) and are
+                thus meant for quick and non-complicated postprocessing (such as getting the first line of the
+                output file). For long and complicated postprocessing with a significant computational cost,
+                we support Slurm postprocessing jobs. A program being evaluated can have both an afterscript
                 and a postprocessing Slurm job, one of them, or neither.
 
-                A postprocesing Slurm job (further called "postprocessing job") is optional and specified per 
-                program. To indicate the use of a postprocessing job, a program needs to be specified under 
-                "postprocessing programs" in gourd.toml. That program will have the path to the postprocessing 
-                binary file. In addition, the name of this new postprocesing program needs to be specified in 
-                the gourd.toml under the chosen regular program to indicate that this is the postprocessing 
-                used. Multiple programs can use the same postprocessing program. Furthermore, if at least one 
-                program has a postprocessing job, a path to a folder that will store the postprocesing job 
-                output needs to be specified (once for the entire experiment, analogous to metrics and output 
-                paths). 
+                A postprocesing Slurm job (further called "postprocessing job") is optional and specified per
+                program. To indicate the use of a postprocessing job, a program needs to be specified under
+                "postprocessing programs" in gourd.toml. That program will have the path to the postprocessing
+                binary file. In addition, the name of this new postprocesing program needs to be specified in
+                the gourd.toml under the chosen regular program to indicate that this is the postprocessing
+                used. Multiple programs can use the same postprocessing program. Furthermore, if at least one
+                program has a postprocessing job, a path to a folder that will store the postprocesing job
+                output needs to be specified (once for the entire experiment, analogous to metrics and output
+                paths).
 
-                As input the postprocessing binary will get the output of a run of a regular program that has 
-                been specified to have this postprocessing. It will write its results to a file the way that 
+                As input the postprocessing binary will get the output of a run of a regular program that has
+                been specified to have this postprocessing. It will write its results to a file the way that
                 regular programs do.
 
 %            \subsubsection{Synopsis}
@@ -334,34 +338,34 @@
 %                \emph{TBD.}
 
 
-    \subsection{GOURD CANCEL}
+        \subsection{GOURD CANCEL}
 
-        \subsubsection{Summary}
-            The \Prog{gourd}~\Arg{cancel} command cancels runs that have been scheduled on \Prog{Slurm}.
-            By default, it cancels all scheduled runs in the most recent experiment.
-            This command can cancel an individual run using the \Opt{-i} flag.
+            \subsubsection{Summary}
+                The \Prog{gourd} \Arg{cancel} command cancels runs that have been scheduled on \Prog{Slurm}.
+                By default, it cancels all scheduled runs in the most recent experiment.
+                This command can cancel an individual run using the \Opt{-i} flag.
 
-        \subsubsection{Synopsis}
-            \Prog{gourd}\Arg{cancel}
-            \oArg{experiment-id}
-            \oOptArg{-i}{ run-ids}
-            \oOpt{-a}
-            \oOpt{-v|-vv}
+            \subsubsection{Synopsis}
+                \Prog{gourd} \Arg{cancel}
+                \oArg{experiment-id}
+                \oOptArg{-i}{ run-ids}
+                \oOpt{-a}
+                \oOpt{-v|-vv}
 
-        \subsubsection{Options}
-            \begin{Description}[Options]
-                \item[\Arg{experiment-id}]
-                The ID of an experiment to cancel.
-                By default, this is the most recent experiment.
-                \item[\OptArg{-i}{ run-ids}]
-                The IDs of the runs to cancel.
-                Pass multiple run IDs separated by spaces, for example \Arg{-i 1 2 3}.
-                By default, all runs in the experiment are cancelled.
-                \item[\oOpt{--all}]
-                Cancel all runs from this account.
-                This includes all runs, not just those from \Prog{gourd}.
-                To see what runs would be cancelled, run \Prog{gourd}~\Arg{cancel}~\Arg{--all}~\Arg{--dry}
-            \end{Description}
+            \subsubsection{Options}
+                \begin{Description}[Options]
+                  \item[\Arg{experiment-id}]
+                    The ID of an experiment to cancel.
+                    By default, this is the most recent experiment.
+                  \item[\OptArg{-i}{ run-ids}]
+                    The IDs of the runs to cancel.
+                    Pass multiple run IDs separated by spaces, for example \Arg{-i 1 2 3}.
+                    By default, all runs in the experiment are cancelled.
+                  \item[\Opt{--all}]
+                    Cancel all runs from this account.
+                    This includes all runs, not just those from \Prog{gourd}.
+                    To see what runs would be cancelled, run \Prog{gourd} \Arg{cancel} \Arg{--all} \Arg{--dry}
+                \end{Description}
 
 
         \subsection{GOURD ANALYSE}
@@ -371,24 +375,48 @@
                 when an experiment was run.
                 It also generates a "cactus plot" to compare how quickly different algorithms run.
 
+
+            \subsubsection{Synopsis}
+                \Prog{gourd} \Arg{analyse}
+                \oArg{experiment-id}
+                \oOptArg{-o}{ format}
+                \oOpt{-s}
+                \oOptArg{-c}{ filename}
+                \oOpt{-v|-vv}
+                \oOpt{-d}
+
+            \subsubsection{Options}
+                \begin{Description}[Options]
+                  \item[\Arg{experiment-id}]
+                    The ID of an experiment to analuse.
+                    By default, this is the most recent experiment.
+                  \item[\OptArg{-o}{ format}, \OptArg{--output}{ format}]
+                    The format of the desired analysis output. There are three available:
+                    \emph{csv} (the default), \emph{plot-png}, \emph{plot-svg}. They are described below.
+                \end{Description}
+
             \subsubsection{Metrics CSV}
-                Running \Prog{gourd} \Arg{analyse} will create a CSV file with data about the status of
-                the runs, metrics, and afterscript completion, unless there are no runs that have completed
-                already. 
-                The CSV generation will take into account all runs of the experiment. If \Prog{gourd} 
+                Running \Prog{gourd} \Arg{analyse} \OptArg{-o}{ csv} will create a CSV file with
+                data about the status of the runs, metrics, and afterscript completion, unless there
+                are no runs that have completed already.
+                The CSV generation will take into account all runs of the experiment. If \Prog{gourd}
                 \Arg{analyse} is rerun, the CSV will be updated with the newest status of the runs.
-            
+
             \subsubsection{Cactus plots}
-                Running \Prog{gourd} \Arg{analyse} will also create a PNG picture of a cactus plot.
-                The cactus plot is used to showcase the comparison of how many inputs each algorithm 
+                Running \Prog{gourd} \Arg{analyse} \OptArg{-o}{ plot-png} will create a PNG picture of
+                a cactus plot.
+                The cactus plot is used to showcase the comparison of how many inputs each algorithm
                 can finish running with in a given amount of time.
-                In other words, the horizontal axis represents the time passing, and the vertical axis 
+                In other words, the horizontal axis represents the time passing, and the vertical axis
                 represents how many runs of this program (algorithm) have already finished.
-                This allows to see a visual comparison of the time each program takes - the more runs 
+                This allows to see a visual comparison of the time each program takes - the more runs
                 there are, the more informative the plot will result to be.
                 The plot will take into account only the runs that have completed and have a valid
                 RUsage accessible. If \Prog{gourd} \Arg{analyse} is rerun, the graph will be updated
                 according to the newest data accessible.
+
+                Running \Prog{gourd} \Arg{analyse} \OptArg{-o}{ plot-svg} will create exactly the same
+                plot but in a \emph{svg} conformal format.
 
         \subsection{GOURD VERSION}
 
@@ -399,6 +427,13 @@
 
             \subsubsection{Synopsis}
                 \Prog{gourd} \Arg{version} \oOpt{-s}
+
+            \subsubsection{Scripting}
+                By default \Prog{gourd} \Arg{version} shows a human readable only output. By
+                running \Prog{gourd} \Arg{version} \Opt{-s} one can obtain a version number
+                in the format:
+
+                \texttt{gourd <version number>}
 
 
 
@@ -426,7 +461,7 @@
     \section{AUTHORS}
     Rūta Giedrytė <\Email{r.giedryte@student.tudelft.nl}>\\[0.1cm]\MANbr
     Lukáš Chládek <\Email{l@chla.cz}>\\[0.1cm]\MANbr
-    Jan Piotrowski <\Email{j.p.piotrowski@student.tudelft.nl}>
+    Jan Piotrowski <\Email{j.p.piotrowski@student.tudelft.nl}>\\[0.1cm]\MANbr
     Mikołaj Gazeel <\Email{m.j.gazeel@student.tudelft.nl}>\\[0.1cm]\MANbr
     Ανδρέας Τσατσάνης <\Email{a.tsatsanis@student.tudelft.nl}>\\[0.1cm]\MANbr
 %@% IF LATEX %@%

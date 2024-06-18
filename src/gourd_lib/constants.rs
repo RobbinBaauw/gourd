@@ -122,3 +122,6 @@ pub const LOGO: &str = include_str!("../resources/logo.ascii");
 
 /// The length of the bar for scheduling.
 pub const SCHEDULE_BAR_WIDTH: usize = 50;
+
+/// The size of the analysis output plots, in pixels.
+pub const PLOT_SIZE: (u32, u32) = (1920, 1080);

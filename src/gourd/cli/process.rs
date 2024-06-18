@@ -244,7 +244,10 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             }
         }
 
-        GourdCommand::Analyse(AnalyseStruct { experiment_id }) => {
+        GourdCommand::Analyse(AnalyseStruct {
+            experiment_id,
+            output,
+        }) => {
             let (experiment, config) = read_experiment(experiment_id, cmd, &file_system)?;
 
             let statuses = get_statuses(&experiment, &mut file_system)?;
@@ -254,27 +257,52 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                 .values()
                 .filter(|x| x.fs_status.completion.is_completed());
 
-            if completed_runs.next().is_some() {
-                analysis_csv(
-                    &config
-                        .output_path
-                        .join(format!("analysis_{}.csv", experiment.seq)),
-                    &statuses,
-                )?;
+            debug!("Starting analysis...");
 
-                analysis_plot(
-                    &config
-                        .output_path
-                        .join(format!("plot_{}.png", experiment.seq)),
-                    statuses,
-                    experiment,
-                )?;
-            } else {
-                println!(
-                    "No runs have completed yet, there are no results to analyse. 
-                    Try later. To see job status, type 'gourd status'."
-                );
+            if cmd.dry {
+                info!("Would have analysed the experiment (dry)");
+
+                return Ok(());
             }
+
+            let output = if completed_runs.next().is_some() {
+                match &output[..] {
+                    "csv" => analysis_csv(
+                        config
+                            .output_path
+                            .join(format!("analysis_{}.csv", experiment.seq)),
+                        statuses,
+                    )?,
+
+                    "plot-png" => analysis_plot(
+                        config
+                            .output_path
+                            .join(format!("plot_{}.png", experiment.seq)),
+                        statuses,
+                        experiment,
+                        true,
+                    )?,
+
+                    "plot-svg" => analysis_plot(
+                        config
+                            .output_path
+                            .join(format!("plot_{}.svg", experiment.seq)),
+                        statuses,
+                        experiment,
+                        false,
+                    )?,
+                    _ => bailc!("unsupported output format"),
+                }
+            } else {
+                bailc!(
+                    "No runs have completed yet", ;
+                    "There are no results to analyse.", ;
+                    "Try later. To see job status, use {CMD_STYLE}gourd status{CMD_STYLE:#}.",
+                );
+            };
+
+            info!("Analysis successful!");
+            info!("Results have been placed in {output:?}");
         }
 
         GourdCommand::Cancel(CancelStruct {

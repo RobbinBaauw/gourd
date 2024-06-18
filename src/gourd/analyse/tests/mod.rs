@@ -44,7 +44,7 @@ fn test_analysis_csv_success() {
         },
     );
 
-    assert!(analysis_csv(&output_path, &statuses).is_ok());
+    assert!(analysis_csv(output_path.clone(), statuses).is_ok());
 
     let mut reader = Reader::from_path(output_path).unwrap();
 
@@ -82,7 +82,7 @@ fn test_analysis_csv_wrong_path() {
     let output_path = tmp_dir.path().join("");
     let statuses = BTreeMap::new();
 
-    assert!(analysis_csv(&output_path, &statuses).is_err());
+    assert!(analysis_csv(output_path, statuses).is_err());
     assert!(tmp_dir.close().is_ok());
 }
 
@@ -219,21 +219,21 @@ fn test_get_completion_time() {
 
 #[test]
 fn test_get_data_for_plot_exists() {
-    let mut completions: BTreeMap<String, Vec<u128>> = BTreeMap::new();
-    completions.insert(String::from("first"), vec![1, 2, 5]);
-    completions.insert(String::from("second"), vec![1, 3]);
+    let mut completions: BTreeMap<FieldRef, Vec<u128>> = BTreeMap::new();
+    completions.insert(FieldRef::Regular("first".to_string()), vec![1, 2, 5]);
+    completions.insert(FieldRef::Regular("second".to_string()), vec![1, 3]);
 
     let max_time = 5;
     let max_count = 3;
 
-    let mut data: BTreeMap<String, Vec<(u128, u128)>> = BTreeMap::new();
+    let mut data: BTreeMap<FieldRef, Vec<(u128, u128)>> = BTreeMap::new();
     data.insert(
-        String::from("first"),
-        vec![(0, 0), (1, 1), (2, 2), (3, 2), (4, 2), (5, 3)],
+        FieldRef::Regular("first".to_string()),
+        vec![(0, 0), (1, 1), (1, 1), (2, 2), (4, 2), (5, 3), (5, 3)],
     );
     data.insert(
-        String::from("second"),
-        vec![(0, 0), (1, 1), (2, 1), (3, 2), (4, 2), (5, 2)],
+        FieldRef::Regular("second".to_string()),
+        vec![(0, 0), (1, 1), (2, 1), (3, 2), (5, 2)],
     );
 
     let res = get_data_for_plot(completions);
@@ -242,7 +242,7 @@ fn test_get_data_for_plot_exists() {
 
 #[test]
 fn test_get_data_for_plot_not_exist() {
-    let completions: BTreeMap<String, Vec<u128>> = BTreeMap::new();
+    let completions: BTreeMap<FieldRef, Vec<u128>> = BTreeMap::new();
 
     assert_eq!((0, 0, BTreeMap::new()), get_data_for_plot(completions));
 }
@@ -252,15 +252,15 @@ fn test_make_plot() {
     let tmp_dir = TempDir::new("testing").unwrap();
     let output_path = tmp_dir.path().join("plot.png");
 
-    let mut data: BTreeMap<String, Vec<(u128, u128)>> = BTreeMap::new();
+    let mut data: BTreeMap<FieldRef, Vec<(u128, u128)>> = BTreeMap::new();
     data.insert(
-        String::from("first"),
+        FieldRef::Regular("first".to_string()),
         vec![(0, 0), (1, 1), (2, 2), (3, 2), (4, 2), (5, 3)],
     );
     data.insert(
-        String::from("second"),
+        FieldRef::Regular("second".to_string()),
         vec![(0, 0), (1, 1), (2, 1), (3, 2), (4, 2), (5, 2)],
     );
 
-    assert!(make_plot(&output_path, data, 5, 3).is_ok());
+    assert!(make_plot((5, 3, data), BitMapBackend::new(&output_path, (300, 300))).is_ok());
 }
