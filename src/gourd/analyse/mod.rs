@@ -118,8 +118,7 @@ pub fn get_afterscript_output_info(afterscript_completion: &Option<Option<String
     if let Some(inner) = afterscript_completion {
         if let Some(label) = inner {
             vec![label.clone()]
-        } 
-        else {
+        } else {
             vec![String::from("done, no label")]
         }
     } else {
