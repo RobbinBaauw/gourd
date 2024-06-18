@@ -3,8 +3,6 @@ use std::process;
 use std::process::Command;
 use std::process::Output;
 
-use anyhow::anyhow;
-use anyhow::Context;
 use anyhow::Result;
 use gourd_lib::bailc;
 use gourd_lib::constants::NAME_STYLE;

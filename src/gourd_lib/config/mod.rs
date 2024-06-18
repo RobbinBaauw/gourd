@@ -4,7 +4,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use maps::DeserState;
@@ -288,6 +287,10 @@ pub struct Config {
     /// ```
     #[serde(rename = "label")]
     pub labels: Option<BTreeMap<String, Label>>,
+
+    /// If set to true, will throw an error when multiple labels are present in
+    /// afterscript output.
+    pub prevent_label_overlap: Option<bool>,
 }
 
 /// The config options when running through Slurm
@@ -351,7 +354,7 @@ pub struct SBatchArg {
 
 /// The resource limits, a Slurm configuration parameter that can be changed
 /// during an experiment. Contains the CPU, time, and memory bounds per run.
-#[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ResourceLimits {
     /// Maximum time allowed _for each_ job.
@@ -383,6 +386,7 @@ impl Default for Config {
             postprocess_resource_limits: None,
             postprocess_programs: None,
             labels: Some(BTreeMap::new()),
+            prevent_label_overlap: Some(true),
         }
     }
 }

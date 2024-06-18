@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::time::Duration;
 
 use clap::builder::PossibleValue;
 use clap::ArgAction;
@@ -174,6 +175,47 @@ pub struct AnalyseStruct {
     pub output: String,
 }
 
+/// Arguments supplied with the `set-limits` command.
+#[derive(Args, Debug, Clone)]
+pub struct SetLimitsStruct {
+    /// The id of the experiment of which to change limits
+    /// [default: newest experiment]
+    #[arg(value_name = "EXPERIMENT")]
+    pub experiment_id: Option<usize>,
+
+    /// The program for which to set resource limits.
+    #[arg(short = 'p', long)]
+    pub program: Option<String>,
+
+    /// Set resource limits for all programs.
+    #[arg(
+        short = 'a',
+        long,
+        conflicts_with_all = ["program"],
+    )]
+    pub all: bool,
+
+    /// Take the resource limits from a toml file.
+    #[arg(long)]
+    pub mem: Option<usize>,
+
+    /// Take the resource limits from a toml file.
+    #[arg(long)]
+    pub cpu: Option<usize>,
+
+    /// Take the resource limits from a toml file.
+    #[arg(short, long, conflicts_with_all = ["mem", "cpu"])]
+    pub toml: Option<String>,
+
+    /// Take the resource limits from a toml file.
+    #[arg(long, value_parser = parse_duration)]
+    pub time: Option<Duration>,
+}
+
+fn parse_duration(s: &str) -> std::result::Result<Option<Duration>, humantime::DurationError> {
+    humantime::parse_duration(s).map(Some)
+}
+
 /// Enum for root-level `gourd` commands.
 #[derive(Subcommand, Debug)]
 pub enum GourdCommand {
@@ -204,6 +246,10 @@ pub enum GourdCommand {
     /// Output metrics of completed runs.
     #[command()]
     Analyse(AnalyseStruct),
+
+    /// Sets resource limits.
+    #[command()]
+    SetLimits(SetLimitsStruct),
 
     /// Print information about the version.
     #[command()]

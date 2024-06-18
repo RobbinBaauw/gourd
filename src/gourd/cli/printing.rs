@@ -120,44 +120,61 @@ pub fn query_yes_no(question: &str) -> Result<bool> {
 }
 
 /// Ask the user for input to update an instance of ResourceLimits
-pub fn query_update_resource_limits(rss: &ResourceLimits) -> Result<ResourceLimits> {
+pub fn query_update_resource_limits(
+    rss: &ResourceLimits,
+    mem: &Option<usize>,
+    cpu: &Option<usize>,
+    time: &Option<std::time::Duration>,
+) -> Result<ResourceLimits> {
     let mut new_rss = *rss;
 
-    new_rss.time_limit = ask(
-        inquire::CustomType::<humantime::Duration>::new("New Time limit:")
-            .with_default(humantime::Duration::from(new_rss.time_limit))
-            .prompt(),
-    )?
-    .into();
-
-    loop {
-        new_rss.mem_per_cpu = ask(
-            inquire::CustomType::<usize>::new("New memory limit (in MB):")
-                .with_default(new_rss.mem_per_cpu)
-                .prompt(),
-        )?;
-        if new_rss.mem_per_cpu != 0
-            || query_yes_no(
-                "A memory limit of zero gives the job \
-        access to the memory of the entire node. Are you sure you want to do this?",
-            )?
-        {
-            break;
-        }
+    if time.is_none() {
+        new_rss.time_limit = ask(inquire::CustomType::<humantime::Duration>::new(
+            "New Time limit:",
+        )
+        .with_default(humantime::Duration::from(new_rss.time_limit))
+        .prompt())?
+        .into();
+    } else {
+        new_rss.time_limit = time.unwrap();
     }
 
-    new_rss.cpus = ask(inquire::CustomType::<usize>::new("New CPU limit:")
-        .with_default(new_rss.cpus)
-        .with_validator(|input: &usize| {
-            if *input > 0 {
-                Ok(Validation::Valid)
-            } else {
-                Ok(Validation::Invalid(
-                    "CPUs per task need to be at least 1".into(),
-                ))
+    if mem.is_none() {
+        loop {
+            new_rss.mem_per_cpu = ask(inquire::CustomType::<usize>::new(
+                "New memory limit (in MB):",
+            )
+            .with_default(new_rss.mem_per_cpu)
+            .prompt())?;
+            if new_rss.mem_per_cpu != 0
+                || query_yes_no(
+                    "A memory limit of zero gives the job \
+            access to the memory of the entire node. Are you sure you want to do this?",
+                )?
+            {
+                break;
             }
-        })
-        .prompt())?;
+        }
+    } else {
+        new_rss.mem_per_cpu = mem.unwrap();
+    }
+
+    if cpu.is_none() {
+        new_rss.cpus = ask(inquire::CustomType::<usize>::new("New CPU limit:")
+            .with_default(new_rss.cpus)
+            .with_validator(|input: &usize| {
+                if *input > 0 {
+                    Ok(Validation::Valid)
+                } else {
+                    Ok(Validation::Invalid(
+                        "CPUs per task need to be at least 1".into(),
+                    ))
+                }
+            })
+            .prompt())?;
+    } else {
+        new_rss.cpus = cpu.unwrap();
+    }
 
     Ok(new_rss)
 }

@@ -256,6 +256,7 @@ macro_rules! config {
                 postprocess_resource_limits: None,
                 postprocess_programs: None,
                 labels: None,
+                prevent_label_overlap: None,
             }
         }
     };
@@ -276,6 +277,7 @@ macro_rules! config {
                 postprocess_resource_limits: None,
                 postprocess_programs: Some($crate::keep(&$env.programs.clone(), &[$($post.to_string()),*])),
                 labels: $label,
+                prevent_label_overlap: None,
             }
         }
     };

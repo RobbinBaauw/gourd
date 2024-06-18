@@ -42,9 +42,14 @@ pub mod rerun;
 /// Analysing runs - collecting metrics, exporting, plotting.
 pub mod analyse;
 
+/// Set resource limits for programs.
+pub mod setlim;
+
 /// Convenience functions for unit tests.
 #[cfg(test)]
 pub mod test_utils;
+
+extern crate humantime;
 
 /// The main CLI entry-point of the `gourd` utility.
 ///

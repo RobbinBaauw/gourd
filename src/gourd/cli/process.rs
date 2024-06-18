@@ -12,6 +12,7 @@ use colog::default_builder;
 use colog::formatter;
 use gourd_lib::bailc;
 use gourd_lib::config::Config;
+use gourd_lib::config::ResourceLimits;
 use gourd_lib::constants::CMD_STYLE;
 use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
@@ -39,8 +40,10 @@ use crate::cli::def::CancelStruct;
 use crate::cli::def::Cli;
 use crate::cli::def::GourdCommand;
 use crate::cli::def::RunSubcommand;
+use crate::cli::def::SetLimitsStruct;
 use crate::cli::def::StatusStruct;
 use crate::cli::printing::print_version;
+use crate::cli::printing::query_update_resource_limits;
 use crate::experiments::generate_new_run;
 use crate::experiments::ExperimentExt;
 use crate::init::init_experiment_setup;
@@ -49,6 +52,7 @@ use crate::local::run_local;
 use crate::post::postprocess_job::schedule_post_jobs;
 use crate::rerun;
 use crate::rerun::checks::query_changing_resource_limits;
+use crate::setlim;
 use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::chunk::Chunkable;
 use crate::slurm::handler::SlurmHandler;
@@ -474,6 +478,42 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     experiment.seq
                 );
             }
+        }
+
+        GourdCommand::SetLimits(SetLimitsStruct {
+            experiment_id,
+            program,
+            all,
+            mem,
+            cpu,
+            toml,
+            time,
+        }) => {
+            let (mut experiment, _config) = read_experiment(experiment_id, cmd, &file_system)?;
+
+            if *all {
+                trace!("Selected all programs to change limits");
+
+                let old_rss = ResourceLimits::default();
+
+                let new_rss = match toml {
+                    Some(path) => setlim::get_limits_from_toml(path.into(), file_system)?,
+                    None => query_update_resource_limits(&old_rss, mem, cpu, time)?,
+                };
+
+                setlim::query_changing_limits_for_all_programs(&mut experiment, new_rss)?;
+
+                debug!("Updating resource limits for all programs");
+                trace!("Old resource limits: {:?}", old_rss);
+                trace!("New resource limits: {:?}", new_rss);
+            } else if let Some(name) = program {
+                trace!("Selected program: {:?}", name);
+                setlim::query_changing_limits_for_program(name, &mut experiment, mem, cpu, time)?;
+            } else {
+                bailc!("No program specified to change the limits for.")
+            }
+
+            experiment.save(&experiment.config.experiments_folder, &file_system)?;
         }
     }
 

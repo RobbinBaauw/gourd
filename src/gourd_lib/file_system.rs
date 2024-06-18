@@ -4,7 +4,6 @@ use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 
-use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use git2::Repository;
