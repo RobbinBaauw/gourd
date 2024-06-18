@@ -75,18 +75,18 @@
         The following options apply to all \Prog{gourd} commands.
 
         \begin{Description}[Options]
-            \item[\OptArg{-c}{ filename}, \OptArg{--config}{ filename}]
+            \item[\OptArg{-c}{ filename}, \OptArg{\ddash config}{ filename}]
             Tell \Prog{gourd} to use the given filename as \File{gourd.toml}, the configuration
             file that defines the experimental setup.
             By default, the file is expected in the current working directory at \File{./gourd.toml}.
-            \item[\Opt{-d}, \Opt{--dry}]
+            \item[\Opt{-d}, \Opt{\ddash dry-run}]
             Run \Prog{gourd} in dry-run mode, printing all operations (such as writing to files or scheduling runs)
             without executing them.
-            \item[\Opt{-h}, \Opt{--help}]
+            \item[\Opt{-h}, \Opt{\ddash help}]
             Display usage instructions for the \Prog{gourd} utility or any of its commands.
             This option extends to all of the subcommands of \Prog{gourd}, for example running
             \Prog{gourd} \Arg{status} \Arg{-h} will display help about the \Arg{status} subcommand.
-            \item[\Opt{-s}, \Opt{--script}]
+            \item[\Opt{-s}, \Opt{\ddash script}]
             Tell \Prog{gourd} to use a script-friendly interface, that is, one that does not use
             interactive user prompts.
             \item[\Opt{-v}, \Opt{-vv}, \Opt{--verbose}]
@@ -172,6 +172,18 @@
                         \Prog{gourd} \Arg{status} command) until all runs have finished executing.
                         Typing Control+C into the terminal will stop the runs.
 
+                        \Arg{local} can additionally take more options:
+                            \begin{Description}[Options]
+                                \item[\oOpt{\ddash force}]
+                                  \Prog{gourd} will not run large experiments on \Arg{local} by default. This is
+                                  because doing so may use system resources to fast for a personal computing device.
+                                  To ignore the warning and run the experiment anyways use this optional flag.
+
+                                \item[\oOpt{\ddash sequential}]
+                                  By default the runs are run concurrently with a level of parallelism. This option
+                                  can be specified to force the runs to run sequentially, that is, one after another.
+                            \end{Description}
+
                     \item[\Arg{slurm}]
                         Runs the experiment on a \Prog{Slurm}-equipped cluster computer.
 
@@ -196,7 +208,7 @@
                         may include the supercomputer load and the size of your experiment; this
                         delay can range from seconds to days.
                         For this reason, \Prog{gourd} \Arg{run} \Arg{slurm} does not show the
-                        continuous status of an experiment unless the \oOpt{-f, --follow} flag is
+                        continuous status of an experiment unless the \oOpt{-f, \ddash follow} flag is
                         used.
 
                         On successful scheduling, the Slurm IDs of the job arrays that make
@@ -224,8 +236,10 @@
 
             \subsubsection{Synopsis}
                 \Prog{gourd} \Arg{init}
-                \oOpt{-d}
                 \oOptArg{-e}{ example-name}
+                \oOpt{\ddash list-examples}
+                \oOptArg{\ddash git}{=true|false}
+                \oOpt{-d}
                 \oOpt{-h}
                 \oOpt{-s}
                 \oOpt{-v|-vv}
@@ -233,12 +247,14 @@
 
             \subsubsection{Options}
                 \begin{Description}[Options]
-                \item[\OptArg{-e, --example}{ example-name}]
-                Initializes the given directory with an example configuration from \Prog{gourd-tutorial(7)}
-                (rather than a custom template for \File{gourd.toml}).
-                \item[\Opt{-q, --quick}]
-                Does not give interactive prompts, using default values to create a minimal \File{gourd.toml}.
-                This is equivalent to using \Opt{-s}.
+                    \item[\OptArg{-e, \ddash example}{ example-name}]
+                      Initializes the given directory with an example configuration from \Prog{gourd-tutorial(7)}
+                      (rather than a custom template for \File{gourd.toml}).
+                    \item[\Opt{\ddash list-examples}]
+                      Instead of initializing a folder this will make \Prog{gourd} list all of the available
+                      examples for the \emph{-e} option.
+                    \item[\OptArg{\ddash git}{=true|false}]
+                      Whether or not to initialize an empty git repository in the newly created folder.
                 \end{Description}
 
         \subsection{GOURD STATUS}
@@ -250,21 +266,33 @@
                 This command can also display detailed status of an individual run using the \Opt{-i} flag.
 
             \subsubsection{Synopsis}
-                \Prog{gourd}\Arg{status}
+                \Prog{gourd} \Arg{status}
                 \oArg{experiment-id}
+                \oOptArg{-i}{ run-id}
+                \oOpt{\ddash follow}
+                \oOpt{\ddash full}
                 \oOpt{-d}
                 \oOpt{-h}
-                \oOptArg{-i}{ run-id}
                 \oOpt{-s}
                 \oOpt{-v|-vv}
+                \oArg{experiment-id}
 
             \subsubsection{Options}
                 \begin{Description}[Options]
-                \item[\Arg{experiment-id}]
-                The ID of an experiment to show the status of.
-                By default, this is the most recent experiment.
-                \item[\OptArg{-i}{ run-id}]
-                The ID of a run to show detailed information of.
+                  \item[\Arg{experiment-id}]
+                    The ID of an experiment to show the status of.
+                    By default, this is the most recent experiment.
+                  \item[\OptArg{-i}{ run-id}]
+                    Instead of showing a general overview of the entire experiment show detailed
+                    information about a run with this \emph{run-id}.
+                  \item[\Opt{\ddash full}]
+                    If there is a lot of runs to display on the screen \Arg{status} will shorten the
+                    output, if the user still prefers to see the entire unshortened output the
+                    \Opt{\ddash full} option can be specified.
+                  \item[\Opt{\ddash follow}]
+                    The status will be continually displayed until all of the runs have finished.
+                    This may be useful, when for example, it is known that the jobs will finish
+                    in a matter of minutes.
                 \end{Description}
 
             \subsection{Experiment status}
@@ -274,31 +302,31 @@
                 containing the status of each run, and, if completed, the run's basic timing metrics.
                 The command also shows a summary of each run's error status, if any.
 
-                \subsection{Run status}
-                    With the \OptArg{-i}{ run-id} argument, \Prog{gourd} \Arg{status} will retrieve detailed
-                    run information including the arguments that the binary was called with, RUsage metrics
-                    if successful, and detailed error status if it has failed.
-                    The file paths provided make it easy to inspect the output of a run, whether it has
-                    succeeded or failed.
+            \subsection{Run status}
+                With the \OptArg{-i}{ run-id} argument, \Prog{gourd} \Arg{status} will retrieve detailed
+                run information including the arguments that the binary was called with, RUsage metrics
+                if successful, and detailed error status if it has failed.
+                The file paths provided make it easy to inspect the output of a run, whether it has
+                succeeded or failed.
 
-                \subsubsection{Afterscripts}
-                    To postprocess the output of the runs, there are two options available: afterscipts and Slurm
-                    postprocessing jobs. Afterscripts are scripts that run locally (so for DelftBlue they do not
-                    get scheduled as separate jobs) and are thus meant for quick and non-complicated postprocessing
-                    (such as getting the first line of the output file). For long and complicated postprocessing
-                    with a significant computational cost, we support Slurm postprocessing jobs. A program being
-                    evaluated can have both an afterscript and a postprocessing Slurm job, one of them, or neither.
+            \subsubsection{Afterscripts}
+                To postprocess the output of the runs, there are two options available: afterscipts and Slurm
+                postprocessing jobs. Afterscripts are scripts that run locally (so for DelftBlue they do not
+                get scheduled as separate jobs) and are thus meant for quick and non-complicated postprocessing
+                (such as getting the first line of the output file). For long and complicated postprocessing
+                with a significant computational cost, we support Slurm postprocessing jobs. A program being
+                evaluated can have both an afterscript and a postprocessing Slurm job, one of them, or neither.
 
-                    An afterscript is optional and specified per program. To indicate the use of an afterscript,
-                    the path to the script file needs to be specified in the gourd.toml under the chosen program.
-                    Multiple programs can use the same script. Furthermore, if at least one program has an
-                    afterscript, a path to a folder that will store the afterscript output needs to be specified
-                    (once for the entire experiment, analogous to metrics and output paths). The afterscript can
-                    be used to assign labels to runs as a means of specifying custom status.
+                An afterscript is optional and specified per program. To indicate the use of an afterscript,
+                the path to the script file needs to be specified in the gourd.toml under the chosen program.
+                Multiple programs can use the same script. Furthermore, if at least one program has an
+                afterscript, a path to a folder that will store the afterscript output needs to be specified
+                (once for the entire experiment, analogous to metrics and output paths). The afterscript can
+                be used to assign labels to runs as a means of specifying custom status.
 
-                    An afterscript should take as arguments the path to the input file and the path to a folder
-                    for output. The output folder has been created and is empty. It is the responsibility of the
-                    afterscript to create and write to any files in that directory.
+                An afterscript should take as arguments the path to the input file and the path to a folder
+                for output. The output folder has been created and is empty. It is the responsibility of the
+                afterscript to create and write to any files in that directory.
 
         \subsection{GOURD CONTINUE}
 
@@ -441,8 +469,6 @@
 
         This section contains some common examples of using \Prog{gourd}.
         For a more detailed walkthrough with more focus on examples, use the \Prog{gourd-tutorial(7)} manual.
-
-
 
 
     \section{FILES}

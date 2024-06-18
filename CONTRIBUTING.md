@@ -1,21 +1,16 @@
 # Contribution guidelines
 
-# Setup your repository
+Please refer to the maintainer documentation.
 
-Before doing anything issue the command:
-`git config --local core.hooksPath .hooks/`
+An artifact is available from the GitLab pipeline `documentation` job, or
+[here](https://gourd.chla.cz/maintainer.pdf)
 
-Otherwise your commits will get automatically rejected by the CI.
+The document contains all contribution guidelines,
+code style and explanations as to the structure of the application.
 
-# Code style
+But if that seems too long to read
+a good first step is to run:
 
-The rules are simple.
-
-If `cargo fmt` produces something different you are wrong.
-
-This is pursuant to certain exceptions but they have to be well motivated
-in the MR description.
-
-# Contribution style
-
-Limit the amount of commits if possible. All commits should be lowercase.
+```
+git config --local core.hooksPath .hooks/
+```

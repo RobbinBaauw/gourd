@@ -48,6 +48,7 @@ build:
     when: on_success
     name: binaries (musl-x86_64)
     expose_as: binaries
+    expire_in: 5 days
     paths:
       - gourd
       - gourd_wrapper
@@ -113,6 +114,7 @@ rustdoc:
     access: all
     name: rustdoc
     expose_as: rustdoc
+    expire_in: 5 days
     paths:
       - target/x86_64-unknown-linux-musl/doc/
 
@@ -130,6 +132,7 @@ documentation:
   artifacts:
     when: on_success
     name: documentation
+    expire_in: 5 days
     expose_as: documentation
     paths:
       - documentation/

@@ -16,7 +16,9 @@
   --color: #118bee;
   --color-accent: #bcdde3;
   --color-bg: #fff;
-  --color-bg-secondary: #f8f8f8;
+  --article-bg: #fafafa;
+  --border-col: #4a2b4a;
+  --color-bg-secondary: #e8e8e8;
   --color-secondary: #920de9;
   --color-secondary-accent: #555;
   --color-shadow: #f4f4f4;
@@ -42,8 +44,9 @@
   :root {
     --code-bg: #515151;
     --color-accent: #424242;
-    --color-bg: #333333;
-    --color-bg-secondary: #424242;
+    --color-bg: #232323;
+    --article-bg: #232323;
+    --color-bg-secondary: #2e2e2e;
     --color-secondary: #6df216;
     --color-secondary-accent: #f4f4f4;
     --color-shadow: #bbbbbb20;
@@ -68,7 +71,13 @@ html {
 body {
   font-size: 1em;
   color: var(--color-text);
-  background: radial-gradient(circle farthest-side at 0% 50%,var(--color-bg) 23.5%,rgba(240,166,17,0) 0)21px 30px, radial-gradient(circle farthest-side at 0% 50%,var(--color-bg-secondary) 24%,rgba(240,166,17,0) 0)19px 30px, linear-gradient(var(--color-bg) 14%,rgba(240,166,17,0) 0, rgba(240,166,17,0) 85%,var(--color-bg) 0)0 0, linear-gradient(150deg,var(--color-bg) 24%,var(--color-bg-secondary) 0,var(--color-bg-secondary) 26%,rgba(240,166,17,0) 0,rgba(240,166,17,0) 74%,var(--color-bg-secondary) 0,var(--color-bg-secondary) 76%,var(--color-bg) 0)0 0, linear-gradient(30deg,var(--color-bg) 24%,var(--color-bg-secondary) 0,var(--color-bg-secondary) 26%,rgba(240,166,17,0) 0,rgba(240,166,17,0) 74%,var(--color-bg-secondary) 0,var(--color-bg-secondary) 76%,var(--color-bg) 0)0 0, linear-gradient(90deg,var(--color-bg-secondary) 2%,var(--color-bg) 0,var(--color-bg) 98%,var(--color-bg-secondary) 0%)0 0 var(--color-bg);
+  background: repeating-linear-gradient(
+      90deg,
+      var(--color-bg-secondary),
+      var(--color-bg-secondary) 2px,
+      var(--color-bg) 2px,
+      var(--color-bg) 10px
+  );
   background-size: 40px 60px;
   margin: 0;
   display: grid;
@@ -306,11 +315,11 @@ main.article article > figure,video,div.sourceCode {
 
 main.article article > p,hr,blockquote,dl,ul,ol,h1,h2,h3,h4,h5,h6,table,div.manual-text {
   grid-column: 2/ span 1;
-  background: var(--color-bg);
+  background: var(--article-bg);
 }
 
 main section {
-  background: var(--color-bg);
+  background: var(--article-bg);
 }
 
 main section.header {
@@ -358,7 +367,7 @@ main.article article > p:first-child::first-letter {
 */
 
 /* Typography */
-article a {
+article a, .stovrd {
   vertical-align: baseline;
   display: inline-block;
   padding: 2px 3px 4px 3px;
@@ -369,7 +378,8 @@ article a {
 }
 
 article a,
-samp {
+samp,
+.stovrd {
   background-color: var(--code-bg);
   color: black;
   border-radius: var(--border-radius);
@@ -1108,14 +1118,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 :root {
   --color-cm: #0b5b00;
-  --color-pa: green;
+  --color-pa: #ff5a1b;
   --color-ar: #b0141a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --color-cm: #63ff2b;
-    --color-pa: #0f0;
+    --color-pa: #ff5a1b;
     --color-ar: #fbb7ba;
   }
 }
@@ -1147,9 +1157,12 @@ h2.Ss {
 }
 
 section.Sh {
-  border-left: 1px dashed #979696;
+  border-left: 2px dashed var(--border-col);
   padding-left: 5px;
   padding-left: min(2rem, 2vw);
+  border-right: 2px dashed var(--border-col);
+  padding-right: 5px;
+  padding-right: min(2rem, 2vw);
   overflow-x: auto;
 }
 

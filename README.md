@@ -1,51 +1,91 @@
-# gourd
+<img align="left" height="700" style="padding-right: 300px;" src="src/resources/logo.png">
 
-**Gourd** is a command-line tool that schedules parallel runs for algorithm comparisons.
+### `gourd`
+
+**`gourd`** is a command-line tool that schedules parallel runs for algorithm comparisons.
 
 Given the parameters of the experiment, a number of test datasets,
-and algorithm implementations to compare, **Gourd** runs the experiment in parallel
+and algorithm implementations to compare, `gourd` runs the experiment in parallel
 and provides many options for processing its results.
 
 While originally envisioned for the DelftBlue supercomputer at
-Delft University of Technology, **Gourd** can replicate the experiment on
+Delft University of Technology, `gourd` can replicate the experiment on
 any cluster computer with the _Slurm_ scheduler, on any UNIX-like system,
 and on Microsoft Windows.
 
-# Installation
+### Installation
 
-TODO: LINUX/MAC/WINDOWS PACKAGES.
+`gourd` is currently provided as a installer for various systems.
 
-# Building
+The easiest way to install `gourd` is to run the shell installer.
 
-Build the software from source using `cargo build --release`.
+These binary releases are hosted courtesy of Lukáš Chládek (Thank You!).
 
-This will produce `./target/release/gourd` and `./target/release/gourd_wrapper`.
+```
+$ wget https://gourd.chla.cz/[your system here] \
+  && sudo sh ./[your system here]
+```
 
-Put these in your `$PATH`.
+This command, of course, requires `curl` to be installed.
 
-# Obtaining the manual
+The distributed installers are, one of these should be put in place of `[your system here]`:
+- [`install-x86_64-unknown-linux-musl.sh`](https://gourd.chla.cz/install-x86_64-unknown-linux-musl.sh) (Linux systems based on musl eg: Alpine, Void)
+- [`install-x86_64-unknown-linux-gnu.sh`](https://gourd.chla.cz/install-x86_64-unknown-linux-gnu.sh) (Linux systems based on gnu eg: Ubuntu, Windows WSL)
+- [`install-x86_64-apple-darwin.sh`](https://gourd.chla.cz/install-x86_64-apple-darwin.sh) (Apple x86)
+- [`install-aarch64-apple-darwin.sh`](https://gourd.chla.cz/install-aarch64-apple-darwin.sh) (Apple ARM)
+- [`install-delftblue.sh`](https://gourd.chla.cz/install-delftblue.sh) (Specifically made for DelftBlue, run it without `sudo`)
 
-To build user and maintainer documentation run `cargo build --release --no-default-features --features documentation -vv`.
+Customizing installation folders is explained [here](https://gourd.chla.cz/maintainer.pdf).
 
-These are built into HTML, PDF, and `man` formats.
+<br clear="left"/>
 
-To build code documentation run `cargo doc --release --document-private-items`.
+### Uninstalling
 
-This is built into HTML.
+Same as for the installer, the available uninstallers are:
+- [`uninstall-x86_64-unknown-linux-musl.sh`](https://gourd.chla.cz/uninstall-x86_64-unknown-linux-musl.sh)
+- [`uninstall-x86_64-unknown-linux-gnu.sh`](https://gourd.chla.cz/uninstall-x86_64-unknown-linux-gnu.sh)
+- [`uninstall-x86_64-apple-darwin.sh`](https://gourd.chla.cz/uninstall-x86_64-apple-darwin.sh)
+- [`uninstall-aarch64-apple-darwin.sh`](https://gourd.chla.cz/uninstall-aarch64-apple-darwin.sh)
+- [`uninstall-delftblue.sh`](https://gourd.chla.cz/uninstall-delftblue.sh)
 
-## Installation
+### Usage
 
-### For UNIX-like systems:
+Verify that `gourd` is installed by running:
+```
+$ gourd version
+```
 
-The user guide is a man page. Install it to a `MANPATH`, a list of which you can find by typing `echo $MANPATH`, using the following commands:
+Congratulations! Now you can use `gourd`.
 
-`cp target/release/manpages/gourd.1.man <manpath>/man1/gourd.1`
-`cp target/release/manpages/gourd.toml.5.man <manpath>/man1/gourd.toml.5`
-`cp target/release/manpages/gourd-tutorial.7.man <manpath>/man1/gourd-tutorial.7`
+There is extensive tutorials and documentation which can be accessed by running:
+```
+$ man gourd
+$ man gourd.toml
+$ man gourd-tutorial
+```
 
-The user guide is then accessible using `man gourd`.
+Please refer to these if you want to familiarize yourself with the software.
 
-# Contributing
+A good first step (as outlined in the tutorial) is to try:
+```
+$ gourd init [directory name]
+```
 
-The maintainer documentation PDF is available as a build artifact on GitLab.
-You can also compile from source (requires XeLaTeX), is placed in `target/release/manpages/maintainer.pdf`
+### Other systems
+
+If your system is not listed above and you are interested in maintaining
+a script for it, please open a issue!
+
+### Building
+
+Please refer to the building section of the maintainer documentation.
+An artifact is available from the GitLab pipeline `documentation` job, or
+[here](https://gourd.chla.cz/maintainer.pdf)
+
+### Authors
+
+- Mikołaj Gazeel, m.j.gazeel@student.tudelft.nl
+- Lukáš Chládek, l@chla.cz
+- Ανδρέας Τσατσάνης, a.tsatsanis@student.tudelft.nl
+- Rūta Giedrytė, r.giedryte@student.tudelft.nl
+- Jan Piotrowski, me@jan.wf

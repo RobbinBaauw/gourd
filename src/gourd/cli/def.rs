@@ -79,10 +79,6 @@ pub struct RerunOptions {
 /// Arguments supplied with the `status` command.
 #[derive(Args, Debug, Clone, Copy)]
 pub struct StatusStruct {
-    /// Rerun failed jobs.
-    #[arg(short, long)]
-    pub rerun_failed: bool,
-
     /// The id of the experiment for which to fetch status
     /// [default: newest experiment].
     #[arg(value_name = "EXPERIMENT")]

@@ -136,6 +136,28 @@ toml = "0.8.12"
 # To run benchmarks on stable rust.
 easybench = "1.1.1"
 
+# The release profile is for distributing gourd.
+# This means that the compiled artifacts should *not*
+# include any identifiable information about the system
+# they were built on.
+#
+# Hence the following options.
+[profile.release]
+# Strip debugging symbols - these may leak library paths.
+# It also decreases the binary size.
+strip = true
+
+# Drop dead code.
+# Make sure to use LLVM-ld for release builds.
+# As it is realiable opposed to mold.
+lto = true
+
+# This strips the normally leaked paths by rustc.
+# See: https://github.com/rust-lang/rust/issues/40552.
+# Make sure to change these to your own sensitive directories when building.
+# When building run:
+# RUSTFLAGS="--remap-path-prefix $HOME=/REDACTED/" cargo build --release --features documentation -vv
+
 [lints.rust]
 missing_docs = "warn"
 missing_debug_implementations = "warn"
