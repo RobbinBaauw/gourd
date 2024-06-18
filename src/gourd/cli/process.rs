@@ -33,6 +33,9 @@ use super::def::ContinueStruct;
 use super::def::RerunOptions;
 use super::log::LogTokens;
 use super::printing::get_styles;
+use crate::analyse::analysis_csv;
+use crate::analyse::analysis_plot;
+use crate::cli::def::AnalyseStruct;
 use crate::cli::def::CancelStruct;
 use crate::cli::def::Cli;
 use crate::cli::def::GourdCommand;
@@ -241,7 +244,38 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             }
         }
 
-        GourdCommand::Analyse(_) => panic!("Analyse has not been implemented yet"),
+        GourdCommand::Analyse(AnalyseStruct { experiment_id }) => {
+            let (experiment, config) = read_experiment(experiment_id, cmd, &file_system)?;
+
+            let statuses = get_statuses(&experiment, &mut file_system)?;
+
+            // Checking if there are completed jobs to analyse.
+            let mut completed_runs = statuses
+                .values()
+                .filter(|x| x.fs_status.completion.is_completed());
+
+            if completed_runs.next().is_some() {
+                analysis_csv(
+                    &config
+                        .output_path
+                        .join(format!("analysis_{}.csv", experiment.seq)),
+                    &statuses,
+                )?;
+
+                analysis_plot(
+                    &config
+                        .output_path
+                        .join(format!("plot_{}.png", experiment.seq)),
+                    statuses,
+                    experiment,
+                )?;
+            } else {
+                println!(
+                    "No runs have completed yet, there are no results to analyse. 
+                    Try later. To see job status, type 'gourd status'."
+                );
+            }
+        }
 
         GourdCommand::Cancel(CancelStruct {
             experiment_id,

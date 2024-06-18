@@ -161,7 +161,12 @@ pub struct InitStruct {
 
 /// Arguments supplied with the `analyse` command.
 #[derive(Args, Debug, Clone, Copy)]
-pub struct AnalyseStruct {}
+pub struct AnalyseStruct {
+    /// The id of the experiment to analyse
+    /// [default: newest experiment].
+    #[arg(value_name = "EXPERIMENT")]
+    pub experiment_id: Option<usize>,
+}
 
 /// Enum for root-level `gourd` commands.
 #[derive(Subcommand, Debug)]
