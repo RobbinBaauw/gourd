@@ -43,6 +43,10 @@ path = "src/gourd_wrapper/main.rs"
 name = "gourd_lib"
 path = "src/gourd_lib/lib.rs"
 
+[[test]]
+name = "cli-integration"
+path = "src/integration/mod.rs"
+
 [target.'cfg(unix)'.dependencies]
 # On Linux, macOS, BSD: to perform syscalls to get usage metrics.
 libc = "0.2"

@@ -30,6 +30,7 @@ use log::trace;
 use log::LevelFilter;
 
 use super::def::ContinueStruct;
+use super::def::RerunOptions;
 use super::log::LogTokens;
 use super::printing::get_styles;
 use crate::cli::def::CancelStruct;
@@ -38,11 +39,14 @@ use crate::cli::def::GourdCommand;
 use crate::cli::def::RunSubcommand;
 use crate::cli::def::StatusStruct;
 use crate::cli::printing::print_version;
+use crate::experiments::generate_new_run;
 use crate::experiments::ExperimentExt;
 use crate::init::init_experiment_setup;
 use crate::init::list_init_examples;
 use crate::local::run_local;
 use crate::post::postprocess_job::schedule_post_jobs;
+use crate::rerun;
+use crate::rerun::checks::query_changing_resource_limits;
 use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::chunk::Chunkable;
 use crate::slurm::handler::SlurmHandler;
@@ -85,7 +89,8 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
     let mut file_system = FileSystemInteractor { dry_run: cmd.dry };
 
-    /// Read the experiment from the filesystem.
+    /// Get the experiment instance from the config file and the experiment
+    /// folder.
     fn read_experiment(
         experiment_id: &Option<usize>,
         cmd: &Cli,
@@ -99,7 +104,6 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             Some(id) => {
                 Experiment::experiment_from_folder(*id, &config.experiments_folder, file_system)?
             }
-
             None => {
                 Experiment::latest_experiment_from_folder(&config.experiments_folder, file_system)?
             }
@@ -158,7 +162,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     if cmd.dry {
                         info!("Would have scheduled the experiment on slurm (dry)");
                     } else {
-                        s.run_experiment(&config, &mut experiment, exp_path, file_system)?;
+                        s.run_experiment(&config, &mut experiment, exp_path.clone(), file_system)?;
                         print_scheduling(&experiment, true)?;
                         info!("Experiment started");
                     }
@@ -179,6 +183,9 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     experiment.seq
                 );
             }
+            if cmd.script {
+                println!("{}", exp_path.display());
+            }
         }
 
         GourdCommand::Status(StatusStruct {
@@ -189,8 +196,6 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             ..
         }) => {
             let (experiment, _) = read_experiment(experiment_id, cmd, &file_system)?;
-
-            debug!("Found the newest experiment with id: {}", experiment.seq);
 
             let statuses = get_statuses(&experiment, &mut file_system)?;
 
@@ -288,10 +293,9 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             if id_list.is_empty() {
                 bailc!(
                     "No runs to cancel", ;
-                    "You can only cancel runs that have been scheduled on Slurm.\
-                     Run {CMD_STYLE}gourd status {}{CMD_STYLE:#} to check \
-                     which runs have been scheduled.", experiment.seq;
-                    "",
+                    "You can only cancel runs that have been scheduled on Slurm.", ;
+                     "Run {CMD_STYLE}gourd status {}{CMD_STYLE:#} to check \
+                     which runs have been scheduled.", experiment.seq
                 );
             }
 
@@ -313,8 +317,6 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
         GourdCommand::Continue(ContinueStruct { experiment_id }) => {
             let (mut experiment, config) = read_experiment(experiment_id, cmd, &file_system)?;
-
-            debug!("Found the newest experiment with id: {}", experiment.seq);
 
             // Scheduling postprocessing jobs
             debug!("Checking for postprocess jobs to be run");
@@ -344,7 +346,6 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     blocking_status(&progress, &experiment, &mut file_system, false)?;
 
                     info!("Experiment finished");
-                    println!();
                 }
             } else if experiment.env == Environment::Slurm {
                 let s: SlurmHandler<SlurmCli> = SlurmHandler::default();
@@ -361,7 +362,57 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                 }
             }
 
-            experiment.save(&config.experiments_folder, &file_system)?;
+            let p = experiment.save(&config.experiments_folder, &file_system)?;
+            if cmd.script {
+                println!("{}", p.display());
+            }
+        }
+
+        GourdCommand::Rerun(RerunOptions {
+            experiment_id,
+            run_ids,
+        }) => {
+            let (mut experiment, _) = read_experiment(experiment_id, cmd, &file_system)?;
+
+            let selected_runs = rerun::runs::get_runs_from_rerun_options(
+                run_ids,
+                &experiment,
+                &mut file_system,
+                cmd.script,
+            )?;
+
+            trace!("Selected runs: {:?}", selected_runs);
+
+            query_changing_resource_limits(&mut experiment, cmd, &selected_runs, &mut file_system)?;
+
+            for run_id in &selected_runs {
+                let new_id = experiment.runs.len();
+                let old_run = &experiment.runs[*run_id];
+
+                experiment.runs.push(generate_new_run(
+                    new_id,
+                    old_run.program.clone(),
+                    old_run.input.clone(),
+                    experiment.seq,
+                    &experiment.config,
+                    &file_system,
+                )?);
+
+                experiment.runs[*run_id].rerun = Some(new_id);
+            }
+
+            experiment.save(&experiment.config.experiments_folder, &file_system)?;
+
+            if selected_runs.is_empty() {
+                info!("No new runs to schedule");
+                info!("Goodbye");
+            } else {
+                info!("{} new runs have been created", &selected_runs.len());
+                info!(
+                    "Run {CMD_STYLE} gourd continue {} {CMD_STYLE:#} to schedule them",
+                    experiment.seq
+                );
+            }
         }
     }
 

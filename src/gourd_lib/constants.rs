@@ -72,6 +72,12 @@ pub const WARNING_STYLE: Style = style_from_fg(AnsiColor::Yellow).bold();
 /// The styling for help messages.
 pub const HELP_STYLE: Style = style_from_fg(AnsiColor::Green).bold().underline();
 
+/// Style of commands in doc messages
+pub const CMD_DOC_STYLE: Style = Style::new()
+    .italic()
+    .bg_color(Some(Ansi(AnsiColor::Blue)))
+    .fg_color(Some(Ansi(AnsiColor::Black)));
+
 /// Style of commands in help messages
 pub const CMD_STYLE: Style = Style::new()
     .bold()
@@ -101,6 +107,10 @@ pub const MAIL_TYPE_VALID_OPTIONS: [&str; 13] = [
 /// The maximal amount of runs before status only shows a short summary.
 pub const SHORTEN_STATUS_CUTOFF: usize = 100;
 
+/// Maximal number of individual prompts that the user can be asked when trying
+/// to rerun
+pub const RERUN_LIST_PROMPT_CUTOFF: usize = 15;
+
 /// Do we assume by default that runs with custom labels are failed runs?
 pub const RERUN_LABEL_BY_DEFAULT: fn() -> bool = || true;
 
@@ -110,5 +120,5 @@ pub const TASK_LIMIT: usize = 200;
 /// The logo of the application.
 pub const LOGO: &str = include_str!("../resources/logo.ascii");
 
-/// The length of the bar for scheudling.
+/// The length of the bar for scheduling.
 pub const SCHEDULE_BAR_WIDTH: usize = 50;

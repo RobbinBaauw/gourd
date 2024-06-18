@@ -22,7 +22,7 @@ use log::info;
 
 /// Correctly handles when the user cancels the operation
 /// during an Inquire prompt.
-fn inquire<T>(inq: InquireResult<T>) -> Result<T> {
+pub fn ask<T>(inq: InquireResult<T>) -> Result<T> {
     match inq {
         Ok(answer) => Ok(answer),
         Err(InquireError::OperationCanceled) => bailc!(
@@ -57,7 +57,6 @@ pub fn init_interactive(
         resource_limits: None,
         postprocess_resource_limits: None,
         wrapper: Default::default(),
-        postprocess_output_folder: None,
         postprocess_programs: None,
         labels: None,
         input_schema: None,
@@ -66,11 +65,9 @@ pub fn init_interactive(
     let slurm = if script_mode {
         false
     } else {
-        inquire(
-            Confirm::new("Include options for Slurm?")
-                .with_help_message("These will allow the experiment to run on a cluster computer.")
-                .prompt(),
-        )?
+        ask(Confirm::new("Include options for Slurm?")
+            .with_help_message("These will allow the experiment to run on a cluster computer.")
+            .prompt())?
     };
 
     if slurm {
@@ -90,72 +87,60 @@ pub fn init_interactive(
         slurm_config.experiment_name = if script_mode {
             "my-experiment".to_string()
         } else {
-            inquire(
-                Text::new("Slurm experiment name: ")
-                    .with_validator(ValueRequiredValidator::default())
-                    .with_help_message("This will be used to name jobs submitted to Slurm.")
-                    .prompt(),
-            )?
+            ask(Text::new("Slurm experiment name: ")
+                .with_validator(ValueRequiredValidator::default())
+                .with_help_message("This will be used to name jobs submitted to Slurm.")
+                .prompt())?
         };
 
         slurm_config.array_count_limit = if script_mode {
             10
         } else {
-            inquire(
-                CustomType::new("Slurm array count limit: ")
-                    .with_formatter(&|num: usize| format!("{}", num))
-                    .with_default(10)
-                    .with_help_message("The number of job arrays that can be scheduled at once.")
-                    .prompt(),
-            )?
+            ask(CustomType::new("Slurm array count limit: ")
+                .with_formatter(&|num: usize| format!("{}", num))
+                .with_default(10)
+                .with_help_message("The number of job arrays that can be scheduled at once.")
+                .prompt())?
         };
 
         slurm_config.array_size_limit = if script_mode {
             1000
         } else {
-            inquire(
-                CustomType::new("Slurm array size limit: ")
-                    .with_formatter(&|num: usize| format!("{}", num))
-                    .with_default(1000)
-                    .with_help_message("The number of runs that can be scheduled in one job array.")
-                    .prompt(),
-            )?
+            ask(CustomType::new("Slurm array size limit: ")
+                .with_formatter(&|num: usize| format!("{}", num))
+                .with_default(1000)
+                .with_help_message("The number of runs that can be scheduled in one job array.")
+                .prompt())?
         };
 
         let enter_slurm_data_now = if script_mode {
             false
         } else {
-            inquire(
-                Confirm::new("Enter Slurm credentials now?")
-                    .with_help_message(
-                        "Choosing 'no' will leave the 'account' and 'partition' blank for now.",
-                    )
-                    .prompt(),
-            )?
+            ask(Confirm::new("Enter Slurm credentials now?")
+                .with_help_message(
+                    "Choosing 'no' will leave the 'account' and 'partition' blank for now.",
+                )
+                .prompt())?
         };
 
         if enter_slurm_data_now {
             slurm_config.account = if script_mode {
                 "".to_string()
             } else {
-                inquire(
-                    Text::new("Slurm account to use: ")
-                        .with_validator(ValueRequiredValidator::default())
-                        .with_help_message(
-                            "This should be provided by the administrator of your supercomputer.",
-                        )
-                        .prompt(),
-                )?
+                ask(Text::new("Slurm account to use: ")
+                    .with_validator(ValueRequiredValidator::default())
+                    .with_help_message(
+                        "This should be provided by the administrator of your supercomputer.",
+                    )
+                    .prompt())?
             };
 
             slurm_config.partition = if script_mode {
                 "".to_string()
             } else {
-                inquire(
-                    Text::new("Slurm partition to use: ")
-                        .with_help_message("Most supercomputers use this to choose types of nodes.")
-                        .prompt(),
-                )?
+                ask(Text::new("Slurm partition to use: ")
+                    .with_help_message("Most supercomputers use this to choose types of nodes.")
+                    .prompt())?
             };
         }
 
@@ -187,7 +172,6 @@ pub fn write_files(directory: &Path, config: Config, fs: &impl FileOperations) -
         Some(config.output_path),
         Some(config.metrics_path),
         Some(config.experiments_folder),
-        config.postprocess_output_folder,
     ];
 
     debug!("Creating experiment folders.");

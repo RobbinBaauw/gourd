@@ -83,3 +83,9 @@ impl DerefMut for Regex {
         &mut self.0
     }
 }
+
+impl From<regex_lite::Regex> for Regex {
+    fn from(regex: regex_lite::Regex) -> Self {
+        Self(regex)
+    }
+}

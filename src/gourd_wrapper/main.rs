@@ -86,7 +86,7 @@ fn process() -> Result<()> {
 
     let rc = match args.len() {
         4 => process_args(&args, &fs)?,
-        _ => bail!("Slurm wrapper needs an experiment file path and a job id"),
+        _ => bail!("gourd_wrapper needs an experiment file path and a job id"),
     };
 
     fs::write(

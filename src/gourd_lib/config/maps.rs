@@ -310,8 +310,36 @@ impl From<BTreeMap<String, Program>> for ProgramMap {
     }
 }
 
+impl FromIterator<(String, Program)> for ProgramMap {
+    fn from_iter<T: IntoIterator<Item = (String, Program)>>(iter: T) -> Self {
+        ProgramMap(iter.into_iter().collect())
+    }
+}
+
+impl IntoIterator for ProgramMap {
+    type Item = (String, Program);
+    type IntoIter = std::collections::btree_map::IntoIter<String, Program>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 impl From<BTreeMap<String, Input>> for InputMap {
     fn from(value: BTreeMap<String, Input>) -> Self {
         InputMap(value)
+    }
+}
+
+impl FromIterator<(String, Input)> for InputMap {
+    fn from_iter<T: IntoIterator<Item = (String, Input)>>(iter: T) -> Self {
+        InputMap(iter.into_iter().collect())
+    }
+}
+
+impl IntoIterator for InputMap {
+    type Item = (String, Input);
+    type IntoIter = std::collections::btree_map::IntoIter<String, Input>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }

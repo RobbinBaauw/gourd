@@ -62,6 +62,19 @@ pub enum RunSubcommand {
     Slurm {},
 }
 
+/// Arguments for the Rerun command.
+#[derive(Args, Debug, Clone)]
+pub struct RerunOptions {
+    /// The id of the experiment to rerun jobs for
+    /// [default: newest experiment]
+    #[arg(short = 'i', long)]
+    pub experiment_id: Option<usize>,
+
+    /// The ids of the runs to rerun [default: all failed runs]
+    #[clap(short, long, value_delimiter = ' ', num_args = 1..)]
+    pub run_ids: Option<Vec<usize>>,
+}
+
 /// Arguments supplied with the `status` command.
 #[derive(Args, Debug, Clone, Copy)]
 pub struct StatusStruct {
@@ -172,6 +185,10 @@ pub enum GourdCommand {
     /// Cancel runs.
     #[command()]
     Cancel(CancelStruct),
+
+    /// Rerun some of the runs from existing experiments
+    #[command()]
+    Rerun(RerunOptions),
 
     /// Output metrics of completed runs.
     #[command()]

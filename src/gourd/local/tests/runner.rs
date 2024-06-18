@@ -42,7 +42,7 @@ async fn runner_sleep_test() {
     assert!(results.is_ok(), "Executing children processes failed");
 }
 
-/// Test hitting the task limir
+/// Test hitting the task limit
 #[tokio::test]
 async fn test_limit() {
     let mut commands: Vec<Command> = vec![];

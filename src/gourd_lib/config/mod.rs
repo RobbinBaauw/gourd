@@ -1,21 +1,23 @@
 use std::collections::BTreeMap;
+use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use maps::IS_USER_FACING;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::bailc;
 use crate::constants::AFTERSCRIPT_DEFAULT;
 use crate::constants::EMPTY_ARGS;
 use crate::constants::INTERNAL_PREFIX;
 use crate::constants::INTERNAL_SCHEMA_INPUTS;
 use crate::constants::POSTPROCESS_JOBS_DEFAULT;
 use crate::constants::POSTPROCESS_JOB_DEFAULT;
-use crate::constants::POSTPROCESS_JOB_OUTPUT_DEFAULT;
 use crate::constants::PRIMARY_STYLE;
 use crate::constants::PROGRAM_RESOURCES_DEFAULT;
 use crate::constants::RERUN_LABEL_BY_DEFAULT;
@@ -179,10 +181,6 @@ pub struct Config {
     #[serde(default = "WRAPPER_DEFAULT")]
     pub wrapper: String,
 
-    /// The path to a folder where the afterscript outputs will be stored.
-    #[serde(default = "POSTPROCESS_JOB_OUTPUT_DEFAULT")]
-    pub postprocess_output_folder: Option<PathBuf>,
-
     /// The list of postprocessing programs.
     #[serde(rename = "postprocess_program", default = "POSTPROCESS_JOBS_DEFAULT")]
     pub postprocess_programs: Option<ProgramMap>,
@@ -286,7 +284,6 @@ impl Default for Config {
             slurm: None,
             resource_limits: None,
             postprocess_resource_limits: None,
-            postprocess_output_folder: POSTPROCESS_JOB_OUTPUT_DEFAULT(),
             postprocess_programs: None,
             labels: Some(BTreeMap::new()),
         }
@@ -314,6 +311,22 @@ impl Config {
         if let Some(schema) = &initial.input_schema {
             initial.inputs = Self::parse_schema_inputs(schema.as_path(), initial.inputs, fs)?;
             initial.input_schema = None;
+        }
+
+        if let Some(postprocessors) = &initial.postprocess_programs {
+            if let Some(overlap) = initial
+                .programs
+                .keys()
+                .collect::<HashSet<&String>>()
+                .intersection(&postprocessors.keys().collect::<HashSet<&String>>())
+                .next()
+            {
+                bailc!(
+                  "Intersection not empty", ;
+                  "Program names in the config must be unique", ;
+                  "The name \"{overlap}\" appears twice: {:?}", initial
+                );
+            }
         }
 
         Ok(initial)

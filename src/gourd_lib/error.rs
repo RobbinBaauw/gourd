@@ -139,6 +139,9 @@ macro_rules! bailc {
     {$text: expr,  $($arg_text: expr)*; $cause: expr,  $($arg_cause: expr)*; $help: expr, $($arg_help: tt)*} => {
       return Err(anyhow!($text, $($arg_text)*)).with_context(ctx!($cause, $($arg_cause)*; $help, $($arg_help)*));
     };
+    {$text: expr $(,$arg_text: expr)*} => {
+      return Err(anyhow!($text, $($arg_text)*)).with_context(ctx!("",;"",));
+    };
 }
 
 pub(crate) use ctx;

@@ -6,14 +6,11 @@ use anyhow::Result;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
-use gourd_lib::experiment::Run;
 use gourd_lib::file_system::FileOperations;
-use gourd_lib::measurement::Measurement;
 use gourd_lib::measurement::Metrics;
 use log::trace;
 
 use super::FileSystemBasedStatus;
-use super::PostprocessCompletion;
 use super::StatusProvider;
 use crate::post::afterscript::run_afterscript;
 use crate::post::labels::assign_label;
@@ -57,9 +54,8 @@ where
             };
 
             let mut afterscript_completion = None;
-            let mut postprocess_job_completion = None;
 
-            if run.afterscript_output_path.is_some() && completion.has_succeded() {
+            if run.afterscript_output_path.is_some() && completion.has_succeeded() {
                 afterscript_completion = Some(
                     Self::get_afterscript_status(run_id, experiment, fs).with_context(ctx!(
                         "Could not determine the afterscript status", ;
@@ -68,18 +64,9 @@ where
                 );
             }
 
-            if run.post_job_output_path.is_some() {
-                postprocess_job_completion =
-                    Some(Self::get_postprocess_job_status(run, fs).with_context(ctx!(
-                        "Could not determine the postprocess job status", ;
-                        "",
-                    ))?);
-            }
-
             let status = FileSystemBasedStatus {
                 completion,
                 afterscript_completion,
-                postprocess_job_completion,
             };
 
             statuses.insert(run_id, status);
@@ -95,7 +82,7 @@ impl FileBasedProvider {
         run_id: usize,
         exp: &Experiment,
         fs: &impl FileOperations,
-    ) -> Result<PostprocessCompletion> {
+    ) -> Result<Option<String>> {
         let run = &exp.runs[run_id];
 
         let file = run
@@ -111,30 +98,6 @@ impl FileBasedProvider {
             run_afterscript(run_id, exp)?;
         }
 
-        Ok(PostprocessCompletion::Success(assign_label(
-            exp, &file, fs,
-        )?))
-    }
-
-    /// Get the completion of a postprocess job.
-    pub fn get_postprocess_job_status(
-        run: &Run,
-        fs: &impl FileOperations,
-    ) -> Result<PostprocessCompletion> {
-        let metrics = run
-            .post_job_output_path
-            .clone()
-            .ok_or(anyhow!("Could not get the postprocess job information"))
-            .with_context(ctx!(
-                "Could not get the postprocessing information", ;
-                "",
-            ))?
-            .join("metrics");
-
-        if fs.try_read_toml::<Measurement>(&metrics).is_ok() {
-            Ok(PostprocessCompletion::Success(None))
-        } else {
-            Ok(PostprocessCompletion::Dormant)
-        }
+        assign_label(exp, &file, fs)
     }
 }

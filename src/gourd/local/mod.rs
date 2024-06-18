@@ -27,9 +27,8 @@ pub async fn run_local(
         .chunks
         .append(&mut experiment.create_chunks(usize::MAX, 1, runs.into_iter())?);
 
-    trace!("Running chunks {:#?}", experiment.chunks);
-
     let cmds = wrap(experiment, exp_path, env::consts::ARCH, fs)?;
+    trace!("Running chunks {:#?}", experiment.chunks);
 
     experiment.save(&experiment.config.experiments_folder, fs)?;
 

@@ -4,6 +4,7 @@ use anyhow::Result;
 use clap::crate_authors;
 use clap::crate_name;
 use clap::crate_version;
+use gourd_lib::config::ResourceLimits;
 use gourd_lib::constants::style_from_fg;
 use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::HELP_STYLE;
@@ -14,6 +15,9 @@ use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use indicatif::ProgressBar;
 use indicatif::ProgressStyle;
+use inquire::validator::Validation;
+
+use crate::init::interactive::ask;
 
 /// Util function for getting the style for the CLI
 #[cfg(not(tarpaulin_include))]
@@ -107,6 +111,55 @@ pub fn generate_progress_bar(len: u64) -> Result<ProgressBar> {
     bar.set_message("Running jobs...");
 
     Ok(bar)
+}
+
+/// Ask the user a yes/no question
+pub fn query_yes_no(question: &str) -> Result<bool> {
+    let response = ask(inquire::Confirm::new(&format!("{question} [y/n]: ")).prompt())?;
+    Ok(response)
+}
+
+/// Ask the user for input to update an instance of ResourceLimits
+pub fn query_update_resource_limits(rss: &ResourceLimits) -> Result<ResourceLimits> {
+    let mut new_rss = *rss;
+
+    new_rss.time_limit = ask(
+        inquire::CustomType::<humantime::Duration>::new("New Time limit:")
+            .with_default(humantime::Duration::from(new_rss.time_limit))
+            .prompt(),
+    )?
+    .into();
+
+    loop {
+        new_rss.mem_per_cpu = ask(
+            inquire::CustomType::<usize>::new("New memory limit (in MB):")
+                .with_default(new_rss.mem_per_cpu)
+                .prompt(),
+        )?;
+        if new_rss.mem_per_cpu != 0
+            || query_yes_no(
+                "A memory limit of zero gives the job \
+        access to the memory of the entire node. Are you sure you want to do this?",
+            )?
+        {
+            break;
+        }
+    }
+
+    new_rss.cpus = ask(inquire::CustomType::<usize>::new("New CPU limit:")
+        .with_default(new_rss.cpus)
+        .with_validator(|input: &usize| {
+            if *input > 0 {
+                Ok(Validation::Valid)
+            } else {
+                Ok(Validation::Invalid(
+                    "CPUs per task need to be at least 1".into(),
+                ))
+            }
+        })
+        .prompt())?;
+
+    Ok(new_rss)
 }
 
 #[cfg(test)]

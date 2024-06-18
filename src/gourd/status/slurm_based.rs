@@ -59,7 +59,7 @@ where
                 experiment
                     .chunks
                     .iter()
-                    .filter_map(|x| x.slurm_id.clone())
+                    .filter_map(|x| x.get_slurm_id())
                     .collect(),
             )?,
         )?;

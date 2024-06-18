@@ -21,7 +21,6 @@ use log::info;
 
 use super::ExperimentStatus;
 use super::FsState;
-use super::PostprocessCompletion;
 use super::SlurmState;
 use super::Status;
 
@@ -29,14 +28,20 @@ impl Display for SlurmState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SlurmState::BootFail => write!(f, "{ERROR_STYLE}boot failed{ERROR_STYLE:#}"),
-            SlurmState::Cancelled => write!(f, "{WARNING_STYLE}cancelled{WARNING_STYLE:#}"),
-            SlurmState::Deadline => write!(f, "{ERROR_STYLE}deadline reached{ERROR_STYLE:#}"),
-            SlurmState::NodeFail => write!(f, "{ERROR_STYLE}node failed{ERROR_STYLE:#}"),
-            SlurmState::OutOfMemory => write!(f, "{WARNING_STYLE}out of memory{WARNING_STYLE:#}"),
-            SlurmState::Preempted => write!(f, "{ERROR_STYLE}preempted{ERROR_STYLE:#}"),
-            SlurmState::Suspended => write!(f, "{ERROR_STYLE}suspended{ERROR_STYLE:#}"),
-            SlurmState::Timeout => write!(f, "{WARNING_STYLE}timed out{WARNING_STYLE:#}"),
-            SlurmState::SlurmFail => write!(f, "{ERROR_STYLE}job failed{ERROR_STYLE:#}"),
+            SlurmState::Cancelled => {
+                write!(f, "{WARNING_STYLE}slurm job cancelled{WARNING_STYLE:#}")
+            }
+            SlurmState::Deadline => {
+                write!(f, "{ERROR_STYLE}slurm job deadline reached{ERROR_STYLE:#}")
+            }
+            SlurmState::NodeFail => write!(f, "{ERROR_STYLE}slurm node failed{ERROR_STYLE:#}"),
+            SlurmState::OutOfMemory => {
+                write!(f, "{WARNING_STYLE}slurm job out of memory{WARNING_STYLE:#}")
+            }
+            SlurmState::Preempted => write!(f, "{ERROR_STYLE}slurm job preempted{ERROR_STYLE:#}"),
+            SlurmState::Suspended => write!(f, "{ERROR_STYLE}slurm job suspended{ERROR_STYLE:#}"),
+            SlurmState::Timeout => write!(f, "{WARNING_STYLE}slurm job timed out{WARNING_STYLE:#}"),
+            SlurmState::SlurmFail => write!(f, "{ERROR_STYLE}slurm job failed{ERROR_STYLE:#}"),
             SlurmState::Success => write!(f, "{PRIMARY_STYLE}job finished!{PRIMARY_STYLE:#}"),
             SlurmState::Pending => write!(f, "{TERTIARY_STYLE}pending..{TERTIARY_STYLE:#}"),
             SlurmState::Running => write!(f, "{TERTIARY_STYLE}running...{TERTIARY_STYLE:#}"),
@@ -162,7 +167,7 @@ fn short_status(
     let mut by_program: BTreeMap<String, (usize, usize, usize, usize)> = BTreeMap::new();
 
     for (run_id, run_data) in runs.iter().enumerate() {
-        if by_program.get_mut(&run_data.program.to_string()).is_none() {
+        if !by_program.contains_key(&run_data.program.to_string()) {
             by_program.insert(run_data.program.clone().to_string(), (0, 0, 0, 0));
         }
 
@@ -173,7 +178,7 @@ fn short_status(
                 for_this_prog.0 += 1;
             }
 
-            if status.has_failed() {
+            if status.has_failed(experiment) {
                 for_this_prog.1 += 1;
             }
 
@@ -248,12 +253,16 @@ fn long_status(
 
         match prog {
             FieldRef::Regular(name) => writeln!(f, "For program {}:", name)?,
-            FieldRef::Postprocess(name) => writeln!(f, "For postprocessor {}:", name)?,
+            FieldRef::Postprocess(name) => writeln!(f, "For postprocess {}:", name)?,
         }
 
         for run_id in prog_runs {
             let run = &experiment.runs[run_id];
-            let status = &statuses[&run_id];
+            let status = if let Some(rerun_id) = run.rerun {
+                statuses[&rerun_id].clone()
+            } else {
+                statuses[&run_id].clone()
+            };
 
             // TODO: introduce logic to handle all possible mismatches.
 
@@ -262,7 +271,11 @@ fn long_status(
                 "  {: >numw$}. {NAME_STYLE}{:.<width$}{NAME_STYLE:#}.... {}",
                 run_id,
                 run.input.to_string(),
-                status,
+                if let Some(r) = run.rerun {
+                    format!("reran as {NAME_STYLE}{r}{NAME_STYLE:#}")
+                } else {
+                    format!("{}", status)
+                },
                 width = longest_input,
                 numw = longest_index
             )?;
@@ -270,14 +283,14 @@ fn long_status(
             if status.fs_status.completion == FsState::Pending {
                 if let Some(ss) = &status.slurm_status {
                     write!(f, " on slurm: {}", ss.completion)?;
+                } else if run.slurm_id.is_some() {
+                    write!(f, " {WARNING_STYLE}not found on slurm{WARNING_STYLE:#}")?;
                 }
             }
 
             writeln!(f)?;
 
-            if let Some(PostprocessCompletion::Success(Some(label_text))) =
-                &status.fs_status.afterscript_completion
-            {
+            if let Some(Some(label_text)) = &status.fs_status.afterscript_completion {
                 if let Some(label_map) = &experiment.config.labels {
                     let display_style = if label_map[label_text].rerun_by_default {
                         ERROR_STYLE
@@ -297,9 +310,7 @@ fn long_status(
                 }
 
                 writeln!(f)?;
-            } else if let Some(PostprocessCompletion::Success(None)) =
-                &status.fs_status.afterscript_completion
-            {
+            } else if let Some(None) = &status.fs_status.afterscript_completion {
                 write!(
                     f,
                     "  {: >numw$}a {TERTIARY_STYLE}afterscript ran \
@@ -378,9 +389,7 @@ pub fn display_job(
 
         writeln!(f, "{status:#}")?;
 
-        if let Some(PostprocessCompletion::Success(Some(label_text))) =
-            &status.fs_status.afterscript_completion
-        {
+        if let Some(Some(label_text)) = &status.fs_status.afterscript_completion {
             if let Some(label_map) = &exp.config.labels {
                 let display_style = if label_map[label_text].rerun_by_default {
                     ERROR_STYLE
@@ -396,16 +405,23 @@ pub fn display_job(
             }
 
             writeln!(f)?;
-        } else if let Some(PostprocessCompletion::Success(None)) =
-            &status.fs_status.afterscript_completion
-        {
+        } else if let Some(None) = &status.fs_status.afterscript_completion {
             writeln!(
                 f,
                 "{TERTIARY_STYLE}afterscript ran sucessfully{TERTIARY_STYLE:#}",
             )?;
+
+            writeln!(f)?;
         }
 
-        writeln!(f)?;
+        if let Some(newid) = run.rerun {
+            writeln!(
+                f,
+                "{NAME_STYLE}this job has been reran as {newid}{NAME_STYLE:#}",
+            )?;
+
+            writeln!(f)?;
+        }
 
         Ok(())
     } else {
