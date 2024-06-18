@@ -38,6 +38,10 @@ pub mod post;
 
 /// Rerun subcommand helper functions
 pub mod rerun;
+
+/// Analysing runs - collecting metrics, exporting, plotting.
+pub mod analyse;
+
 /// Convenience functions for unit tests.
 #[cfg(test)]
 pub mod test_utils;

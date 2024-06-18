@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use clap::builder::PossibleValue;
 use clap::ArgAction;
 use clap::Args;
 use clap::Parser;
@@ -160,8 +161,22 @@ pub struct InitStruct {
 }
 
 /// Arguments supplied with the `analyse` command.
-#[derive(Args, Debug, Clone, Copy)]
-pub struct AnalyseStruct {}
+#[derive(Args, Debug, Clone)]
+pub struct AnalyseStruct {
+    /// The id of the experiment to analyse
+    /// [default: newest experiment].
+    #[arg(value_name = "EXPERIMENT")]
+    pub experiment_id: Option<usize>,
+
+    /// The output format of the analysis.
+    /// For all formats see the manual.
+    #[arg(long, short, default_value = "csv", value_parser = [
+        PossibleValue::new("csv"),
+        PossibleValue::new("plot-svg"),
+        PossibleValue::new("plot-png"),
+    ])]
+    pub output: String,
+}
 
 /// Enum for root-level `gourd` commands.
 #[derive(Subcommand, Debug)]

@@ -10,3 +10,4 @@ Cargo.lock
 /docs/**/out/*
 /*.pdf
 /*.man
+compile.fish
