@@ -51,8 +51,9 @@ impl<'de> Deserialize<'de> for FetchedPath {
                 //
                 // }
                 //
-                Ok(FetchedPath(PathBuf::from_str(v)
-                    .map_err(|x| de::Error::custom(format!("could not include the path: {x}")))?))
+                Ok(FetchedPath(PathBuf::from_str(v).map_err(|x| {
+                    de::Error::custom(format!("could not include the path: {x}"))
+                })?))
             }
         }
 
