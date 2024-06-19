@@ -191,9 +191,9 @@ pub fn query_changing_limits_for_programs(
                         }
                         let new_rss = query_update_resource_limits(
                             &get_limits(&experiment.runs[*run_id], experiment)?,
-                            &None,
-                            &None,
-                            &None,
+                            None,
+                            None,
+                            None,
                         )?;
 
                         debug!("Updating resource limits for run {}", run_id);

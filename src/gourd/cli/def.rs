@@ -221,11 +221,11 @@ pub enum GourdCommand {
     Run(RunStruct),
 
     /// Set up a template of an experiment configuration.
-    #[command()]
+    #[command(alias = "innit")]
     Init(InitStruct),
 
     /// Display the status of an experiment that was run.
-    #[command()]
+    #[command(aliases = ["stat", "stats"])]
     Status(StatusStruct),
 
     /// Schedule another batch of slurm jobs.
@@ -241,11 +241,11 @@ pub enum GourdCommand {
     Rerun(RerunOptions),
 
     /// Output metrics of completed runs.
-    #[command()]
+    #[command(alias = "analyze")]
     Analyse(AnalyseStruct),
 
     /// Sets resource limits.
-    #[command()]
+    #[command(alias = "setlim")]
     SetLimits(SetLimitsStruct),
 
     /// Print information about the version.

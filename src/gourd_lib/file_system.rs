@@ -170,14 +170,16 @@ impl FileOperations for FileSystemInteractor {
         }
 
         if let Some(parent) = path.parent() {
-            debug!("Creating directories for {:?}", parent);
+            if !parent.exists() {
+                debug!("Creating directories for {:?}", parent);
+            }
             fs::create_dir_all(parent).with_context(ctx!(
               "Could not create parent directories for {parent:?}", ;
               "Ensure that you have sufficient permissions",
             ))?;
         }
 
-        debug!("Creating a file at {:?}", path);
+        debug!("Writing to file at {:?}", path);
         File::create(path).with_context(ctx!(
            "Could not create {path:?}", ;
            "Ensure that you have sufficient permissions",

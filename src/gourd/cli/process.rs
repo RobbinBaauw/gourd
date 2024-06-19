@@ -487,23 +487,30 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             cpu,
             time,
         }) => {
-            let (mut experiment, config) = read_experiment(experiment_id, cmd, &file_system)?;
+            let (mut experiment, _) = read_experiment(experiment_id, cmd, &file_system)?;
 
             if *all {
                 trace!("Selected all programs to change limits");
 
-                let old_rss = config.resource_limits.unwrap_or_default();
-                let new_rss = query_update_resource_limits(&old_rss, mem, cpu, time)?;
+                let old_rss = experiment.resource_limits.unwrap_or_default();
+                let new_rss = query_update_resource_limits(&old_rss, *mem, *cpu, *time)?;
 
                 setlim::query_changing_limits_for_all_programs(&mut experiment, new_rss, &old_rss)?;
             } else if let Some(name) = program {
                 trace!("Selected program: {:?}", name);
 
-                setlim::query_changing_limits_for_program(name, &mut experiment, mem, cpu, time)?;
+                setlim::query_changing_limits_for_program(
+                    name,
+                    &mut experiment,
+                    *mem,
+                    *cpu,
+                    *time,
+                )?;
             } else {
                 bailc!("No program specified to change the limits for.")
             }
 
+            println!("{:#?}", experiment);
             experiment.save(&experiment.config.experiments_folder, &file_system)?;
         }
     }

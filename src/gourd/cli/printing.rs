@@ -122,9 +122,9 @@ pub fn query_yes_no(question: &str) -> Result<bool> {
 /// Ask the user for input to update an instance of ResourceLimits
 pub fn query_update_resource_limits(
     rss: &ResourceLimits,
-    mem: &Option<usize>,
-    cpu: &Option<usize>,
-    time: &Option<std::time::Duration>,
+    mem: Option<usize>,
+    cpu: Option<usize>,
+    time: Option<std::time::Duration>,
 ) -> Result<ResourceLimits> {
     let mut new_rss = *rss;
 
