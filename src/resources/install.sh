@@ -25,6 +25,11 @@ extract() {
   echo \"\$1 --> \$2\"
 }
 
+extract_par() {
+  mkdir -pv \$3 2> /dev/null
+  extract \$1 \$2
+}
+
 extract gourd \"\${BINARY_PATH}/gourd\"
 chmod +x \"\${BINARY_PATH}/gourd\"
 
@@ -33,16 +38,12 @@ chmod +x \"\${BINARY_PATH}/gourd_wrapper\"
 
 # ADD INIT TARBALLS HERE!
 
-mkdir \"\${MAN_PATH}/man1\"
-extract manpages/gourd.1.man \"\${MAN_PATH}/man1/gourd.1\"
-mkdir \"\${MAN_PATH}/man5\"
-extract manpages/gourd.toml.5.man \"\${MAN_PATH}/man5/gourd.toml.5\"
-mkdir \"\${MAN_PATH}/man7\"
-extract manpages/gourd-tutorial.7.man \"\${MAN_PATH}/man7/gourd-tutorial.7\"
+extract_par manpages/gourd.1.man \"\${MAN_PATH}/man1/gourd.1\" \"\${MAN_PATH}/man1\"
+extract_par manpages/gourd.toml.5.man \"\${MAN_PATH}/man5/gourd.toml.5\" \"\${MAN_PATH}/man5\"
+extract_par manpages/gourd-tutorial.7.man \"\${MAN_PATH}/man7/gourd-tutorial.7\" \"\${MAN_PATH}/man7\"
 
 echo \"Installing completions... this can fail and thats fine!\"
-extract completions/gourd.fish \"\${FISH_PATH}/gourd.fish\" || true
-
+extract_par completions/gourd.fish \"\${FISH_PATH}/gourd.fish\" \"\${FISH_PATH}\" || true
 
 exit 0
 __PAYLOAD_BELOW__\n" > "$tmp"

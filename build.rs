@@ -77,10 +77,6 @@ fn main() -> Result<()> {
         Some(outdir) => outdir.to_str().map(|x| x.to_string()).unwrap(),
     };
 
-    // Uncomment for local builds.
-    // The point of this is the rebuild the documentation whenever it is updated.
-    // We cannot run this on the CI, thus it is disabled by default.
-
     let target_dir = outdir.parent().unwrap().parent().unwrap().parent().unwrap();
 
     let completions = target_dir.join("completions/");
@@ -106,6 +102,8 @@ fn main() -> Result<()> {
         let _ = fs::create_dir(&docs);
 
         // Uncomment for local builds.
+        // The point of this is the rebuild the documentation whenever it is updated.
+        // We cannot run this on the CI, thus it is disabled by default.
         // println!("cargo::rerun-if-changed=docs/");
         // println!("cargo::rerun-if-changed=src/resources/install.sh");
         // println!("cargo::rerun-if-changed=src/resources/uninstall.sh");
