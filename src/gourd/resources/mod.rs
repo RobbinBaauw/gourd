@@ -7,10 +7,6 @@ use anyhow::Result;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 
-#[cfg(feature = "fetching")]
-/// Interactions with the network for feching resources.
-pub mod network;
-
 /// Runs a shell script.
 pub fn run_script(arguments: Vec<&str>, work_dir: &Path) -> Result<ExitStatus> {
     let mut command = Command::new("sh");

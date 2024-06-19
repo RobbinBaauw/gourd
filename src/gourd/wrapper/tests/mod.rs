@@ -3,6 +3,7 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
+use gourd_lib::config::FetchedPath;
 use gourd_lib::config::Input;
 use gourd_lib::config::Program;
 
@@ -46,7 +47,7 @@ fn non_matching_arch() {
     first.insert(
         "any".to_string(),
         Program {
-            binary: out,
+            binary: FetchedPath(out),
             arguments: vec![],
             afterscript: None,
             postprocess_job: None,
@@ -59,7 +60,7 @@ fn non_matching_arch() {
     second.insert(
         "test1".to_string(),
         Input {
-            input: Some(input.clone()),
+            input: Some(FetchedPath(input.clone())),
             arguments: vec![],
         },
     );
@@ -99,7 +100,7 @@ fn matching_arch() {
     first.insert(
         "any".to_string(),
         Program {
-            binary: out.clone(),
+            binary: FetchedPath(out.clone()),
             arguments: vec![],
             afterscript: None,
             postprocess_job: None,
@@ -112,7 +113,7 @@ fn matching_arch() {
     second.insert(
         "test1".to_string(),
         Input {
-            input: Some(input.clone()),
+            input: Some(FetchedPath(input.clone())),
             arguments: vec![],
         },
     );

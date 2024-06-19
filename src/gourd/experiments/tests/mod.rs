@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 use std::vec;
 
+use gourd_lib::config::FetchedPath;
 use gourd_lib::config::Input;
 use gourd_lib::config::Program;
 use gourd_lib::config::ResourceLimits;
@@ -252,7 +253,7 @@ fn afterscript_info_when_exists() {
     config.programs.insert(
         String::from("a"),
         Program {
-            binary: PathBuf::from(tempdir.path()),
+            binary: FetchedPath(PathBuf::from(tempdir.path())),
             arguments: vec![],
             afterscript: Some(PathBuf::from(tempdir.path())),
             postprocess_job: None,
@@ -263,7 +264,7 @@ fn afterscript_info_when_exists() {
     config.inputs.insert(
         String::from("d"),
         Input {
-            input: Some(PathBuf::from(tempdir.path())),
+            input: Some(FetchedPath(PathBuf::from(tempdir.path()))),
             arguments: vec![],
         },
     );
@@ -291,7 +292,7 @@ fn afterscript_info_when_not_exist() {
     config.programs.insert(
         String::from("a"),
         Program {
-            binary: PathBuf::from(tempdir.path()),
+            binary: FetchedPath(PathBuf::from(tempdir.path())),
             arguments: vec![],
             afterscript: None,
             postprocess_job: None,
@@ -302,7 +303,7 @@ fn afterscript_info_when_not_exist() {
     config.inputs.insert(
         String::from("d"),
         Input {
-            input: Some(PathBuf::from(tempdir.path())),
+            input: Some(FetchedPath(PathBuf::from(tempdir.path()))),
             arguments: vec![],
         },
     );

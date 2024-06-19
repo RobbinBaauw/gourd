@@ -5,6 +5,7 @@ use serde::de::Visitor;
 use serde::Deserialize;
 use serde::Deserializer;
 
+use crate::config::maps::DeserState;
 use crate::config::maps::IS_USER_FACING;
 
 /// Deserializing duration from a human-readable string.
@@ -32,7 +33,7 @@ where
         }
     }
 
-    if IS_USER_FACING.with_borrow(|x| *x) {
+    if IS_USER_FACING.with_borrow(|x| matches!(x, DeserState::User(_))) {
         deserializer.deserialize_str(DurationVisitor {})
     } else {
         Duration::deserialize(deserializer)

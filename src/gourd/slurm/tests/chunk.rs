@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use gourd_lib::config::FetchedPath;
 use gourd_lib::config::Input;
 use gourd_lib::config::Program;
 use gourd_lib::experiment::FieldRef;
@@ -12,7 +13,7 @@ use crate::test_utils::create_sample_experiment;
 #[test]
 fn get_unscheduled_runs_test() {
     let prog = Program {
-        binary: PathBuf::new(),
+        binary: FetchedPath(PathBuf::new()),
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,
@@ -61,7 +62,7 @@ fn get_unscheduled_runs_test() {
 #[test]
 fn create_chunks_basic_test() {
     let prog = Program {
-        binary: PathBuf::new(),
+        binary: FetchedPath(PathBuf::new()),
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,
@@ -130,7 +131,7 @@ fn create_chunks_basic_test() {
 #[test]
 fn create_chunks_greedy_test() {
     let prog_a = Program {
-        binary: PathBuf::new().join("a"),
+        binary: FetchedPath(PathBuf::new().join("a")),
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,
@@ -138,7 +139,7 @@ fn create_chunks_greedy_test() {
     };
 
     let prog_b = Program {
-        binary: PathBuf::new().join("b"),
+        binary: FetchedPath(PathBuf::new().join("b")),
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,
@@ -146,12 +147,12 @@ fn create_chunks_greedy_test() {
     };
 
     let input_a = Input {
-        input: Some(PathBuf::new().join("a")),
+        input: Some(FetchedPath(PathBuf::new().join("a"))),
         arguments: vec![],
     };
 
     let input_b = Input {
-        input: Some(PathBuf::new().join("b")),
+        input: Some(FetchedPath(PathBuf::new().join("b"))),
         arguments: vec![],
     };
 

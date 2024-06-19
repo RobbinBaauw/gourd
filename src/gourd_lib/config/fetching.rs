@@ -10,7 +10,6 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 
-use crate::config::maps::IS_USER_FACING;
 use crate::constants::URL_ESCAPE;
 
 /// A wrapper around [PathBuf] to allow serde expansion of globs.
@@ -40,20 +39,54 @@ impl<'de> Deserialize<'de> for FetchedPath {
             where
                 E: serde::de::Error,
             {
-                // if let Some(actual) = v.strip_prefix(URL_ESCAPE) {
-                //   let url = actual.split('>').next().ok_or(de::Error::custom("invalid url
-                // syntax, expected '[url] > [file]'"))?;
-                //
-                //
-                //
-                // } else {
-                //   Ok(v.parse())
-                //
-                // }
-                //
-                Ok(FetchedPath(PathBuf::from_str(v).map_err(|x| {
-                    de::Error::custom(format!("could not include the path: {x}"))
-                })?))
+                // because of the cfg lower...
+                #[allow(unused_variables)]
+                if let Some(actual) = v.strip_prefix(URL_ESCAPE) {
+                    #[cfg(feature = "fetching")]
+                    {
+                        use crate::config::maps::DeserState;
+                        use crate::config::maps::IS_USER_FACING;
+                        use crate::network::download_exec;
+
+                        let errmap = "invalid url syntax, expected '[url] > [file]'";
+
+                        if let DeserState::User(fs) = IS_USER_FACING.with_borrow(|x| x.clone()) {
+                            let mut iter = actual.split('>');
+
+                            let url = iter.next().ok_or(de::Error::custom(errmap))?.trim();
+                            let filename = PathBuf::from_str(
+                                iter.next().ok_or(de::Error::custom(errmap))?.trim(),
+                            )
+                            .map_err(|x| de::Error::custom(format!("invalid path {x}")))?;
+
+                            if iter.next().is_some() {
+                                return Err(de::Error::custom(errmap));
+                            }
+
+                            if !filename.exists() {
+                                download_exec(url, &filename, &fs).map_err(|x| {
+                                    de::Error::custom(format!(
+                                        "could not download file {v}...\n{x}"
+                                    ))
+                                })?;
+                            }
+
+                            Ok(FetchedPath(filename))
+                        } else {
+                            Err(de::Error::custom(format!("url not allowed in path: {v}")))
+                        }
+                    }
+                    #[cfg(not(feature = "fetching"))]
+                    {
+                        Err(de::Error::custom(
+                            "this verison of gourd was built without fetching support, do not use urls",
+                        ))
+                    }
+                } else {
+                    Ok(FetchedPath(PathBuf::from_str(v).map_err(|x| {
+                        de::Error::custom(format!("could not include the path: {x}"))
+                    })?))
+                }
             }
         }
 
@@ -61,11 +94,7 @@ impl<'de> Deserialize<'de> for FetchedPath {
             marker: PhantomData,
         };
 
-        if IS_USER_FACING.with_borrow(|x| *x) {
-            deserializer.deserialize_str(visitor)
-        } else {
-            Ok(FetchedPath(PathBuf::deserialize(deserializer)?))
-        }
+        deserializer.deserialize_str(visitor)
     }
 }
 
@@ -74,5 +103,11 @@ impl Deref for FetchedPath {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl From<PathBuf> for FetchedPath {
+    fn from(value: PathBuf) -> Self {
+        FetchedPath(value)
     }
 }
