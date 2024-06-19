@@ -9,6 +9,7 @@ use std::mem::swap;
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::path::Path;
+use std::path::PathBuf;
 
 use anyhow::Result;
 use glob::glob;
@@ -19,6 +20,7 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 
+use super::fetching::FetchedPath;
 use super::Input;
 use super::Program;
 use crate::constants::GLOB_ESCAPE;
@@ -77,7 +79,7 @@ impl<'de> Deserialize<'de> for ProgramMap {
 
                 while let Some((k, mut v)) = map.next_entry::<String, Program>()? {
                     if IS_USER_FACING.with_borrow(|x| *x) {
-                        v.binary = canon_path(&v.binary, fs)?;
+                        v.binary = FetchedPath(canon_path(&v.binary, fs)?);
 
                         if let Some(relative) = v.afterscript.clone() {
                             v.afterscript = Some(canon_path(&relative, fs)?);
@@ -130,7 +132,7 @@ impl<'de> Deserialize<'de> for InputMap {
                 while let Some((k, mut v)) = map.next_entry::<String, Input>()? {
                     if IS_USER_FACING.with_borrow(|x| *x) {
                         if let Some(relative) = v.input.clone() {
-                            v.input = Some(canon_path(&relative, fs)?);
+                            v.input = Some(FetchedPath(canon_path(&relative, fs)?));
                         }
 
                         disallow_substring(&k, INTERNAL_PREFIX)?;
@@ -154,7 +156,7 @@ impl<'de> Deserialize<'de> for InputMap {
 }
 
 /// This will take a path and canonicalize it.
-fn canon_path<T>(path: &Path, fs: impl FileOperations) -> Result<std::path::PathBuf, T>
+fn canon_path<T>(path: &Path, fs: impl FileOperations) -> Result<PathBuf, T>
 where
     T: de::Error,
 {

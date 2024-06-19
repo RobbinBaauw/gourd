@@ -1,6 +1,7 @@
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use gourd_lib::config::FetchedPath;
 use gourd_lib::config::Input;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
@@ -45,7 +46,7 @@ pub fn schedule_post_jobs(
         experiment.postprocess_inputs.insert(
             new_input_name.clone(),
             Input {
-                input: Some(res_path.to_path_buf()),
+                input: Some(FetchedPath(res_path.to_path_buf())),
                 arguments: vec![],
             },
         );

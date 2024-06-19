@@ -39,6 +39,10 @@ mod regex;
 /// Deserializer for the paramters (grid search).
 mod parameters;
 
+/// Fetching for resources.
+mod fetching;
+
+pub use fetching::FetchedPath;
 pub use maps::InputMap;
 pub use maps::ProgramMap;
 pub use regex::Regex;
@@ -48,7 +52,7 @@ pub use regex::Regex;
 #[serde(deny_unknown_fields)]
 pub struct Program {
     /// The path to the executable.
-    pub binary: PathBuf,
+    pub binary: FetchedPath,
 
     /// The cli arguments for the executable.
     #[serde(default = "EMPTY_ARGS")]
@@ -87,7 +91,7 @@ pub struct Input {
     /// The path to the input.
     ///
     /// If not specified, nothing is provided on the program's input.
-    pub input: Option<PathBuf>,
+    pub input: Option<FetchedPath>,
 
     /// The additional cli arguments for the executable.
     ///
