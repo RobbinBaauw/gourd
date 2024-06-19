@@ -354,7 +354,7 @@ pub struct SBatchArg {
 
 /// The resource limits, a Slurm configuration parameter that can be changed
 /// during an experiment. Contains the CPU, time, and memory bounds per run.
-#[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ResourceLimits {
     /// Maximum time allowed _for each_ job.
@@ -366,6 +366,16 @@ pub struct ResourceLimits {
 
     /// Memory in MB to allocate per CPU per job
     pub mem_per_cpu: usize,
+}
+
+impl Default for ResourceLimits {
+    fn default() -> Self {
+        ResourceLimits {
+            time_limit: std::time::Duration::from_secs(60),
+            cpus: 1,
+            mem_per_cpu: 32,
+        }
+    }
 }
 
 // An implementation that provides a default value of `Config`,

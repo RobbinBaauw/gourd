@@ -12,7 +12,6 @@ use colog::default_builder;
 use colog::formatter;
 use gourd_lib::bailc;
 use gourd_lib::config::Config;
-use gourd_lib::config::ResourceLimits;
 use gourd_lib::constants::CMD_STYLE;
 use gourd_lib::constants::ERROR_STYLE;
 use gourd_lib::constants::PRIMARY_STYLE;
@@ -486,28 +485,20 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             all,
             mem,
             cpu,
-            toml,
             time,
         }) => {
-            let (mut experiment, _config) = read_experiment(experiment_id, cmd, &file_system)?;
+            let (mut experiment, config) = read_experiment(experiment_id, cmd, &file_system)?;
 
             if *all {
                 trace!("Selected all programs to change limits");
 
-                let old_rss = ResourceLimits::default();
+                let old_rss = config.resource_limits.unwrap_or_default();
+                let new_rss = query_update_resource_limits(&old_rss, mem, cpu, time)?;
 
-                let new_rss = match toml {
-                    Some(path) => setlim::get_limits_from_toml(path.into(), file_system)?,
-                    None => query_update_resource_limits(&old_rss, mem, cpu, time)?,
-                };
-
-                setlim::query_changing_limits_for_all_programs(&mut experiment, new_rss)?;
-
-                debug!("Updating resource limits for all programs");
-                trace!("Old resource limits: {:?}", old_rss);
-                trace!("New resource limits: {:?}", new_rss);
+                setlim::query_changing_limits_for_all_programs(&mut experiment, new_rss, &old_rss)?;
             } else if let Some(name) = program {
                 trace!("Selected program: {:?}", name);
+
                 setlim::query_changing_limits_for_program(name, &mut experiment, mem, cpu, time)?;
             } else {
                 bailc!("No program specified to change the limits for.")

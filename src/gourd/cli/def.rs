@@ -204,14 +204,11 @@ pub struct SetLimitsStruct {
     pub cpu: Option<usize>,
 
     /// Take the resource limits from a toml file.
-    #[arg(short, long, conflicts_with_all = ["mem", "cpu"])]
-    pub toml: Option<String>,
-
-    /// Take the resource limits from a toml file.
     #[arg(long, value_parser = parse_duration)]
     pub time: Option<Duration>,
 }
 
+/// Parse a string into a duration.
 fn parse_duration(s: &str) -> std::result::Result<Option<Duration>, humantime::DurationError> {
     humantime::parse_duration(s).map(Some)
 }
