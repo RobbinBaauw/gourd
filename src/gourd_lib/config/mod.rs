@@ -7,8 +7,8 @@ use std::time::Duration;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
-use maps::expand_parameters;
 use maps::IS_USER_FACING;
+use parameters::expand_parameters;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -35,6 +35,9 @@ mod maps;
 
 /// Deserializer for the regexes.
 mod regex;
+
+/// Deserializer for the paramters (grid search).
+mod parameters;
 
 pub use maps::InputMap;
 pub use maps::ProgramMap;
@@ -113,7 +116,7 @@ pub struct InputSchema {
     pub inputs: Vec<Input>,
 }
 
-/// Parameter
+/// A parameter.
 ///
 /// # Examples
 ///
@@ -128,7 +131,7 @@ pub struct InputSchema {
 /// binary = "test"
 ///
 /// [inputs.test_input]
-/// arguments = [ "parameter|{parameter_x}" ]
+/// arguments = [ "param|x" ]
 /// ```
 ///
 /// Will run:
@@ -137,34 +140,35 @@ pub struct InputSchema {
 /// `test 2 a`
 /// `test 2 b`
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct Parameter {
-    /// Subparameters of this parameter
+    /// Subparameters of this parameter.
     ///
-    /// To be used exclusively without values of parameter
+    /// To be used exclusively without values of parameter.
     pub sub: Option<BTreeMap<String, SubParameter>>,
 
-    /// The values of parameter
+    /// The values of parameter.
     ///
-    /// To be used exclusively without sub (parameter)
+    /// To be used exclusively without sub (parameter).
     pub values: Option<Vec<String>>,
 }
 
-/// Parameter
+/// A subparameter.
 ///
 /// # Examples
 ///
 /// ```toml
-/// [parameters.x_a]
+/// [parameters.x.sub.a]
 /// values = ["1", "2", "3"]
 ///
-/// [parameters.x_b]
+/// [parameters.x.sub.b]
 /// values = ["15", "60", "30"]
 ///
 /// [programs.test_program]
 /// binary = "test"
 ///
 /// [inputs.test_input]
-/// arguments = [ "parameter|{parameter_x_a}", "parameter|{parameter_x_b}" ]
+/// arguments = [ "subparam|x.a", "subparam|x.b" ]
 /// ```
 ///
 /// Will run:
@@ -172,11 +176,12 @@ pub struct Parameter {
 /// `test 2 60`
 /// `test 3 30`
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct SubParameter {
-    /// The values of sub parameter
+    /// The values of sub parameter.
     ///
-    /// Has to equal in length to values of other subparameters of the same
-    /// argument
+    /// Has to be equal in length to values of other subparameters of the same
+    /// argument.
     pub values: Vec<String>,
 }
 
@@ -233,17 +238,18 @@ pub struct Config {
     /// A path to a TOML file that contains input combinations.
     pub input_schema: Option<PathBuf>,
 
-    /// The list of parameters
+    /// The list of parameters.
+    #[serde(rename = "parameter")]
     pub parameters: Option<BTreeMap<String, Parameter>>,
 
-    /// If running on a SLURM cluster, the job configurations
+    /// If running on a SLURM cluster, the job configurations.
     pub slurm: Option<SlurmConfig>,
 
-    /// If running on a SLURM cluster, the initial global resource limits
+    /// If running on a SLURM cluster, the initial global resource limits.
     pub resource_limits: Option<ResourceLimits>,
 
     /// If running on a SLURM cluster, the initial postprocessing resource
-    /// limits
+    /// limits.
     pub postprocess_resource_limits: Option<ResourceLimits>,
 
     //
@@ -270,6 +276,7 @@ pub struct Config {
 
 /// The config options when running through Slurm
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SlurmConfig {
     /// The name of the experiment. This is used (parametrically) as the job
     /// name in SLURM, and for the output directory.
@@ -317,6 +324,7 @@ pub struct SlurmConfig {
 
 /// The structure for providing custom slurm arguments
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SBatchArg {
     /// Name of the sbatch argument
     pub name: String,
@@ -328,6 +336,7 @@ pub struct SBatchArg {
 /// The resource limits, a Slurm configuration parameter that can be changed
 /// during an experiment. Contains the CPU, time, and memory bounds per run.
 #[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ResourceLimits {
     /// Maximum time allowed _for each_ job.
     #[serde(deserialize_with = "duration::deserialize_human_time_duration")]
@@ -401,22 +410,20 @@ impl Config {
             }
         }
 
-        if let Some(parameters) = &initial.parameters.clone() {
+        if let Some(parameters) = &initial.parameters {
             for (p_name, p) in parameters {
-                if p.sub.is_some() == p.values.is_some() {
-                    if p.sub.is_some() {
-                        bailc!(
-                          "Parameter specified incorrectly", ;
-                          "Parameter can have either values or subparameters, not both", ;
-                          "Parameter name {}", p_name
-                        );
-                    } else {
-                        bailc!(
-                          "Parameter specified incorrectly", ;
-                          "Parameter must have either values or subparameters, currently has none", ;
-                          "Parameter name {}", p_name
-                        );
-                    }
+                if p.sub.is_some() && p.values.is_some() {
+                    bailc!(
+                      "Parameter specified incorrectly", ;
+                      "Parameter can have either values or subparameters, not both", ;
+                      "Parameter name {}", p_name
+                    );
+                } else if p.sub.is_none() && p.values.is_none() {
+                    bailc!(
+                      "Parameter specified incorrectly", ;
+                      "Parameter must have either values or subparameters, currently has none", ;
+                      "Parameter name {}", p_name
+                    );
                 }
             }
 

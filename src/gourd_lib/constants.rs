@@ -34,11 +34,20 @@ pub const EMPTY_ARGS: fn() -> Vec<String> = Vec::new;
 /// The prefix which will cause an argument to be interpreted as a glob.
 pub const GLOB_ESCAPE: &str = "glob|";
 
+/// The prefix which will cause an argument to be interpreted as a parameter.
+pub const PARAMETER_ESCAPE: &str = "param|";
+
+/// The prefix which will cause an argument to be interpreted as a subparameter.
+pub const SUBPARAMETER_ESCAPE: &str = "subparam|";
+
 /// The internal representation of inputs generated from a schema
 pub const INTERNAL_SCHEMA_INPUTS: &str = "schema";
 
 /// The internal representation of globbed inputs.
 pub const INTERNAL_GLOB: &str = "glob";
+
+/// The internal representation of paramtrized inputs.
+pub const INTERNAL_PARAMETER: &str = "param";
 
 /// Internal representation for names parsed from config
 pub const INTERNAL_PREFIX: &str = "_i_";
