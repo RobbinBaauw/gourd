@@ -155,6 +155,121 @@ arguments = ["-f1", "./inputs/1.in", "-f2", "./input2/test.in"]
 arguments = ["-f1", "./inputs/2.in", "-f2", "./input2/test.in"]
       \end{verbatim}
 
+      \subsection{PARAMETERS}
+
+        Parameters can be applied to the arguments to conveniently perform experiments with grid search.
+
+            If an argument starts with \Arg{param|}, it will be treated as a parameter.
+            For each value of that parameter the new input will be created with that value inserted into the argument
+            into that argument place.
+
+            Values of a parameter are specified in \Arg{[parameter.name]} using \Arg{values = list of string}
+
+            This results in cross product between all parameters.
+
+                Example:
+
+        \begin{verbatim}
+[inputs.testrun1]
+arguments = ["-f", "param|x", "-x", "param|y"]
+
+[parameters.x]
+values = ["a", "b"]
+
+[parameters.y]
+values = ["10", "20"]
+        \end{verbatim}
+
+                It will be transformed into following inputs:
+
+        \begin{verbatim}
+[inputs.testrun1_x_0_y_0]
+arguments = ["-f", "a", "-x", "10"]
+
+[inputs.testrun1_x_0_y_1]
+arguments = ["-f", "a", "-x", "20"]
+
+[inputs.testrun1_x_1_y_0]
+arguments = ["-f", "b", "-x", "10"]
+
+[inputs.testrun1_x_1_y_1]
+arguments = ["-f", "b", "-x", "20"]
+
+[parameters.x]
+values = ["a", "b"]
+
+[parameters.y]
+values = ["10", "20"]
+        \end{verbatim}
+
+    \subsubsection{SUBPARAMETERS}
+
+        Subparameters are used when there is a need for 1-1 relation between two parameters.
+        There is no cross product between subparameters of the same parameter.
+
+        Subparameters are specified in inputs similarly to parameters with a difference of doing \Arg{subparam|parameter-name.subparameter-name}.
+
+        Values of Subparameter are specified in \Arg{[parameter.name.sub.subparameter-name]} using \Arg{values = []}
+
+        Note! Parameters can have either values or subparameters with values. Never both.
+
+        Example:
+
+        \begin{verbatim}
+[input.testrun1]
+arguments = ["-f", "subparam|x.1", "-x", "param|y", "-g", "subparam|x.2"]
+
+[parameter.x.sub.1]
+values = ["a", "b"]
+
+[parameter.x.sub.2]
+values = ["c", "d"]
+
+[parameter.y]
+values = ["10", "20"]
+        \end{verbatim}
+
+                It will be transformed into following inputs:
+
+        \begin{verbatim}
+[input.testrun1_x-0_y-0]
+arguments = ["-f" "a", "-x", "10", "-g", "c"]
+
+[input.testrun1_x-0_y-1]
+arguments = ["-f", "a", "-x", "20", "-g", "c"]
+
+[input.testrun1_x-1_y-0]
+arguments = ["-f", "b", "-x", "10", "-g", "d"]
+
+[input.testrun1_x-1_y-1]
+arguments = ["-f", "b", "-x", "20", "-g", "d"]
+
+[parameter.x]
+values = ["a", "b"]
+
+[parameter.y]
+values = ["10", "20"]
+        \end{verbatim}
+
+        Example of wrong config:
+
+        \begin{verbatim}
+[input.testrun1]
+arguments = ["subparam|x.1", "param|x", "subparam|x.2"]
+
+[parameter.x.sub.1]
+values = ["a", "b"]
+
+[parameter.x.sub.2]
+values = ["c", "d"]
+
+[parameter.x]
+values = ["10", "20"]
+        \end{verbatim}
+
+        This is not correct and \Prog{gourd} will throw an error!
+
+
   \section{LABELS}
   \subsection{Labels}
   When running \Prog{gourd} \Arg{status}, by default the statuses only display information
@@ -222,7 +337,7 @@ arguments = ["-f1", "./inputs/2.in", "-f2", "./input2/test.in"]
     Rūta Giedrytė <\Email{r.giedryte@student.tudelft.nl}>\\[0.1cm]\MANbr
     Ανδρέας Τσατσάνης <\Email{a.tsatsanis@student.tudelft.nl}>\\[0.1cm]\MANbr
     Mikołaj Gazeel <\Email{m.j.gazeel@student.tudelft.nl}>\\[0.1cm]\MANbr
-    Jan Piotrowski <\Email{j.p.piotrowski@student.tudelft.nl}>
+    Jan Piotrowski <\Email{me@jan.wf}>
 %@% IF LATEX %@%
 \end{adjustwidth}
 %@% END-IF %@%

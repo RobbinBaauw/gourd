@@ -53,6 +53,7 @@ pub fn init_interactive(
         experiments_folder: PathBuf::from("experiments"),
         programs: Default::default(),
         inputs: Default::default(),
+        parameters: None,
         slurm: None,
         resource_limits: None,
         postprocess_resource_limits: None,

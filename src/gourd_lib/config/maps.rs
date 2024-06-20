@@ -10,6 +10,7 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 use std::path::Path;
 
+use anyhow::Result;
 use glob::glob;
 use serde::de;
 use serde::de::MapAccess;
@@ -42,11 +43,11 @@ thread_local! {
 
 /// A wrapper around [BTreeMap] to allow serde expansion of globs.
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default, Serialize)]
-pub struct InputMap(BTreeMap<String, Input>);
+pub struct InputMap(pub BTreeMap<String, Input>);
 
 /// A wrapper around [BTreeMap] with programs.
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default, Serialize)]
-pub struct ProgramMap(BTreeMap<String, Program>);
+pub struct ProgramMap(pub BTreeMap<String, Program>);
 
 impl<'de> Deserialize<'de> for ProgramMap {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
