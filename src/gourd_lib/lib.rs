@@ -19,6 +19,10 @@ pub mod error;
 /// Constant values.
 pub mod constants;
 
+/// Interactions with the network for fetching resources.
+#[cfg(feature = "fetching")]
+pub mod network;
+
 /// Helper functions for testing, only compiled in test mode.
 #[cfg(test)]
 mod test_utils;

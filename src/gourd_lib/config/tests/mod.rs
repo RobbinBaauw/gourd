@@ -15,6 +15,7 @@ use tempdir::TempDir;
 use crate::config::maps::InputMap;
 use crate::config::maps::ProgramMap;
 use crate::config::Config;
+use crate::config::FetchedPath;
 use crate::config::Input;
 use crate::config::Program;
 use crate::constants::WRAPPER_DEFAULT;
@@ -379,7 +380,7 @@ fn parse_valid_escape_hatch_file() {
         programs: vec![(
             "x".to_string(),
             Program {
-                binary: "/bin/sleep".into(),
+                binary: FetchedPath("/bin/sleep".into()),
                 arguments: vec![],
                 afterscript: None,
                 postprocess_job: None,

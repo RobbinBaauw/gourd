@@ -31,9 +31,17 @@ pub(crate) fn verify_arch(
     expected_arch: &str,
     fs: &impl FileOperations,
 ) -> Result<()> {
-    let _ = fs
+    let mut bytes = fs
         .read_bytes(binary)
-        .context("Could not read the binary file.");
+        .context("Could not read the binary file.")?
+        .into_iter();
+
+    // We *DO* allow shebangs.
+    if let Some(0x23) = bytes.next() {
+        if let Some(0x21) = bytes.next() {
+            return Ok(());
+        }
+    }
 
     match Command::new("lipo")
         .arg("-archs")

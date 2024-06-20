@@ -269,7 +269,6 @@ values = ["10", "20"]
 
         This is not correct and \Prog{gourd} will throw an error!
 
-
   \section{LABELS}
   \subsection{Labels}
   When running \Prog{gourd} \Arg{status}, by default the statuses only display information
@@ -328,6 +327,38 @@ values = ["10", "20"]
 
   then by principle of priorities, the run will be assigned \File{label2} even though both regex match.
 
+  \section{Remote resource fetching}
+    In order to prevent having to manually transfer large files, input files or (precompiled) program binaries can be fetched from a URL.
+
+    Suppose you are hosting a large text file, or want to download a binary from CI artefacts:
+
+    \texttt{https://test.com/input.txt}
+
+    \texttt{https://test.com/program.exe}
+
+    You can pass this as an input by:
+
+\begin{verbatim}
+[input.some_input]
+input = “fetch|https://test.com/input.txt | ./path/to/store/the/file.txt”
+arguments = [“any”, “input”, “arguments”]
+\end{verbatim}
+    This will download the file at the URL and save its contents in the provided path.
+    The contents of this will then be passed as input to all programs.
+
+    Note that the “|” character needs to be escaped in URLs as \texttt{\%7C} since it is used as a delimiter
+
+    Similarly for programs:
+
+\begin{verbatim}
+[program.some_example]
+binary = “fetch|https://test.com/program.exe | ./path/to/store/the/program.exe”
+arguments = [“any”, “program”, “arguments”]
+\end{verbatim}
+    These resources will be downloaded and saved at the paths, but they will not be redownloaded
+    again as long as these cached files exist.
+
+    If you want to redownaload the resoruces delete the file.
 
   \section{SEE ALSO}
       \Prog{gourd(1)}

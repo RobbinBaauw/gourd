@@ -24,7 +24,7 @@ builtin-examples = ["tar", "flate2"]
 
 # Include fetching of HTTP resources and Git repositories.
 # Note that 'git2' is otherwise included with no default features (https/ssh)
-fetching = ["reqwest", "git2/default"]
+fetching = ["dep:ureq", "git2/default"]
 
 default = ["fetching", "builtin-examples"]
 
@@ -68,7 +68,7 @@ glob = "0.3.1"
 regex-lite = "0.1.5"
 
 # To load datasets and executables from the internet.
-reqwest = { version = "0.12.4", features = ["blocking", "json"], optional = true }
+ureq = { version = "2.9.7", optional = true }
 
 # To provide a user-friendly CLI.
 clap = { version = "4.5.4", features = ["derive", "cargo"] }

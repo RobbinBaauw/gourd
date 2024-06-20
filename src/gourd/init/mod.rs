@@ -14,6 +14,7 @@ use gourd_lib::constants::CMD_STYLE;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::file_system::FileOperations;
+use gourd_lib::file_system::FileSystemInteractor;
 use log::debug;
 use log::info;
 
@@ -62,7 +63,7 @@ pub fn init_experiment_setup(
     script_mode: bool,
     dry_run: bool,
     template: &Option<String>,
-    fs: &impl FileOperations,
+    fs: &FileSystemInteractor,
 ) -> Result<()> {
     check_init_directory(directory)?;
 
@@ -141,7 +142,7 @@ fn check_init_directory(directory: &Path) -> Result<()> {
 fn init_from_example(
     #[allow(unused)] id: &str,
     #[allow(unused)] directory: &Path,
-    #[allow(unused)] fs: &impl FileOperations,
+    #[allow(unused)] fs: &FileSystemInteractor,
 ) -> Result<()> {
     #[cfg(not(feature = "builtin-examples"))]
     bailc!(

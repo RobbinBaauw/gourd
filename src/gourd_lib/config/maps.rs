@@ -9,6 +9,7 @@ use std::mem::swap;
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::path::Path;
+use std::path::PathBuf;
 
 use anyhow::Result;
 use glob::glob;
@@ -19,6 +20,7 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 
+use super::fetching::FetchedPath;
 use super::Input;
 use super::Program;
 use crate::constants::GLOB_ESCAPE;
@@ -26,6 +28,18 @@ use crate::constants::INTERNAL_GLOB;
 use crate::constants::INTERNAL_PREFIX;
 use crate::file_system::FileOperations;
 use crate::file_system::FileSystemInteractor;
+
+/// The current setting of the deserializer.
+#[derive(Clone)]
+pub enum DeserState<T>
+where
+    T: FileOperations,
+{
+    /// A user facing deserializer with the following fs interactor.
+    User(T),
+    /// An internal deserializer (this for example will not expand "glob|"s).
+    NotUser,
+}
 
 // Q: Why is this done like this? This pattern seems to be harmful.
 // A: There was a lot of invesigation into other ways of solving the problem.
@@ -38,7 +52,8 @@ use crate::file_system::FileSystemInteractor;
 //
 // Thus this solution was chosen.
 thread_local! {
-  pub(crate) static IS_USER_FACING: RefCell<bool> = const { RefCell::new(false) };
+  pub(crate) static IS_USER_FACING: RefCell<DeserState<FileSystemInteractor>> =
+      const { RefCell::new(DeserState::NotUser) };
 }
 
 /// A wrapper around [BTreeMap] to allow serde expansion of globs.
@@ -72,15 +87,14 @@ impl<'de> Deserialize<'de> for ProgramMap {
             where
                 A: MapAccess<'de>,
             {
-                let fs = FileSystemInteractor { dry_run: false };
                 let mut values = BTreeMap::new();
 
                 while let Some((k, mut v)) = map.next_entry::<String, Program>()? {
-                    if IS_USER_FACING.with_borrow(|x| *x) {
-                        v.binary = canon_path(&v.binary, fs)?;
+                    if let DeserState::User(fs) = IS_USER_FACING.with_borrow(|x| x.clone()) {
+                        v.binary = FetchedPath(canon_path(&v.binary, &fs)?);
 
                         if let Some(relative) = v.afterscript.clone() {
-                            v.afterscript = Some(canon_path(&relative, fs)?);
+                            v.afterscript = Some(canon_path(&relative, &fs)?);
                         }
 
                         disallow_substring(&k, INTERNAL_PREFIX)?;
@@ -124,13 +138,12 @@ impl<'de> Deserialize<'de> for InputMap {
             where
                 A: MapAccess<'de>,
             {
-                let fs = FileSystemInteractor { dry_run: false };
                 let mut values = BTreeMap::new();
 
                 while let Some((k, mut v)) = map.next_entry::<String, Input>()? {
-                    if IS_USER_FACING.with_borrow(|x| *x) {
+                    if let DeserState::User(fs) = IS_USER_FACING.with_borrow(|x| x.clone()) {
                         if let Some(relative) = v.input.clone() {
-                            v.input = Some(canon_path(&relative, fs)?);
+                            v.input = Some(FetchedPath(canon_path(&relative, &fs)?));
                         }
 
                         disallow_substring(&k, INTERNAL_PREFIX)?;
@@ -154,13 +167,13 @@ impl<'de> Deserialize<'de> for InputMap {
 }
 
 /// This will take a path and canonicalize it.
-fn canon_path<T>(path: &Path, fs: impl FileOperations) -> Result<std::path::PathBuf, T>
+fn canon_path<T>(path: &Path, fs: &impl FileOperations) -> Result<PathBuf, T>
 where
     T: de::Error,
 {
     fs.canonicalize(path).map_err(|_| {
         de::Error::custom(format!(
-            "failed to find {:?} relative to {:?}",
+            "failed to find {:?} with workdir {:?}",
             path,
             current_dir().unwrap()
         ))

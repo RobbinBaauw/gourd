@@ -182,8 +182,8 @@ fn process_args(args: &[String], fs: &impl FileOperations) -> Result<RunConf> {
     additional_args.append(&mut input.arguments.clone());
 
     Ok(RunConf {
-        binary_path: program.binary.clone(),
-        input_path: input.input.clone(),
+        binary_path: program.binary.clone().to_path_buf(),
+        input_path: input.input.clone().map(|x| x.to_path_buf()),
         output_path: exp.runs[id].output_path.clone(),
         result_path: exp.runs[id].metrics_path.clone(),
         work_dir: exp.runs[id].work_dir.clone(),

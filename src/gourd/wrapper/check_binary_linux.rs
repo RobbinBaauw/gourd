@@ -33,6 +33,14 @@ const E_MACHINE_MAPPING: for<'a> fn(&'a str) -> u16 = |machine| match machine {
 pub fn verify_arch(binary: &PathBuf, expected_arch: &str, fs: &impl FileOperations) -> Result<()> {
     let expected_machine_type = E_MACHINE_MAPPING(expected_arch);
     let elf = fs.read_bytes(binary)?;
+    let mut elf_iter = elf.iter();
+
+    // We *DO* allow shebangs.
+    if let Some(0x23) = elf_iter.next() {
+        if let Some(0x21) = elf_iter.next() {
+            return Ok(());
+        }
+    }
 
     let elf = ElfBytes::<AnyEndian>::minimal_parse(elf.as_slice()).with_context(ctx!(
       "Could not parse the file as ELF {binary:?}", ;

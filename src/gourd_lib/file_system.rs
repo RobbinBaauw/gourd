@@ -55,6 +55,9 @@ pub trait FileOperations {
     /// Truncates the folder and then runs [FileOperations::canonicalize].
     fn truncate_and_canonicalize_folder(&self, path: &Path) -> Result<PathBuf>;
 
+    /// Make a file possible to execute.
+    fn set_permissions(&self, path: &Path, perms: u32) -> Result<()>;
+
     /// Given a path try to canonicalize it.
     ///
     /// This will fail for files that do not exist.
@@ -218,5 +221,26 @@ impl FileOperations for FileSystemInteractor {
         Repository::init(path)?;
         info!("Successfully created a Git repository");
         Ok(())
+    }
+
+    fn set_permissions(&self, path: &Path, perms: u32) -> Result<()> {
+        if self.dry_run {
+            debug!("Would have made {path:?} executable (dry)");
+            return Ok(());
+        }
+
+        #[cfg(unix)]
+        {
+            use std::fs::Permissions;
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(path, Permissions::from_mode(perms)).with_context(ctx!(
+              "Could not make {path:?} executable", ;
+             "Ensure that you have sufficient permissions",
+            ))
+        }
+        #[cfg(not(unix))]
+        {
+            Ok(())
+        }
     }
 }

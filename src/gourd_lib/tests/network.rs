@@ -5,8 +5,16 @@ use std::path::PathBuf;
 use tempdir::TempDir;
 
 use super::*;
-use crate::resources::tests::PREPROGRAMMED_SH_SCRIPT;
 use crate::test_utils::REAL_FS;
+
+pub const PREPROGRAMMED_SH_SCRIPT: &str = r#"
+#!/bin/bash
+cat <<EOF >filename
+first line
+second line
+third line
+EOF
+"#;
 
 #[test]
 fn test_get_resources() {
@@ -33,7 +41,12 @@ fn test_downloading_from_url() {
     let tmp_dir_path = PathBuf::from(tmp_dir.path());
     println!("{:?}", tmp_dir_path);
 
-    download_from_url("https://sh.rustup.rs", &tmp_dir_path, output_name, &REAL_FS).unwrap();
+    download_file(
+        "https://sh.rustup.rs",
+        &tmp_dir_path.join(output_name),
+        &REAL_FS,
+    )
+    .unwrap();
 
     let mut file = File::open(file_path).expect("could not open the file");
     let mut contents = String::new();

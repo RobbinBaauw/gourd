@@ -37,6 +37,7 @@ use std::process::Output;
 use anyhow::anyhow;
 use anyhow::Result;
 use gourd_lib::config::Config;
+use gourd_lib::config::FetchedPath;
 use gourd_lib::config::Program;
 use gourd_lib::config::ProgramMap;
 use gourd_lib::experiment::Experiment;
@@ -130,7 +131,7 @@ fn new_program(
     prog.insert(
         name.to_string(),
         Program {
-            binary: compile_example(dir, contents, None),
+            binary: FetchedPath(compile_example(dir, contents, None)),
             arguments: extra_args.iter().map(|s| s.to_string()).collect(),
             afterscript: None,
             postprocess_job: post.map(|p| p.to_string()),

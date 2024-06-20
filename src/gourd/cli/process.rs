@@ -20,7 +20,6 @@ use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Environment;
 use gourd_lib::experiment::Experiment;
-use gourd_lib::file_system::FileOperations;
 use gourd_lib::file_system::FileSystemInteractor;
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
@@ -97,7 +96,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
     fn read_experiment(
         experiment_id: &Option<usize>,
         cmd: &Cli,
-        file_system: &impl FileOperations,
+        file_system: &FileSystemInteractor,
     ) -> Result<(Experiment, Config)> {
         debug!("Reading the config: {:?}", cmd.config);
 

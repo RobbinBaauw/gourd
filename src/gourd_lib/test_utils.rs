@@ -64,6 +64,10 @@ impl FileOperations for EmptyFilesystem {
     fn init_git_repository(&self, _: &Path) -> Result<()> {
         bail!("File not found")
     }
+
+    fn set_permissions(&self, _: &Path, _: u32) -> Result<()> {
+        bail!("File not found")
+    }
 }
 
 /// Create a sample config file from a string, used in testing.

@@ -7,6 +7,7 @@ use anyhow::Result;
 use flate2::read::GzDecoder;
 use gourd_lib::config::Config;
 use gourd_lib::file_system::FileOperations;
+use gourd_lib::file_system::FileSystemInteractor;
 use log::debug;
 use log::warn;
 use tar::Archive;
@@ -31,7 +32,7 @@ impl InitExample<'_> {
     ///
     /// The directory must have a valid parent, but may not exist.
     /// This is to be enforced by the caller method.
-    pub fn unpack_to(&self, directory: &Path, file_system: &impl FileOperations) -> Result<()> {
+    pub fn unpack_to(&self, directory: &Path, file_system: &FileSystemInteractor) -> Result<()> {
         let tar = GzDecoder::new(self.directory_tarball);
         let mut archive = Archive::new(tar);
 

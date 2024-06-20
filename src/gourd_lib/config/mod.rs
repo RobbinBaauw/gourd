@@ -7,6 +7,7 @@ use std::time::Duration;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use maps::DeserState;
 use maps::IS_USER_FACING;
 use parameters::expand_parameters;
 use serde::Deserialize;
@@ -14,18 +15,19 @@ use serde::Serialize;
 
 use crate::bailc;
 use crate::constants::AFTERSCRIPT_DEFAULT;
+use crate::constants::CMD_STYLE;
 use crate::constants::EMPTY_ARGS;
 use crate::constants::INTERNAL_PREFIX;
 use crate::constants::INTERNAL_SCHEMA_INPUTS;
 use crate::constants::POSTPROCESS_JOBS_DEFAULT;
 use crate::constants::POSTPROCESS_JOB_DEFAULT;
-use crate::constants::PRIMARY_STYLE;
 use crate::constants::PROGRAM_RESOURCES_DEFAULT;
 use crate::constants::RERUN_LABEL_BY_DEFAULT;
 use crate::constants::WRAPPER_DEFAULT;
 use crate::error::ctx;
 use crate::error::Ctx;
 use crate::file_system::FileOperations;
+use crate::file_system::FileSystemInteractor;
 
 /// Deserializer for the duration.
 mod duration;
@@ -39,6 +41,10 @@ mod regex;
 /// Deserializer for the paramters (grid search).
 mod parameters;
 
+/// Fetching for resources.
+mod fetching;
+
+pub use fetching::FetchedPath;
 pub use maps::InputMap;
 pub use maps::ProgramMap;
 pub use regex::Regex;
@@ -48,7 +54,12 @@ pub use regex::Regex;
 #[serde(deny_unknown_fields)]
 pub struct Program {
     /// The path to the executable.
-    pub binary: PathBuf,
+    ///
+    /// # Permissions
+    ///
+    /// If this file is fetched on unix the permissions
+    /// for it are: `rwxr-xr--`.
+    pub binary: FetchedPath<0o754>,
 
     /// The cli arguments for the executable.
     #[serde(default = "EMPTY_ARGS")]
@@ -87,7 +98,12 @@ pub struct Input {
     /// The path to the input.
     ///
     /// If not specified, nothing is provided on the program's input.
-    pub input: Option<PathBuf>,
+    ///
+    /// # Permissions
+    ///
+    /// If this file is fetched on unix the permissions
+    /// for it are: `rw-r--r--`.
+    pub input: Option<FetchedPath<0x644>>,
 
     /// The additional cli arguments for the executable.
     ///
@@ -375,19 +391,19 @@ impl Config {
     /// Load a `Config` struct instance from a TOML file at the provided path.
     /// Returns a valid `Config` or an explanatory
     /// `GourdError::ConfigLoadError`.
-    pub fn from_file<F: FileOperations>(path: &Path, skip_checks: bool, fs: &F) -> Result<Config> {
+    pub fn from_file(path: &Path, skip_checks: bool, fs: &FileSystemInteractor) -> Result<Config> {
         // Why? see the comment on the variable.
         if !skip_checks {
-            IS_USER_FACING.with_borrow_mut(|x| *x = true);
+            IS_USER_FACING.with_borrow_mut(|x| *x = DeserState::User(*fs));
         }
 
         let mut initial: Config = fs.try_read_toml(path).with_context(ctx!(
           "Could not parse {path:?}", ;
           "More help and examples can be found with \
-          {PRIMARY_STYLE}man gourd.toml{PRIMARY_STYLE:#}",
+          {CMD_STYLE}man gourd.toml{CMD_STYLE:#}",
         ))?;
 
-        IS_USER_FACING.with_borrow_mut(|x| *x = false);
+        IS_USER_FACING.with_borrow_mut(|x| *x = DeserState::NotUser);
 
         if let Some(schema) = &initial.input_schema {
             initial.inputs = Self::parse_schema_inputs(schema.as_path(), initial.inputs, fs)?;
