@@ -13,6 +13,7 @@ use serde::Serialize;
 use crate::constants::URL_ESCAPE;
 use crate::file_system::FileOperations;
 
+#[allow(rustdoc::bare_urls)]
 /// A wrapper around [PathBuf] to allow serde expansion of globs.
 ///
 /// This allows for a user to specify a fetched resource in place of a local

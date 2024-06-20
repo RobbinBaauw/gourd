@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use gourd_lib::config::Config;
+use gourd_lib::config::FetchedPath;
 use gourd_lib::config::ProgramMap;
 
 use super::*;
@@ -11,7 +12,7 @@ use super::*;
 fn test_get_program_from_name_simple() {
     let mut config = Config::default();
     let mut program = Program {
-        binary: PathBuf::from("fake_path"),
+        binary: FetchedPath(PathBuf::from("fake_path")),
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,
@@ -39,7 +40,7 @@ fn test_get_program_from_name_simple() {
 fn test_get_program_from_name_post() {
     let mut config = Config::default();
     let mut program = Program {
-        binary: PathBuf::from("fake_path"),
+        binary: FetchedPath(PathBuf::from("fake_path")),
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,
@@ -86,7 +87,7 @@ fn test_get_program_from_name_error() {
 fn test_query_changing_limits_for_program() {
     let mut config = Config::default();
     let program = Program {
-        binary: PathBuf::from("fake_path"),
+        binary: FetchedPath(PathBuf::from("fake_path")),
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,
@@ -108,6 +109,7 @@ fn test_query_changing_limits_for_program() {
 
     assert!(query_changing_limits_for_program(
         &"name1".to_string(),
+        false,
         &mut exp,
         Some(20),
         Some(2),
@@ -129,7 +131,7 @@ fn test_query_changing_limits_for_all_programs() {
 
     let mut config = Config::default();
     let program = Program {
-        binary: PathBuf::from("fake_path"),
+        binary: FetchedPath(PathBuf::from("fake_path")),
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,
@@ -175,7 +177,7 @@ fn test_query_changing_limits_for_all_programs() {
 fn test_get_setlim_programs() {
     let mut config = Config::default();
     let program = Program {
-        binary: PathBuf::from("fake_path"),
+        binary: FetchedPath(PathBuf::from("fake_path")),
         arguments: vec![],
         afterscript: None,
         postprocess_job: None,

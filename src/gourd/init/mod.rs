@@ -6,6 +6,7 @@ pub mod builtin_examples;
 
 use std::path::Path;
 
+use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use gourd_lib::bailc;

@@ -46,6 +46,7 @@
     --color-accent: #424242;
     --color-bg: #232323;
     --article-bg: #232323;
+    --border-col: #6a4b6a;
     --color-bg-secondary: #2e2e2e;
     --color-secondary: #6df216;
     --color-secondary-accent: #f4f4f4;
@@ -1135,7 +1136,7 @@ table.Nm tbody tr > * {
 }
 
 a.permalink {
-  text-decoration: none;
+  text-decoration: underline;
   color: var(--color-text);
 }
 

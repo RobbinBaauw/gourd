@@ -3,9 +3,11 @@ use std::collections::BTreeMap;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use gourd_lib::bailc;
 use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
+use log::trace;
 use regex_lite::Regex;
 
 use super::SlurmBasedStatus;
@@ -45,8 +47,6 @@ where
         connection: &mut T,
         experiment: &Experiment,
     ) -> Result<BTreeMap<usize, SlurmBasedStatus>> {
-        use gourd_lib::bailc;
-
         let mut run_id_to_status: BTreeMap<usize, SlurmBasedStatus> = BTreeMap::new();
         let mut slurm_map = BTreeMap::new();
 
@@ -149,24 +149,41 @@ fn flatten_job_id(jobs: Vec<SacctOutput>) -> Result<Vec<SacctOutput>> {
 pub fn flatten_slurm_id(id: String) -> Result<Vec<String>> {
     let mut result = vec![];
 
-    let range = Regex::new(r"([0-9]+_)\[([0-9]+)-([0-9]+)\]$").with_context(ctx!("",;"",))?; // Match job ids in form NUMBER_[NUMBER-NUMBER]
-    let solo = Regex::new(r"([0-9]+[_]?)\[?([0-9]+)\]?$").with_context(ctx!("",;"",))?; // Match job ids in form NUMBER_NUMBER
+    // Match job ids in form NUMBER_[ranges]
+    // Where ranges are a comma separated list where
+    // every values is either NUM or NUM-NUM
+    let range = Regex::new(r"([0-9]+)_\[(..*?)\]$").with_context(ctx!("",;"",))?;
+
+    // Match job ids in form NUMBER_NUMBER
+    let solo = Regex::new(r"([0-9]+)_([0-9]+)$").with_context(ctx!("",;"",))?;
 
     if let Some(captures) = range.captures(&id) {
         let batch_id = &captures[1];
-        let begin = captures[2].parse::<usize>().unwrap();
-        let end = captures[3].parse::<usize>().unwrap();
+        let ranges = &captures[2];
 
-        for i in begin..=end {
-            result.push(format!("{}{}", batch_id, i))
+        for r in ranges.split(',') {
+            trace!("Captured range {r} for {id}");
+            let over_separators: Vec<&str> = r.split('-').collect();
+
+            if over_separators.len() == 2 {
+                let begin: usize = over_separators[0].parse()?;
+                let end: usize = over_separators[1].parse()?;
+
+                for run_id in begin..=end {
+                    result.push(format!("{}_{}", batch_id, run_id))
+                }
+            } else if over_separators.len() == 1 {
+                let run_id: usize = over_separators[0].parse()?;
+                result.push(format!("{}_{}", batch_id, run_id))
+            }
         }
     }
 
     if let Some(captures) = solo.captures(&id) {
         let batch_id = &captures[1];
-        let run_id = captures[2].parse::<usize>().unwrap();
+        let run_id = captures[2].parse::<usize>()?;
 
-        result.push(format!("{}{}", batch_id, run_id))
+        result.push(format!("{}_{}", batch_id, run_id))
     }
 
     Ok(result)

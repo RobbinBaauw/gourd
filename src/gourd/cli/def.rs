@@ -184,12 +184,12 @@ pub struct SetLimitsStruct {
     pub experiment_id: Option<usize>,
 
     /// The program for which to set resource limits.
-    #[arg(short = 'p', long)]
+    #[arg(short, long)]
     pub program: Option<String>,
 
     /// Set resource limits for all programs.
     #[arg(
-        short = 'a',
+        short,
         long,
         conflicts_with_all = ["program"],
     )]
@@ -204,13 +204,8 @@ pub struct SetLimitsStruct {
     pub cpu: Option<usize>,
 
     /// Take the resource limits from a toml file.
-    #[arg(long, value_parser = parse_duration)]
+    #[arg(long, value_parser = humantime::parse_duration)]
     pub time: Option<Duration>,
-}
-
-/// Parse a string into a duration.
-fn parse_duration(s: &str) -> std::result::Result<Option<Duration>, humantime::DurationError> {
-    humantime::parse_duration(s).map(Some)
 }
 
 /// Enum for root-level `gourd` commands.
@@ -221,11 +216,11 @@ pub enum GourdCommand {
     Run(RunStruct),
 
     /// Set up a template of an experiment configuration.
-    #[command(alias = "innit")]
+    #[command()]
     Init(InitStruct),
 
     /// Display the status of an experiment that was run.
-    #[command(aliases = ["stat", "stats"])]
+    #[command()]
     Status(StatusStruct),
 
     /// Schedule another batch of slurm jobs.
@@ -241,11 +236,11 @@ pub enum GourdCommand {
     Rerun(RerunOptions),
 
     /// Output metrics of completed runs.
-    #[command(alias = "analyze")]
+    #[command()]
     Analyse(AnalyseStruct),
 
     /// Sets resource limits.
-    #[command(alias = "setlim")]
+    #[command(name = "set-limits")]
     SetLimits(SetLimitsStruct),
 
     /// Print information about the version.

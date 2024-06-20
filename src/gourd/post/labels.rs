@@ -1,13 +1,11 @@
 use std::path::Path;
 
 use anyhow::Result;
-use gourd_lib::bailc;
-use gourd_lib::ctx;
-use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
 use log::debug;
 use log::trace;
+use log::warn;
 /// Assigns a label to a run.
 pub fn assign_label(
     experiment: &Experiment,
@@ -29,16 +27,11 @@ pub fn assign_label(
                 if let Some(ref r) = result_label {
                     trace!("{text} matches multiple labels: {r} and {l}");
 
-                    let overlap = experiment.config.prevent_label_overlap;
-                    if let Some(prevent) = overlap {
-                        if prevent {
-                            bailc!(
-                                "Multiple labels match",;
-                                "An afterscript should only provide one label",;
-                                "The source file {:?} matches multiple labels: {} and {}",
-                                source_file, r, l
-                            );
-                        }
+                    if experiment.config.warn_on_label_overlap {
+                        warn!(
+                            "The source file {:?} matches multiple labels: {} and {}",
+                            source_file, r, l
+                        );
                     }
                 } else {
                     trace!("{text} matches {l}");

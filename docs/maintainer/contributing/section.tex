@@ -6,16 +6,33 @@
 The contribution guidelines for this project, and the decisions made about code style,
 will be outlined in this section of the document.
 
-\subsection{Version Control}
+\subsection{Guidelines}
 
 The project is hosted on GitLab.
 Changes to the ``main'' branch must be staged through a merge request approved by at least two maintainers.
 The number of commits should be kept to a minimum to ensure clarity.
+
 All commit messages must be lowercase.
 
-Currently, the ``main'' branch is not public and can contain new features that do not increment the software version.
-However, each merge request that increments the software version must do so in ``Cargo.toml'', version strings in the project,
-the manpage, and the maintainer documentation at \texttt{version-history/section.tex} and \texttt{preamble.tex}.
+No files can contain whitespace and the end of lines.
+
+No files can contain newlines at the end.
+
+All indentation should be spaces.
+
+No merge commits, branches should always be rebased before a merge to \texttt{main}.
+
+\subsection{Releasing a new version}
+
+Each merge request that increments the software version must do so in:
+
+\begin{itemize}
+  \item \texttt{Cargo.toml}
+  \item The beginning of \texttt{docs/user/gourd.1.tex}
+  \item The beginning of \texttt{docs/user/gourd.toml.5.tex}
+  \item The beginning of \texttt{docs/user/gourd-tutorial.7.tex}
+  \item In \texttt{docs/maintainer/preamble.tex}
+\end{itemize}
 
 \subsection{Documentation}
 
@@ -41,7 +58,7 @@ we \textbf{strongly} recommend issuing the command below:
 $ git config --local core.hooksPath .hooks/
 \end{verbatim}
 
-This will ensure that whever you commit or push new changes they will be first checked against
+This will ensure that whenever you commit or push new changes they will be first checked against
 a hook scripts which catch common mistakes that would have failed the pipeline check remotely.
 
 Additionally, the following apply:
@@ -56,3 +73,12 @@ Additionally, the following apply:
 
 The project goal is to be thoroughly tested with full-coverage systematic unit tests.
 The GitLab environment analyzes coverage. This is displayed alongside each merge request.
+
+\subsection{Integration tests}
+
+\gourd\ has integration tests, they are contained in \texttt{src/integration} and
+are full end-to-end command line tests.
+
+There is an easy template for adding new integration tests which is stored in: \\
+\texttt{src/integration/example.rs} please refer to that file if you add
+new functionality to \gourd\ that should be tested with integration tests.

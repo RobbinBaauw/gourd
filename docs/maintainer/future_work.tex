@@ -1,0 +1,57 @@
+\section{Future work}
+
+\subsection{Removing the installer}
+
+The entire installer template is contained in \texttt{src/resources/install.sh}.
+
+It is quite easy to extend this installer with new files or paths. One option which
+we considered a nice addition would be to skip installing parts of the application
+on the request of the user (for example manpages).
+
+Finally, as outlined in the beginning of the section, the biggest improvement
+would be to disable the installer and distribute \gourd\ via system specific libraries.
+
+It would be ideal if this process was included in \texttt{build.rs} via optional features.
+
+We have identified the following packages as priorities to make \gourd\ accessible
+to the largest user base:
+\begin{itemize}
+  \item A Debian \texttt{.deb} package. This enables Ubuntu packaging as well.
+  \item A homebrew package script. This enables MacOS.
+  \item A ArchLinux \texttt{PKGBUILD} file. This enabled distribution for ArchLinux.
+  \item A RHEL \texttt{.rpm} package. This enables Fedora packaging as well.
+  \item A \texttt{flake.nix} file for NixOS.
+  \item A Windows \texttt{.msi} style installer.
+\end{itemize}
+
+\subsection{Memory hotspot analysis}
+
+An originally planned feature was to add \texttt{kcachegrind} like analysis for
+algorithms to identify memory hotspots.
+
+We believe that this feature can be implemented by additions to the wrapper.
+
+Currently the wrapper is a very simple program (on purpose) but an option may be
+added to it to run, for example, \texttt{kcachegrind} on the ran program
+and output, alongside all of the other metrics, the hotspot analysis.
+
+\subsection{The wrapper errors}
+
+In some usage cases it may happen that \texttt{gourd\_wrapper} fails
+instead of \texttt{gourd}.
+
+For example, if a file that \texttt{gourd} verifies to exist is removed
+before the wrapper has a chance to run, the wrapper will throw an error.
+
+This is currently problematic in local running, as the error will be
+printed on top of the status and the application will exit.
+This is due to how our async scheduling works, we make minimal use
+of async functions and only those that have to be async are marked as such.
+
+To fix this error printing there is a need for synchronization between
+the status update function and the local runner, but this requires migrating
+the status function to tokio runtime async functions.
+
+Moreover this can also present itself to be a problem when running on Slurm.
+The error will then be printed in the \texttt{slurm-[jobid].out} which is
+very not user friendly.

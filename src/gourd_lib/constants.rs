@@ -28,6 +28,9 @@ pub const POSTPROCESS_JOBS_DEFAULT: fn() -> Option<ProgramMap> = || None;
 /// The default value of resource limits for a program.
 pub const PROGRAM_RESOURCES_DEFAULT: fn() -> Option<ResourceLimits> = || None;
 
+/// The default value of warning on label overlaps.
+pub const LABEL_OVERLAP_DEFAULT: fn() -> bool = || false;
+
 /// The default arguments for an input.
 pub const EMPTY_ARGS: fn() -> Vec<String> = Vec::new;
 

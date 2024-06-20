@@ -1,9 +1,11 @@
 use anstyle::AnsiColor;
+use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use clap::crate_authors;
 use clap::crate_name;
 use clap::crate_version;
+use gourd_lib::bailc;
 use gourd_lib::config::ResourceLimits;
 use gourd_lib::constants::style_from_fg;
 use gourd_lib::constants::ERROR_STYLE;
@@ -122,24 +124,31 @@ pub fn query_yes_no(question: &str) -> Result<bool> {
 /// Ask the user for input to update an instance of ResourceLimits
 pub fn query_update_resource_limits(
     rss: &ResourceLimits,
+    script: bool,
     mem: Option<usize>,
     cpu: Option<usize>,
     time: Option<std::time::Duration>,
 ) -> Result<ResourceLimits> {
     let mut new_rss = *rss;
 
-    if time.is_none() {
+    if time.is_none() && script {
+        bailc!("No time specified in script mode", ;"", ; "",);
+    } else if let Some(time_a) = time {
+        new_rss.time_limit = time_a;
+    } else {
         new_rss.time_limit = ask(inquire::CustomType::<humantime::Duration>::new(
             "New Time limit:",
         )
         .with_default(humantime::Duration::from(new_rss.time_limit))
         .prompt())?
         .into();
-    } else {
-        new_rss.time_limit = time.unwrap();
     }
 
-    if mem.is_none() {
+    if mem.is_none() && script {
+        bailc!("No memory specified in script mode", ;"", ; "",);
+    } else if let Some(mem_a) = mem {
+        new_rss.mem_per_cpu = mem_a;
+    } else {
         loop {
             new_rss.mem_per_cpu = ask(inquire::CustomType::<usize>::new(
                 "New memory limit (in MB):",
@@ -155,11 +164,14 @@ pub fn query_update_resource_limits(
                 break;
             }
         }
-    } else {
-        new_rss.mem_per_cpu = mem.unwrap();
     }
 
-    if cpu.is_none() {
+    if cpu.is_none() && script {
+        bailc!("No cpus specified in script mode", ;"", ; "",);
+    }
+    if let Some(cpu_a) = cpu {
+        new_rss.cpus = cpu_a;
+    } else {
         new_rss.cpus = ask(inquire::CustomType::<usize>::new("New CPU limit:")
             .with_default(new_rss.cpus)
             .with_validator(|input: &usize| {
@@ -172,8 +184,6 @@ pub fn query_update_resource_limits(
                 }
             })
             .prompt())?;
-    } else {
-        new_rss.cpus = cpu.unwrap();
     }
 
     Ok(new_rss)

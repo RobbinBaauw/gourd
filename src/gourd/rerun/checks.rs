@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use anyhow::anyhow;
+use anyhow::Context;
 use anyhow::Result;
 use gourd_lib::bailc;
 use gourd_lib::constants::CMD_STYLE;
@@ -191,6 +193,7 @@ pub fn query_changing_limits_for_programs(
                         }
                         let new_rss = query_update_resource_limits(
                             &get_limits(&experiment.runs[*run_id], experiment)?,
+                            false,
                             None,
                             None,
                             None,

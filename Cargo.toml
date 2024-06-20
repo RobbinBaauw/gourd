@@ -2,7 +2,7 @@
 
 [package]
 name = "gourd"
-version = "0.8.0"
+version = "1.0.0"
 edition = "2021"
 default-run = "gourd"
 authors = [

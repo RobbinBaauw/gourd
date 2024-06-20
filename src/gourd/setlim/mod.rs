@@ -1,3 +1,5 @@
+use anyhow::anyhow;
+use anyhow::Context;
 use anyhow::Result;
 use gourd_lib::bailc;
 use gourd_lib::config::Program;
@@ -8,6 +10,7 @@ use gourd_lib::ctx;
 use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
 use log::debug;
+use log::info;
 use log::trace;
 
 use crate::cli::printing::query_update_resource_limits;
@@ -46,6 +49,13 @@ pub fn query_changing_limits_for_all_programs(
 
     experiment.resource_limits = Some(new_rss);
 
+    info!("Updating resource limits.");
+
+    info!(
+        "They will take effect next time \
+        {CMD_STYLE}gourd continue{CMD_STYLE:#} is called."
+    );
+
     debug!("Updating resource limits for all programs");
     trace!("Old resource limits: {:?}", old_rss);
     trace!("New resource limits: {:?}", new_rss);
@@ -57,6 +67,7 @@ pub fn query_changing_limits_for_all_programs(
 /// programs.
 pub fn query_changing_limits_for_program(
     name: &String,
+    script: bool,
     experiment: &mut Experiment,
     mem: Option<usize>,
     cpu: Option<usize>,
@@ -71,15 +82,17 @@ pub fn query_changing_limits_for_program(
         None => base_resources,
     };
 
-    let new_rss = query_update_resource_limits(&old_rss, mem, cpu, time)?;
+    let new_rss = query_update_resource_limits(&old_rss, script, mem, cpu, time)?;
 
     program.resource_limits = Some(new_rss);
 
-    debug!(
-        "Updating resource limits for program {}. They will take effect next time
-        {CMD_STYLE}gourd continue{CMD_STYLE:#} is called.",
-        name
+    info!("Updating resource limits for program {name}.");
+
+    info!(
+        "They will take effect next time \
+        {CMD_STYLE}gourd continue{CMD_STYLE:#} is called."
     );
+
     trace!("Old resource limits: {:?}", old_rss);
     trace!("New resource limits: {:?}", new_rss);
 

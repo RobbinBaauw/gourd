@@ -17,10 +17,10 @@
 \newcommand{\thecommand}{GOURD}
 \newcommand{\mansection}{1}
 \newcommand{\mansectionname}{DelftBlue Tools Manual}
-\newcommand{\mandate}{5 MAY 2024}
-\setDate{5 MAY 2024}
+\newcommand{\mandate}{20 JUNE 2024}
+\setDate{20 JUNE 2024}
 \setVersionWord{Version:}
-\setVersion{1.29}
+\setVersion{1.0.0}
 
 
 \input{docs/user/latex2man_styling.tex}
@@ -52,11 +52,11 @@
     \section{SYNOPSIS}
 
         \Prog{gourd} \Arg{command}
+        \oOpt{-s}
         \oOptArg{-c}{ filename}
+        \oOpt{-v|-vv}
         \oOpt{-d}
         \oOpt{-h}
-        \oOpt{-s}
-        \oOpt{-v|-vv}
 
     \section{DESCRIPTION}
 
@@ -70,9 +70,10 @@
         New to \Prog{gourd}? Go directly to the \Prog{gourd-tutorial(7)} manual.
 
 
-    \section{OPTIONS}
+    \section{GLOBAL OPTIONS}
 
         The following options apply to all \Prog{gourd} commands.
+        These will be reffered to as \emph{GLOBAL OPTIONS} throught the manual.
 
         \begin{Description}[Options]
             \item[\OptArg{-c}{ filename}, \OptArg{\ddash config}{ filename}]
@@ -89,7 +90,7 @@
             \item[\Opt{-s}, \Opt{\ddash script}]
             Tell \Prog{gourd} to use a script-friendly interface, that is, one that does not use
             interactive user prompts.
-            \item[\Opt{-v}, \Opt{-vv}, \Opt{--verbose}]
+            \item[\Opt{-v}, \Opt{-vv}, \Opt{\ddash verbose}]
             Run \Prog{gourd} with verbose debugging output, where \Opt{-vv} enables even more logging.
         \end{Description}
 
@@ -103,21 +104,23 @@
 
         \begin{Description}[Commands]
             \item[\Prog{gourd} \Arg{run}]
-            Create an experiment from configuration and run it on \Prog{Slurm} or the local machine.
+              Create an experiment from configuration and run it on \Prog{Slurm} or the local machine.
             \item[\Prog{gourd} \Arg{init}]
-            Set up a template of an experiment configuration.
+              Set up a template of an experiment configuration.
             \item[\Prog{gourd} \Arg{status}]
-            Display the status of a running or completed experiment.
+              Display the status of a running or completed experiment.
             \item[\Prog{gourd} \Arg{continue}]
-            Schedule the incomplete part of a partial experiment.
+              Schedule the incomplete part of a partial experiment.
             \item[\Prog{gourd} \Arg{cancel}]
-            Cancel scheduled runs.
+              Cancel scheduled runs.
             \item[\Prog{gourd} \Arg{rerun}]
-            Rerun (possibly) failed runs.
+              Rerun (possibly) failed runs.
             \item[\Prog{gourd} \Arg{analyse}]
-            Output metrics of completed runs.
+              Output metrics of completed runs.
+            \item[\Prog{gourd} \Arg{set-limits}]
+              Change SLURM resource limits for jobs that have not ran yet.
             \item[\Prog{gourd} \Arg{version}]
-            Show the software version.
+              Show the software version.
         \end{Description}
 
         \subsection{GOURD RUN}
@@ -145,11 +148,9 @@
                 \Prog{gourd}
                 \Arg{run}
                 \Arg{slurm}|\Arg{local}
-                \oOptArg{-c}{ filename}
-                \oOpt{-f}
-                \oOpt{-h}
-                \oOpt{-s}
-                \oOpt{-v|-vv}
+                \oOpt{GLOBAL OPTIONS}
+                \oOpt{\ddash force}
+                \oOpt{\ddash sequential}
 
             \subsubsection{Subcommands}
                 \begin{Description}[Subcommands]
@@ -174,14 +175,17 @@
 
                         \Arg{local} can additionally take more options:
                             \begin{Description}[Options]
-                                \item[\oOpt{\ddash force}]
+                                \item[\Opt{\ddash force}]
                                   \Prog{gourd} will not run large experiments on \Arg{local} by default. This is
-                                  because doing so may use system resources to fast for a personal computing device.
+                                  because doing so may use too many file descriptors too fast for a personal computing device.
                                   To ignore the warning and run the experiment anyways use this optional flag.
+                                  If the resources are exhausted too quickly you will see an error informing you about it.
 
-                                \item[\oOpt{\ddash sequential}]
+                                \item[\Opt{\ddash sequential}]
                                   By default the runs are run concurrently with a level of parallelism. This option
                                   can be specified to force the runs to run sequentially, that is, one after another.
+                                  This may be useful if you want to run bigger experiments without using too many system resources.
+                                  Note that the use of this option \textbf{also} enables the \Opt{\ddash force} option.
                             \end{Description}
 
                     \item[\Arg{slurm}]
@@ -205,11 +209,10 @@
                         to the \Prog{Slurm} scheduler.
                         The experiment's runs are then in the supercomputer's queue (status ``pending'').
                         The time until the runs are actually executed depends on many factors, which
-                        may include the supercomputer load and the size of your experiment; this
+                        may include the current load and the size of your experiment; this
                         delay can range from seconds to days.
                         For this reason, \Prog{gourd} \Arg{run} \Arg{slurm} does not show the
-                        continuous status of an experiment unless the \oOpt{-f, \ddash follow} flag is
-                        used.
+                        continuous status of an experiment, use \Prog{gourd} \Arg{status} to do that.
 
                         On successful scheduling, the Slurm IDs of the job arrays that make
                         up the experiment will be shown, and the command will exit.
@@ -223,7 +226,6 @@
                         in depth in the \Prog{gourd} maintainer documentation.
                 \end{Description}
 
-
         \subsection{GOURD INIT}
 
             \subsubsection{Summary}
@@ -231,18 +233,18 @@
                 Configurations are represented as TOML files.
                 A template configuration, \File{gourd.toml}, is created in the directory specified.
                 The directory can optionally be initialized as a Git repository.
-                Unless run with the \oOpt{-q} flag, this command will ask using interactive prompts
+                Unless run with the \oOpt{-s} flag, this command will ask using interactive prompts
                 to refine the template to your needs.
+
+                If the command is ran with the \oOpt{-s} flag these choices will not be offered and
+                the default options will be picked for all queries.
 
             \subsubsection{Synopsis}
                 \Prog{gourd} \Arg{init}
+                \oOpt{GLOBAL OPTIONS}
                 \oOptArg{-e}{ example-name}
                 \oOpt{\ddash list-examples}
                 \oOptArg{\ddash git}{=true|false}
-                \oOpt{-d}
-                \oOpt{-h}
-                \oOpt{-s}
-                \oOpt{-v|-vv}
                 \oArg{directory}
 
             \subsubsection{Options}
@@ -257,6 +259,13 @@
                       Whether or not to initialize an empty git repository in the newly created folder.
                 \end{Description}
 
+            \subsubsection{Listing Examples}
+                If \Opt{\ddash list-examples}, \Prog{gourd} \Arg{init} will not initialize a new folder with
+                a configuration, in fact \Arg{directory} will get ignored completely.
+
+                A list of available examples and their descriptions will be printed to the output and
+                the program will exit.
+
         \subsection{GOURD STATUS}
 
             \subsubsection{Summary}
@@ -267,14 +276,10 @@
 
             \subsubsection{Synopsis}
                 \Prog{gourd} \Arg{status}
-                \oArg{experiment-id}
+                \oOpt{GLOBAL OPTIONS}
                 \oOptArg{-i}{ run-id}
                 \oOpt{\ddash follow}
                 \oOpt{\ddash full}
-                \oOpt{-d}
-                \oOpt{-h}
-                \oOpt{-s}
-                \oOpt{-v|-vv}
                 \oArg{experiment-id}
 
             \subsubsection{Options}
@@ -298,7 +303,7 @@
             \subsection{Experiment status}
                 By default, \Prog{gourd} \Arg{status} uses the \File{gourd.toml} file to determine the
                 location of experiment files generated using \Prog{gourd} \Arg{run}.
-                It finds the most recent experiment (unless \Opt{-i} is specified) and shows a summary
+                It finds the most recent experiment (unless \oArg{experiment-id} is specified) and shows a summary
                 containing the status of each run, and, if completed, the run's basic timing metrics.
                 The command also shows a summary of each run's error status, if any.
 
@@ -338,10 +343,8 @@
 
             \subsubsection{Synopsis}
                 \Prog{gourd} \Arg{continue}
+                \oOpt{GLOBAL OPTIONS}
                 \oArg{experiment-id}
-                \oOpt{-s}
-                \oOptArg{-c}{ filename}
-                \oOpt{-v|-vv}
 
             \subsubsection{Options}
                 \begin{Description}[Options]
@@ -373,59 +376,67 @@
                 been specified to have this postprocessing. It will write its results to a file the way that
                 regular programs do.
 
-
         \subsection{GOURD CANCEL}
 
             \subsubsection{Summary}
-                The \Prog{gourd} \Arg{cancel} command cancels runs that have been scheduled on \Prog{Slurm}.
+                The \Prog{gourd} \Arg{cancel} command cancels runs that have been scheduled on Slurm.
                 By default, it cancels all scheduled runs in the most recent experiment.
                 This command can cancel an individual run using the \Opt{-i} flag.
 
             \subsubsection{Synopsis}
                 \Prog{gourd} \Arg{cancel}
+                \oOpt{GLOBAL OPTIONS}
                 \oArg{experiment-id}
                 \oOptArg{-i}{ run-ids}
                 \oOpt{-a}
-                \oOpt{-v|-vv}
 
             \subsubsection{Options}
                 \begin{Description}[Options]
                   \item[\Arg{experiment-id}]
-                    The ID of an experiment to cancel.
+                    The ID of an experiment to cancel runs from.
                     By default, this is the most recent experiment.
                   \item[\OptArg{-i}{ run-ids}]
                     The IDs of the runs to cancel.
                     Pass multiple run IDs separated by spaces, for example \Arg{-i 1 2 3}.
                     By default, all runs in the experiment are cancelled.
-                  \item[\Opt{--all}]
+                  \item[\Opt{-a, \ddash all}]
                     Cancel all runs from this account.
                     This includes all runs, not just those from \Prog{gourd}.
-                    To see what runs would be cancelled, run \Prog{gourd} \Arg{cancel} \Arg{--all} \Arg{--dry}
                 \end{Description}
+
+            \subsubsection{Cancelling All Runs}
+                Cancelling all runs will \textbf{cancel all runs scheduled on your account}.
+                This option is included to be able to cancel past or deleted experiments.
+                But be aware of its possible impact.
+
+                You can see which runs would be cancelled without actually doing it
+                by running \Prog{gourd} \Arg{cancel} \Arg{\ddash all} \Arg{\ddash dry}.
+
+            \subsubsection{Latency}
+                Slurm may take some time to acknowledge the cancellation, thus running
+                \Prog{gourd} \Arg{status} right away after a cancellation may still display
+                the runs as pending, please wait up to one minute for the changes to propagate.
 
 
         \subsection{GOURD ANALYSE}
 
             \subsubsection{Summary}
                 The \Prog{gourd} \Arg{analyse} command collects and processes metrics generated
-                when an experiment was run. It can produce a CSV data file or a "cactus plot" 
+                when an experiment was run. It can produce a CSV data file or a "cactus plot"
                 to compare how quickly different algorithms run.
 
             \subsubsection{Synopsis}
                 \Prog{gourd} \Arg{analyse}
-                \oArg{experiment-id}
+                \oOpt{GLOBAL OPTIONS}
                 \oOptArg{-o}{ format}
-                \oOpt{-s}
-                \oOptArg{-c}{ filename}
-                \oOpt{-v|-vv}
-                \oOpt{-d}
+                \oArg{experiment-id}
 
             \subsubsection{Options}
                 \begin{Description}[Options]
                   \item[\Arg{experiment-id}]
                     The ID of an experiment to analyse.
                     By default, this is the most recent experiment.
-                  \item[\OptArg{-o}{ format}, \OptArg{--output}{ format}]
+                  \item[\OptArg{-o}{ format}, \OptArg{\ddash output}{ format}]
                     The format of the desired analysis output. There are three available:
                     \emph{csv} (the default), \emph{plot-png}, \emph{plot-svg}. They are described below.
                 \end{Description}
@@ -461,33 +472,40 @@
 
             \subsubsection{Synopsis}
                 \Prog{gourd} \Arg{set-limits}
-                \oArg{experiment-id}
+                \oOpt{GLOBAL OPTIONS}
                 \oOptArg{-p}{ program-name}
                 \oOpt{-a}
-                \oOpt{--mem}{ memory-limit}
-                \oOpt{--cpu}{ cpu-limit}
-                \oOpt{--time}{ time-limit}
-                \oOpt{-s}
-                \oOpt{-c}
-                \oOpt{-v|-vv}
+                \oOptArg{--mem}{ memory-limit}
+                \oOptArg{--cpu}{ cpu-limit}
+                \oOptArg{--time}{ time-limit}
+                \oArg{experiment-id}
 
             \subsubsection{Options}
                 \begin{Description}[Options]
                     \item[\Arg{experiment-id}]
-                    The ID of an experiment to show the status of.
+                    The ID of an experiment to modify limits of.
                     By default, this is the most recent experiment.
-                    \item[\Opt{-a, --all}]
+                    \item[\Opt{-a, \ddash all}]
                     Changes resource limits for all available programs, including postprocessing programs.
-                    \item[\OptArg{-p, --program}{ program-name}]
+                    \item[\OptArg{-p, \ddash program}{ program-name}]
                     Changes resource limits for the specified program (simple or postprocesing).
-                    \item[\Opt{--mem}]
+                    \item[\OptArg{\ddash mem}{ memory-limit}]
                     Allows to specify the new memory limit (a number) instead of asking for it interactively.
-                    \item[\Opt{--cpu}]
+                    \item[\OptArg{\ddash cpu}{ cpu-limit}]
                     Allows to specify the new cpu limit (a number) instead of asking for it interactively.
-                    \item[\Opt{--time}]
-                    Allows to specify the new time limit (in humantime format) instead of asking for it 
+                    \item[\OptArg{\ddash time}{ time-limit}]
+                    Allows to specify the new time limit (in humantime format) instead of asking for it
                     interactively.
                 \end{Description}
+
+            \subsubsection{Programs}
+                Specifying a program to modify the limits for is required.
+                One can either specify the \Opt{-p} flag with a specific program
+                or \Opt{-a} to modify limits for all programs
+
+            \subsubsection{Scripting}
+                When ran with \Opt{-s}, \Arg{set-limits} will not ask for the properties
+                not specified by command line options, instead it will exit with an error.
 
         \subsection{GOURD VERSION}
 
@@ -505,8 +523,6 @@
                 in the format:
 
                 \texttt{gourd <version number>}
-
-
 
     \section{EXAMPLES}
 
@@ -530,9 +546,10 @@
     \section{AUTHORS}
     Rūta Giedrytė <\Email{r.giedryte@student.tudelft.nl}>\\[0.1cm]\MANbr
     Lukáš Chládek <\Email{l@chla.cz}>\\[0.1cm]\MANbr
-    Jan Piotrowski <\Email{me@jan.wf}>
+    Jan Piotrowski <\Email{me@jan.wf}>\\[0.1cm]\MANbr
     Mikołaj Gazeel <\Email{m.j.gazeel@student.tudelft.nl}>\\[0.1cm]\MANbr
     Ανδρέας Τσατσάνης <\Email{a.tsatsanis@student.tudelft.nl}>\\[0.1cm]\MANbr
+
 %@% IF LATEX %@%
 \end{adjustwidth}
 %@% END-IF %@%

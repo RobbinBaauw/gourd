@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::path::PathBuf;
 
+use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use gourd_lib::bailc;
@@ -60,7 +61,7 @@ pub fn init_interactive(
         postprocess_programs: None,
         labels: None,
         input_schema: None,
-        prevent_label_overlap: None,
+        warn_on_label_overlap: false,
     };
 
     let slurm = if script_mode {

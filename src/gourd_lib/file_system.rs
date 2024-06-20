@@ -4,6 +4,7 @@ use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 
+use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use git2::Repository;
@@ -173,13 +174,14 @@ impl FileOperations for FileSystemInteractor {
             if !parent.exists() {
                 debug!("Creating directories for {:?}", parent);
             }
+
             fs::create_dir_all(parent).with_context(ctx!(
               "Could not create parent directories for {parent:?}", ;
               "Ensure that you have sufficient permissions",
             ))?;
         }
 
-        debug!("Writing to file at {:?}", path);
+        debug!("Creating a file at {:?}", path);
         File::create(path).with_context(ctx!(
            "Could not create {path:?}", ;
            "Ensure that you have sufficient permissions",

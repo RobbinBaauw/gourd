@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 
+use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use elf::abi;

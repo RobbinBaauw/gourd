@@ -49,8 +49,6 @@ pub mod setlim;
 #[cfg(test)]
 pub mod test_utils;
 
-extern crate humantime;
-
 /// The main CLI entry-point of the `gourd` utility.
 ///
 /// This function parses command-line arguments and executes
