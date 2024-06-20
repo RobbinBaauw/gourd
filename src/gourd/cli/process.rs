@@ -39,8 +39,10 @@ use crate::cli::def::CancelStruct;
 use crate::cli::def::Cli;
 use crate::cli::def::GourdCommand;
 use crate::cli::def::RunSubcommand;
+use crate::cli::def::SetLimitsStruct;
 use crate::cli::def::StatusStruct;
 use crate::cli::printing::print_version;
+use crate::cli::printing::query_update_resource_limits;
 use crate::experiments::generate_new_run;
 use crate::experiments::ExperimentExt;
 use crate::init::init_experiment_setup;
@@ -49,6 +51,7 @@ use crate::local::run_local;
 use crate::post::postprocess_job::schedule_post_jobs;
 use crate::rerun;
 use crate::rerun::checks::query_changing_resource_limits;
+use crate::setlim;
 use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::chunk::Chunkable;
 use crate::slurm::handler::SlurmHandler;
@@ -474,6 +477,42 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                     experiment.seq
                 );
             }
+        }
+
+        GourdCommand::SetLimits(SetLimitsStruct {
+            experiment_id,
+            program,
+            all,
+            mem,
+            cpu,
+            time,
+        }) => {
+            let (mut experiment, _) = read_experiment(experiment_id, cmd, &file_system)?;
+
+            if *all {
+                debug!("Selected all programs to change limits");
+
+                let old_rss = experiment.resource_limits.unwrap_or_default();
+                let new_rss =
+                    query_update_resource_limits(&old_rss, cmd.script, *mem, *cpu, *time)?;
+
+                setlim::query_changing_limits_for_all_programs(&mut experiment, new_rss, &old_rss)?;
+            } else if let Some(name) = program {
+                debug!("Selected program: {:?}", name);
+
+                setlim::query_changing_limits_for_program(
+                    name,
+                    cmd.script,
+                    &mut experiment,
+                    *mem,
+                    *cpu,
+                    *time,
+                )?;
+            } else {
+                bailc!("No program specified to change the limits for.")
+            }
+
+            experiment.save(&experiment.config.experiments_folder, &file_system)?;
         }
     }
 

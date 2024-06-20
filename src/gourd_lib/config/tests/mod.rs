@@ -42,6 +42,7 @@ fn breaking_changes_config_struct() {
         resource_limits: None,
         postprocess_resource_limits: None,
         labels: Some(BTreeMap::new()),
+        warn_on_label_overlap: false,
     };
 }
 
@@ -82,6 +83,7 @@ fn breaking_changes_config_file_all_values() {
             resource_limits: None,
             postprocess_resource_limits: None,
             labels: None,
+            warn_on_label_overlap: false,
         },
         Config::from_file(file_pathbuf.as_path(), true, &REAL_FS)
             .expect("Unexpected config read error.")
@@ -121,6 +123,7 @@ fn breaking_changes_config_file_required_values() {
             resource_limits: None,
             postprocess_resource_limits: None,
             labels: None,
+            warn_on_label_overlap: false,
         },
         Config::from_file(file_pb.as_path(), true, &REAL_FS)
             .expect("Unexpected config read error.")
@@ -262,6 +265,7 @@ fn test_globs() {
             resource_limits: None,
             postprocess_resource_limits: None,
             labels: None,
+            warn_on_label_overlap: false,
         },
         Config::from_file(file_pathbuf.as_path(), false, &REAL_FS)
             .expect("Unexpected config read error.")
@@ -424,6 +428,7 @@ fn parse_valid_escape_hatch_file() {
         wrapper: WRAPPER_DEFAULT(),
         postprocess_programs: None,
         labels: None,
+        warn_on_label_overlap: false,
     };
     assert_eq!(c1, c2);
 }

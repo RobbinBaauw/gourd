@@ -4,15 +4,6 @@
 //! require presence of `Slurm` are not to be tested here, as they are not meant
 //! for the CI pipeline.
 //!
-//! ## Test Plan
-//!
-//! + [x] Test the `gourd --version` command.
-//! + [x] Test the `gourd run` command.
-//! + [ ] Test the `gourd init` command.
-//! + [ ] Test the `gourd status` command.
-//! + [ ] Test the `gourd rerun` command.
-//! + [ ] Test the `gourd analyse` command.
-//!
 //! ## Test Strategy
 //! We have one environment, in code as `TestEnv`, in practice a working
 //! directory, that is used by all the tests.
@@ -256,6 +247,7 @@ macro_rules! config {
                 postprocess_resource_limits: None,
                 postprocess_programs: None,
                 labels: None,
+                warn_on_label_overlap: false,
             }
         }
     };
@@ -276,6 +268,7 @@ macro_rules! config {
                 postprocess_resource_limits: None,
                 postprocess_programs: Some($crate::keep(&$env.programs.clone(), &[$($post.to_string()),*])),
                 labels: $label,
+                warn_on_label_overlap: false,
             }
         }
     };

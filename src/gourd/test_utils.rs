@@ -53,6 +53,7 @@ pub fn create_sample_experiment(prog: ProgramMap, inputs: InputMap) -> (Experime
         resource_limits: None,
         postprocess_resource_limits: None,
         labels: Some(BTreeMap::new()),
+        warn_on_label_overlap: false,
     };
 
     (

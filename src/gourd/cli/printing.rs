@@ -1,9 +1,11 @@
 use anstyle::AnsiColor;
+use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use clap::crate_authors;
 use clap::crate_name;
 use clap::crate_version;
+use gourd_lib::bailc;
 use gourd_lib::config::ResourceLimits;
 use gourd_lib::constants::style_from_fg;
 use gourd_lib::constants::ERROR_STYLE;
@@ -120,44 +122,69 @@ pub fn query_yes_no(question: &str) -> Result<bool> {
 }
 
 /// Ask the user for input to update an instance of ResourceLimits
-pub fn query_update_resource_limits(rss: &ResourceLimits) -> Result<ResourceLimits> {
+pub fn query_update_resource_limits(
+    rss: &ResourceLimits,
+    script: bool,
+    mem: Option<usize>,
+    cpu: Option<usize>,
+    time: Option<std::time::Duration>,
+) -> Result<ResourceLimits> {
     let mut new_rss = *rss;
 
-    new_rss.time_limit = ask(
-        inquire::CustomType::<humantime::Duration>::new("New Time limit:")
-            .with_default(humantime::Duration::from(new_rss.time_limit))
-            .prompt(),
-    )?
-    .into();
+    if time.is_none() && script {
+        bailc!("No time specified in script mode", ;"", ; "",);
+    } else if let Some(time_a) = time {
+        new_rss.time_limit = time_a;
+    } else {
+        new_rss.time_limit = ask(inquire::CustomType::<humantime::Duration>::new(
+            "New Time limit:",
+        )
+        .with_default(humantime::Duration::from(new_rss.time_limit))
+        .prompt())?
+        .into();
+    }
 
-    loop {
-        new_rss.mem_per_cpu = ask(
-            inquire::CustomType::<usize>::new("New memory limit (in MB):")
-                .with_default(new_rss.mem_per_cpu)
-                .prompt(),
-        )?;
-        if new_rss.mem_per_cpu != 0
-            || query_yes_no(
-                "A memory limit of zero gives the job \
-        access to the memory of the entire node. Are you sure you want to do this?",
-            )?
-        {
-            break;
+    if mem.is_none() && script {
+        bailc!("No memory specified in script mode", ;"", ; "",);
+    } else if let Some(mem_a) = mem {
+        new_rss.mem_per_cpu = mem_a;
+    } else {
+        loop {
+            new_rss.mem_per_cpu = ask(inquire::CustomType::<usize>::new(
+                "New memory limit (in MB):",
+            )
+            .with_default(new_rss.mem_per_cpu)
+            .prompt())?;
+            if new_rss.mem_per_cpu != 0
+                || query_yes_no(
+                    "A memory limit of zero gives the job \
+            access to the memory of the entire node. Are you sure you want to do this?",
+                )?
+            {
+                break;
+            }
         }
     }
 
-    new_rss.cpus = ask(inquire::CustomType::<usize>::new("New CPU limit:")
-        .with_default(new_rss.cpus)
-        .with_validator(|input: &usize| {
-            if *input > 0 {
-                Ok(Validation::Valid)
-            } else {
-                Ok(Validation::Invalid(
-                    "CPUs per task need to be at least 1".into(),
-                ))
-            }
-        })
-        .prompt())?;
+    if cpu.is_none() && script {
+        bailc!("No cpus specified in script mode", ;"", ; "",);
+    }
+    if let Some(cpu_a) = cpu {
+        new_rss.cpus = cpu_a;
+    } else {
+        new_rss.cpus = ask(inquire::CustomType::<usize>::new("New CPU limit:")
+            .with_default(new_rss.cpus)
+            .with_validator(|input: &usize| {
+                if *input > 0 {
+                    Ok(Validation::Valid)
+                } else {
+                    Ok(Validation::Invalid(
+                        "CPUs per task need to be at least 1".into(),
+                    ))
+                }
+            })
+            .prompt())?;
+    }
 
     Ok(new_rss)
 }

@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::collections::HashSet;
+use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -19,6 +20,7 @@ use crate::constants::CMD_STYLE;
 use crate::constants::EMPTY_ARGS;
 use crate::constants::INTERNAL_PREFIX;
 use crate::constants::INTERNAL_SCHEMA_INPUTS;
+use crate::constants::LABEL_OVERLAP_DEFAULT;
 use crate::constants::POSTPROCESS_JOBS_DEFAULT;
 use crate::constants::POSTPROCESS_JOB_DEFAULT;
 use crate::constants::PROGRAM_RESOURCES_DEFAULT;
@@ -288,6 +290,11 @@ pub struct Config {
     /// ```
     #[serde(rename = "label")]
     pub labels: Option<BTreeMap<String, Label>>,
+
+    /// If set to true, will throw an error when multiple labels are present in
+    /// afterscript output.
+    #[serde(default = "LABEL_OVERLAP_DEFAULT")]
+    pub warn_on_label_overlap: bool,
 }
 
 /// The config options when running through Slurm
@@ -365,6 +372,28 @@ pub struct ResourceLimits {
     pub mem_per_cpu: usize,
 }
 
+impl Default for ResourceLimits {
+    fn default() -> Self {
+        ResourceLimits {
+            time_limit: std::time::Duration::from_secs(60),
+            cpus: 1,
+            mem_per_cpu: 32,
+        }
+    }
+}
+
+impl Display for ResourceLimits {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            "  time limit: {}",
+            humantime::format_duration(self.time_limit)
+        )?;
+        writeln!(f, "  cpus: {}", self.cpus)?;
+        writeln!(f, "  memory per cpu: {}MB", self.mem_per_cpu)
+    }
+}
+
 // An implementation that provides a default value of `Config`,
 // which allows for the eventual addition of optional config items.
 impl Default for Config {
@@ -383,6 +412,7 @@ impl Default for Config {
             postprocess_resource_limits: None,
             postprocess_programs: None,
             labels: Some(BTreeMap::new()),
+            warn_on_label_overlap: true,
         }
     }
 }

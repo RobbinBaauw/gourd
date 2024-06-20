@@ -61,6 +61,7 @@ pub fn init_interactive(
         postprocess_programs: None,
         labels: None,
         input_schema: None,
+        warn_on_label_overlap: false,
     };
 
     let slurm = if script_mode {

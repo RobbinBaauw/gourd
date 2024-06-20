@@ -2,7 +2,7 @@
 
 [package]
 name = "gourd"
-version = "0.8.0"
+version = "1.0.0"
 edition = "2021"
 default-run = "gourd"
 authors = [
@@ -120,6 +120,7 @@ plotters = {version = "0.3.6", default-features = false, features = [
 clap_complete = "4.5.2"
 clap = { version = "4.5.4", features = ["derive", "cargo", "string"] }
 anstyle = "1.0.7"
+humantime = "2.1.0"
 
 # To (de)compress example folders
 flate2 = { version = "1.0", optional = true}
@@ -135,6 +136,7 @@ toml = "0.8.12"
 [dev-dependencies]
 # To run benchmarks on stable rust.
 easybench = "1.1.1"
+humantime = "2.1.0"
 
 # The release profile is for distributing gourd.
 # This means that the compiled artifacts should *not*

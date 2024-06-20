@@ -9,17 +9,14 @@
 
 \usepackage[fancyhdr]{latex2man}
 
-
-
 \newcommand{\thecmd}{gourd.toml}
 \newcommand{\thecommand}{GOURD.TOML}
 \newcommand{\mansection}{1}
 \newcommand{\mansectionname}{File Formats Manual}
-\newcommand{\mandate}{5 MAY 2024}
-\setDate{5 MAY 2024}
+\newcommand{\mandate}{20 JUNE 2024}
+\setDate{20 JUNE 2024}
 \setVersionWord{Version:}
-\setVersion{1.29}
-
+\setVersion{1.0.0}
 
 \input{docs/user/latex2man_styling.tex}
 
@@ -48,128 +45,267 @@
 
   \section{DESCRIPTION}
 
-      \noindent \Prog{gourd.toml} is a declarative configuration file that,
+      \Prog{gourd.toml} is a declarative configuration file that,
       when provided to \Prog{gourd(1)}, can be used to create a new \emph{experiment}.
       The rules for typesetting the file follow the standard TOML format.
 
       By default, the filename is \File{gourd.toml}.
 
-  \section{VALUE TYPES}
+  \section{PREFACE}
 
-    \begin{Description}[Types]\setlength{\itemsep}{0cm}
-        \item[string] A string of characters surrounded by "".
-        \item[path] A file path surrounded by "".
-        \item[list of T] A list of values of type T surrounded by [].
-    \end{Description}
+      Values ending with `\texttt{?}' can be omitted, the default value
+      for them is mentioned in their description.
+
+      \subsection{VALUE TYPES}
+          The configuration uses the following value types.
+
+          \begin{Description}[Types]\setlength{\itemsep}{0cm}
+              \item[string] A string of characters surrounded by "".
+              \item[path] A file path surrounded by "".
+              \item[fetched\_path] Information about this is in the \textbf{RESOURCE FETCHING} section.
+              \item[boolean] Either \emph{true} or \emph{false}.
+              \item[number] Zero or a positive number.
+              \item[regex] A regular expression.
+              \item[duration] An human readable amount of time, for example: "2d 4h".
+              \item[list of T] A list of values of type T surrounded by [].
+          \end{Description}
 
   \section{GLOBAL CONTEXT}
 
     These should be put at the beginning of the file before defining any sections.
-    Options surrounded by brackets are optional and can be omitted, the default value is show in brackets in the description.
 
     \begin{Description}[Options]\setlength{\itemsep}{0cm}
         \item[\Opt{output\_path} = path]
-            Where to store the stdout files from the \emph{programs}.
+        This path specifies where to store the stdout, stderr, and afterscript
+        outputs for \emph{programs}.
+
         \item[\Opt{metrics\_path} = path]
-          Where to store the metrics for \Prog{gourd(1)} \Arg{status}.
+        Where to store the metrics for \Prog{gourd(1)} \Arg{status}.
+        These metrics contain information such as: Wall clock time,
+        User time, System time, The amount of context switches etc.
+
         \item[\Opt{experiments\_folder} = path]
-            Where to store state of previously ran experiments.
-        \item[\Opt{wrapper?} = string]
-            Defines the path to the \File{gourd-wrapper} binary.
-            The default value is \Arg{gourd-wrapper}.
+        Where to store state of previously ran experiments.
+
+        Essentially this folder specifies where \Prog{gourd} will store
+        all of its information about experiments. If this folder is removed
+        \Prog{gourd} looses all information about past experiments.
+
+        \item[\Opt{wrapper?} = path]
+        Defines the path to the \File{gourd\_wrapper} binary. \\ \\
+        The default value is \emph{gourd\_wrapper}. (That is \Prog{gourd}
+        will look for it in the \texttt{\$PATH}) \\ \\
+        If you installed \Prog{gourd} correctly this values should not be
+        changed.
+
+        \item[\Opt{input\_schema?} = path]
+        Defines the path to a optional machine generated input schema. \\ \\
+        For more information about this continue to the \textbf{INPUT SCHEMA}
+        section. \\ \\
+        The default values is no input schema.
+
+        \item[\Opt{warn\_on\_label\_overlap?} = bool]
+        Information about this can be found in the \textbf{LABELS}
+        section. \\ \\
+        The default value is \emph{false}.
     \end{Description}
 
+    \section{SLURM}
 
-%    \section{SLURM}
-%
-%      An optional subsection of the config file, beginning with the \Arg{[slurm]} header.
-%
-%      \begin{Description}[Options]\setlength{\itemsep}{0cm}
-%          \item[\Opt{experiment\_name} = string] The SLURM internal experiment name.
-%          \item[TODO] TODO.
-%      \end{Description}
+      The configuration contains some Slurm specific options namely:
 
+      \subsection{SLURM CONFIGURATION}
+
+          This section is optional for running locally, but required
+          for running on Slurm.
+
+          A Slurm configuration starts with the header \Arg{[slurm]}
+          and can contain the following options:
+
+          \begin{Description}[Options]\setlength{\itemsep}{0cm}
+              \item[\Opt{experiment\_name} = string]
+                The name under which runs for this experiment will be scheduled
+                on Slurm.
+              \item[\Opt{partition} = string]
+                The partition on which this should be ran on the supercomputer.
+                Running \Prog{gourd} \Arg{run} \Arg{slurm} with an invalid partition
+                will display all of the valid partitions.
+              \item[\Opt{array\_size\_limit} = number]
+                This specifies the limit of runs that can be put in one Slurm batch.
+                \Prog{gourd} will work to split the workload such that this limit
+                is never exceeded.
+              \item[\Opt{array\_count\_limit} = number]
+                This specifies the limits of possible batches of runs.
+                Once again \Prog{gourd} will work to never cross this limit.
+              \item[\Opt{account} = string]
+                Which account to use for running jobs on Slurm.
+                For example one account available on DelftBlue is "Education-EEMCS-MSc-CS".
+              \item[\Opt{additional\_args?} = list of string]
+                Custom arguments for Slurm. \\ \\
+                By default there are no additional arguments.
+          \end{Description}
+
+          \subsubsection{Example}
+              An example Slurm Configuration:
+
+              \begin{verbatim}
+[slurm]
+experiment_name = "test experiment"
+partition = "compute"
+array_count_limit = 7
+array_size_limit = 1
+account = "Education-EEMCS-MSc-CS"
+              \end{verbatim}
+
+      \subsection{RESOURCE LIMITS}
+
+          To run on Slurm one must also specify resource limits.
+          The available limits are:
+
+          \begin{Description}[Options]\setlength{\itemsep}{0cm}
+              \item[\Opt{time\_limit} = duration]
+                The global time limit for all program-input pairs.
+              \item[\Opt{cpu\_limit} = number]
+                The global cpu limit for all program-input pairs.
+              \item[\Opt{mem\_per\_cpu} = number]
+                The global memory limit per one cpu for all program-input pairs. \\ \\
+                This number is specified in megabytes.
+          \end{Description}
+
+
+          \subsubsection{Example}
+              An example Resource Limits section:
+
+              \begin{verbatim}
+[resource_limits]
+time_limit = "5min"
+cpus = 1
+mem_per_cpu = 512
+              \end{verbatim}
+
+          \subsubsection{Postprocessing Resource Limit}
+
+              If \Prog{gourd} is using postprocessing jobs a separate section
+              (with the same fields) called \\
+              \texttt{[postprocess\_resource\_limits]} must be specified.
+              It holds the same fields.
 
     \section{PROGRAMS}
 
-      Multiple programs can be specified.
-      A program represents a compiled algorithm and is a combination of a binary file and parameters.
-      Each program begins with \Arg{[programs.program-name]}, where \Arg{program-name} can be any unique name.
+        Multiple programs can be specified.
+        A program represents a compiled algorithm and is a combination of a binary file and parameters.
+        Each program begins with \Arg{[programs.program-name]}, where \Arg{program-name} can be any unique name.
 
-      \begin{Description}[Options]\setlength{\itemsep}{0cm}
-          \item[\Opt{binary} = path]
-            Path to the program executable.
-          \item[\Opt{arguments?} = list of string]
-            Arguments to be passed to the executable.
-            The default is no arguments.
-          \item[\Opt{afterscript?} = see afterscript]
-            The configuration for running a short script after program completion.
-      \end{Description}
+        \begin{Description}[Options]\setlength{\itemsep}{0cm}
+            \item[\Opt{binary} = fetched\_path]
+              Path to the program executable.
+            \item[\Opt{arguments?} = list of string]
+              Arguments to be passed to the executable. \\ \\
+              By default an empty list.
+            \item[\Opt{afterscript?} = path]
+              See the \textbf{AFTERSCRIPTS} section for more information. \\ \\
+              By default there is no afterscript.
+            \item[\Opt{postprocess\_job?} = string]
+              See the \textbf{POSTPROCESSING} section for more information. \\ \\
+              By default there is no postprocessing.
+            \item[\Opt{resource\_limits?}]
+              As defined in the \textbf{RESOURCE LIMITS} section. \\ \\
+              These essentially override the global resource limits for
+              this program. \\ \\
+              By default, use the global resource limits.
+        \end{Description}
+
+        \subsection{EXAMPLE}
+
+            Assume that there is a script called \texttt{test.sh} in the current directory.
+            We can specify a program that runs this script with the argument \Opt{\ddash test}
+            like so:
+
+            \begin{verbatim}
+[program.some_name_for_this_program]
+binary = "./test.sh"
+arguments = ["--test"]
+            \end{verbatim}
 
     \section{INPUTS}
 
-      A \Prog{gourd(1)} experiment consists of a cross-product mapping between programs
-      and inputs.
-      The experiment created from a \File{gourd.toml} file runs every combination
-      of program and input in the file.
+        A \Prog{gourd(1)} experiment consists of a cross-product mapping between programs
+        and inputs.
+        The experiment created from a \File{gourd.toml} file runs every combination
+        of program and input in the file.
 
-      Multiple inputs can be specified.
-      Each input begins with \Arg{[inputs.input-name]} where \Arg{input-name} can be any unique name.
-      \textbf{The string} \Arg{\_glob\_} \textbf{is reserved and cannot be used.}
-      Each input contains the following keys:
+        Multiple inputs can be specified.
+        Each input begins with \Arg{[inputs.input-name]} where \Arg{input-name} can be any unique name.
+        \textbf{The string} \Arg{\_i\_} \textbf{is reserved and cannot be used.}
+        Each input contains the following keys:
 
-      \begin{Description}[Options]\setlength{\itemsep}{0cm}
-          \item[\Opt{input?} = path]
-            Path to a file, the contents of which are passed to the program as standard input.
-            By default, no standard input is provided.
-          \item[\Opt{arguments?} = list of string]
-            Additional command-line arguments to be passed to the program.
-            The input arguments are appended to the programs arguments.
-            By default, no additional arguments.
-      \end{Description}
+        \begin{Description}[Options]\setlength{\itemsep}{0cm}
+            \item[\Opt{input?} = fetched\_path]
+              Path to a file, the contents of which are passed to the program as standard input. \\ \\
+              By default, no standard input is provided.
+            \item[\Opt{arguments?} = list of string]
+              Additional command-line arguments to be passed to the program.
+              The input arguments are appended to the programs arguments. \\ \\
+              By default, there are no additional arguments.
+        \end{Description}
+
+        \subsection{EXAMPLE}
+            A valid input would be for example:
+
+            \begin{verbatim}
+[input.some_name_for_this_input]
+input = "./test.txt"
+arguments = ["--a", "--b"]
+            \end{verbatim}
+            This applied to program `\texttt{program}' would be equivalent to:
+
+            \begin{verbatim}
+program [program args] --a --b < ./test.txt
+            \end{verbatim}
 
 
       \subsection{GLOBS}
 
-        Globs can be applied to arguments and conveniently reference multiple files.
+        Globs can be applied to arguments of inputs and conveniently reference multiple files.
 
-          If an argument starts with \Arg{glob|}, it will be treated as a glob.
-          The input will be instantiated for every match of the provided glob.
+        If an argument starts with \Arg{glob|}, it will be treated as a glob.
+        The input will be instantiated for every match of the provided glob.
 
-            Example:
+        \subsubsection{Example}
 
-      \begin{verbatim}
+            \begin{verbatim}
 [inputs.testrun1]
-arguments = ["-f1", "=glob=./inputs/*.in", "-f2", "=glob=./input2/*.in"]
-      \end{verbatim}
+arguments = ["-f1", "glob|./inputs/*.in", "-f2", "glob|./input2/*.in"]
+            \end{verbatim}
 
             Given that the current directory contains the files
             \File{input/1.in}, \File{input/2.in}, \File{input2/test.in}, the glob
             expands to the following experiment inputs:
 
-      \begin{verbatim}
+            \begin{verbatim}
 [inputs.testrun1_glob_0]
 arguments = ["-f1", "./inputs/1.in", "-f2", "./input2/test.in"]
 
 [inputs.testrun1_glob_1]
 arguments = ["-f1", "./inputs/2.in", "-f2", "./input2/test.in"]
-      \end{verbatim}
+            \end{verbatim}
 
       \subsection{PARAMETERS}
 
-        Parameters can be applied to the arguments to conveniently perform experiments with grid search.
+          Parameters can be applied to arguments to conveniently perform experiments with grid search
+          (a Cartesian product between all parameter values).
 
-            If an argument starts with \Arg{param|}, it will be treated as a parameter.
-            For each value of that parameter the new input will be created with that value inserted into the argument
-            into that argument place.
+          If an argument starts with \Arg{param|some-parameter-name}, it will be treated as a parameter.
+          For each value of that parameter the new input will be created with that value inserted into the argument
+          into that argument place.
 
-            Values of a parameter are specified in \Arg{[parameter.name]} using \Arg{values = list of string}
+          Values of a parameter are specified in \Arg{[parameter.name]} using \Arg{values = list of string}
 
-            This results in cross product between all parameters.
+          This results in cross product between all parameters.
 
-                Example:
+          \subsubsection{Example}
 
-        \begin{verbatim}
+              \begin{verbatim}
 [inputs.testrun1]
 arguments = ["-f", "param|x", "-x", "param|y"]
 
@@ -179,7 +315,6 @@ values = ["a", "b"]
 [parameters.y]
 values = ["10", "20"]
         \end{verbatim}
-
                 It will be transformed into following inputs:
 
         \begin{verbatim}
@@ -194,26 +329,22 @@ arguments = ["-f", "b", "-x", "10"]
 
 [inputs.testrun1_x_1_y_1]
 arguments = ["-f", "b", "-x", "20"]
+            \end{verbatim}
 
-[parameters.x]
-values = ["a", "b"]
-
-[parameters.y]
-values = ["10", "20"]
-        \end{verbatim}
-
-    \subsubsection{SUBPARAMETERS}
+    \subsection{SUBPARAMETERS}
 
         Subparameters are used when there is a need for 1-1 relation between two parameters.
         There is no cross product between subparameters of the same parameter.
 
-        Subparameters are specified in inputs similarly to parameters with a difference of doing \Arg{subparam|parameter-name.subparameter-name}.
+        Subparameters are specified in inputs similarly to parameters with the difference of doing
+        \Arg{subparam|parameter-name.some-subparameter-name}.
 
-        Values of Subparameter are specified in \Arg{[parameter.name.sub.subparameter-name]} using \Arg{values = []}
+        Values of a subparameter are specified in \Arg{[parameter.name.sub.subparameter-name]} using \Arg{values = []}
 
         Note! Parameters can have either values or subparameters with values. Never both.
 
-        Example:
+        \subsubsection{Example}
+            This example:
 
         \begin{verbatim}
 [input.testrun1]
@@ -228,8 +359,7 @@ values = ["c", "d"]
 [parameter.y]
 values = ["10", "20"]
         \end{verbatim}
-
-                It will be transformed into following inputs:
+            Will be transformed into following inputs:
 
         \begin{verbatim}
 [input.testrun1_x-0_y-0]
@@ -250,12 +380,11 @@ values = ["a", "b"]
 [parameter.y]
 values = ["10", "20"]
         \end{verbatim}
-
-        Example of wrong config:
+            Where as this example:
 
         \begin{verbatim}
 [input.testrun1]
-arguments = ["subparam|x.1", "param|x", "subparam|x.2"]
+arguments = ["param|x"]
 
 [parameter.x.sub.1]
 values = ["a", "b"]
@@ -267,101 +396,191 @@ values = ["c", "d"]
 values = ["10", "20"]
         \end{verbatim}
 
-        This is not correct and \Prog{gourd} will throw an error!
+        Is not correct and \Prog{gourd} will throw an error!
 
-  \section{LABELS}
-  \subsection{Labels}
-  When running \Prog{gourd} \Arg{status}, by default the statuses only display information
-  about Slurm scheduling of the run or an exit code.
-  In the case that a job execution can succeed (exit code 0) but the run should still
-  be considered a failure, the user can add a custom label to the run, derived from
-  the output of the run's `afterscript'.
-  Labels can be created in the configuration file as names with a regular expression,
-  where if the regex is matched in the afterscript's output, the label is assigned to the run.
-  Syntax is as follows:
 
-  \File{gourd.toml}
-  \begin{verbatim}
-    [label.<label_name>]
-    regex = <regex>
-    priority = <int>
-    rerun_by_default = <true/false>
-  \end{verbatim}
 
-  \begin{itemize}
-      \item \File{<label\_name>}: The name of the label as is to be displayed by \Prog{gourd} \Arg{status}.
-      \item \File{<regex>}: The regular expression to match against the afterscript's output.
-      If a match is found, the label is assigned to the run.
-      \item \File{<int>}: The priority of the label.
-      Higher numbers have higher priority.
-      If multiple labels match the afterscript's output, the label with the highest priority is assigned to the run.
-      Multiple labels with the same priority are assigned to the run cause undefined behaviour.
-      %(I think they are ordered alphabetically by name's hash).
-      \item \File{<true/false>}: Including this is optional, with a default value of \File{true}.
-      If the field is not present or present with value \File{true}, the run will be rerun by default if
-      this label is assigned to it; i.e., this will be considered a failed run.
-      If false then \Prog{gourd} \Arg{status} will display the run as successful, and \Prog{gourd} \Arg{rerun} will ignore it.
-  \end{itemize}
+    \section{POSTPROCESSING}
 
-  Labels are assigned based on priority.
-  For example if the configuration file looks like:
-  \begin{verbatim}
-    [label.label1]
-    regex = "Success"
-    priority = 1
-    rerun_by_default = false
+        Postprocessing jobs are jobs that run after another job and
+        can transform its input without influencing the original jobs input.
 
-    [label.label2]
-    regex = "RuntimeException"
-    priority = 2
-  \end{verbatim}
+        Postprocessing programs are specified as \Arg{[postprocess\_program.name]}
+        they have exactly the same fields as regular programs defined in the
+        \textbf{PROGRAMS} section.
 
-  and the afterscript output looks like:
+        Postprocessing programs are ran in the same directory as the original
+        job, and get the originals job \texttt{stdout} as their \texttt{stdin}.
 
-  \begin{verbatim}
-    Starting afterscript...
-    Success! The output was correct.
-    Verifying something else...
-    RuntimeException thrown while parsing
-  \end{verbatim}
+        \subsection{EXAMPLE}
 
-  then by principle of priorities, the run will be assigned \File{label2} even though both regex match.
+            \begin{verbatim}
+[program.test_program]
+binary = "./algorithm"
+arguments = []
+postprocess_job = "example_name"
 
-  \section{Remote resource fetching}
-    In order to prevent having to manually transfer large files, input files or (precompiled) program binaries can be fetched from a URL.
+[postprocess_program.example_name]
+binary = "./verifier"
+arguments = []
+            \end{verbatim}
 
-    Suppose you are hosting a large text file, or want to download a binary from CI artefacts:
+    \section{AFTERSCRIPTS}
 
-    \texttt{https://test.com/input.txt}
+        Afterscripts are essentially postprocessing but one that does not constitute
+        a full Slurm job.
 
-    \texttt{https://test.com/program.exe}
+        These are ran when \Prog{gourd} \Arg{status} is invoked, and their results are
+        cached.
 
-    You can pass this as an input by:
+        The afterscript is assumed to:
 
-\begin{verbatim}
+        \begin{itemize}
+            \item Be executable.
+            \item Will receive the path to the jobs output as the first CLI parameter.
+            \item Write its output to the path received as the second CLI parameter.
+        \end{itemize}
+
+        \subsection{EXAMPLE}
+
+            \begin{verbatim}
+[program.test_program]
+binary = "./algorithm"
+arguments = []
+afterscript = "./script.sh"
+            \end{verbatim}
+
+            After running the job the after script will be called as:
+
+            \begin{verbatim}
+script.sh path/to/job/stdout path/to/afterscript/output
+            \end{verbatim}
+
+            And for example if:
+
+            in \textbf{script.sh}:
+            \begin{verbatim}
+cat $1 > $2
+            \end{verbatim}
+
+            The afterscripts output will be the jobs output (ie. No postprocessing happened).
+            But these scripts may be more complex if the use case requires it.
+
+    \section{LABELS}
+
+      When running \Prog{gourd} \Arg{status}, by default the statuses only display information
+      about Slurm scheduling of the run or an exit code.
+
+      In the case that a job execution can succeed (exit code 0) but the run should still
+      be considered a failure, the user can add a custom label to the run, derived from
+      the output of the run's `afterscript'.
+
+      Labels can be created in the configuration file as names with a regular expression,
+      where if the regex is matched in the afterscript's output, the label is assigned to the run.
+
+      These are specified as \Arg{[label.label-name]} and the fields available are:
+
+      \begin{Description}[Options]\setlength{\itemsep}{0cm}
+          \item[\Opt{regex} = regex]
+          A regular expression that the afterscripts output will be matched to,
+          if the output matches the expression this label will be assigned.
+
+          \item[\Opt{priority} = number]
+          In the case that more than one label matches a run the \textbf{highest}
+          priority label will be assigned.
+
+          \item[\Opt{rerun\_by\_default?} = boolean]
+          If true makes this label essentially mean `failure', in the sense that
+          \Prog{gourd} will treat a run with this label as a failure even if the
+          run itself succeeded. \\ \\
+          By default \emph{false}.
+      \end{Description}
+
+      \subsection{EXAMPLE}
+
+          \begin{verbatim}
+[label.label_name]
+# matches any output
+regex = ".*"
+priority = 1
+rerun_by_default = true
+          \end{verbatim}
+          Labels are assigned based on priority.
+          For example if the configuration file looks like:
+
+          \begin{verbatim}
+[label.label1]
+regex = "Success"
+priority = 1
+rerun_by_default = false
+
+[label.label2]
+regex = "RuntimeException"
+priority = 2
+          \end{verbatim}
+          and the afterscript output looks like:
+
+          \begin{verbatim}
+Starting afterscript...
+Success! The output was correct.
+Verifying something else...
+RuntimeException thrown while parsing
+          \end{verbatim}
+          then by principle of priorities, the run will be assigned
+          \emph{label2} even though both regexes match.
+
+    \section{REMOTE RESOURCE FETCHING}
+
+        In order to prevent having to manually transfer large files, input files
+        or (precompiled) program binaries can be fetched from a URL.
+
+        Suppose you are hosting a large text file, or want to download a binary from CI artefacts:
+
+        \texttt{https://test.com/input.txt}
+
+        \texttt{https://test.com/program.exe}
+
+        Any config field which accepts \texttt{fetched\_path} can accept remote resources.
+
+        The syntax for fetched resources is "\texttt{url| remote\_path | local\_path}"
+        (whitespace insensitive).
+
+        \subsection{EXAMPLE}
+
+            Consider this fetched input as an example:
+
+            \begin{verbatim}
 [input.some_input]
 input = “fetch|https://test.com/input.txt | ./path/to/store/the/file.txt”
 arguments = [“any”, “input”, “arguments”]
-\end{verbatim}
-    This will download the file at the URL and save its contents in the provided path.
-    The contents of this will then be passed as input to all programs.
+            \end{verbatim}
+            This will download the file at \texttt{test.com/input.txt} and save it
+            contents in the provided path.
+            The contents of this will then be passed as input to all programs.
 
-    Note that the “|” character needs to be escaped in URLs as \texttt{\%7C} since it is used as a delimiter
+            Note that the “|” character needs to be escaped in URLs as
+            \texttt{\%7C} since it is used as a delimiter
 
-    Similarly for programs:
+            Similarly for programs:
 
 \begin{verbatim}
 [program.some_example]
 binary = “fetch|https://test.com/program.exe | ./path/to/store/the/program.exe”
 arguments = [“any”, “program”, “arguments”]
 \end{verbatim}
-    These resources will be downloaded and saved at the paths, but they will not be redownloaded
-    again as long as these cached files exist.
 
-    If you want to redownaload the resoruces delete the file.
+        \subsection{CACHING}
+
+            These resources will be downloaded and saved at the paths, but they will
+            not be redownloaded again as long as these cached files exist.
+
+            It may be beneficial to create a folder and store all downloaded resources
+            inside, then when there is a need for cleaning the cache this amounts
+            to deleting the folder
+
 
   \section{SEE ALSO}
-      \Prog{gourd(1)}
+      \Prog{gourd(1)} \Prog{gourd-tutorial(7)}
 
   \section{AUTHORS}
     Lukáš Chládek <\Email{l@chla.cz}>\\[0.1cm]\MANbr

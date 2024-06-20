@@ -147,27 +147,3 @@ $ INSTALL_PATH="~/.local/bin" \
 \end{verbatim}
 
 And the binaries will be placed accordingly.
-
-\subsubsection{Future work}
-
-The entire installer template is contained in \texttt{src/resources/install.sh}.
-
-It is quite easy to extend this installer with new files or paths. One option which
-we considered a nice addition would be to skip installing parts of the application
-on the request of the user (for example manpages).
-
-Finally, as outlined in the beginning of the section, the biggest improvement
-would be to disable the installer and distribute \gourd\ via system specific libraries.
-
-It would be ideal if this process was included in \texttt{build.rs} via optional features.
-
-We have identified the following packages as priorities to make \gourd\ accessible
-to the largest user base:
-\begin{itemize}
-  \item A Debian \texttt{.deb} package. This enables Ubuntu packaging as well.
-  \item A homebrew package script. This enables MacOS.
-  \item A ArchLinux \texttt{PKGBUILD} file. This enabled distribution for ArchLinux.
-  \item A RHEL \texttt{.rpm} package. This enables Fedora packaging as well.
-  \item A \texttt{flake.nix} file for NixOS.
-  \item A Windows \texttt{.msi} style installer.
-\end{itemize}

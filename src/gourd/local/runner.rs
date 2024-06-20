@@ -22,7 +22,7 @@ pub async fn run_locally(tasks: Vec<Command>, force: bool, sequential: bool) -> 
         bailc!(
           "task limit exceeded", ;
           "{PRIMARY_STYLE}gourd{PRIMARY_STYLE:#} will not run more than \
-          {TASK_LIMIT} jobs on local, doing so may result in a forkbomb", ;
+          {TASK_LIMIT} jobs on local, doing so may possibly exhaust your file descriptors", ;
           "if you are {NAME_STYLE}absolutely{NAME_STYLE:#} sure that you \
           want to run {} tasks use the {PRIMARY_STYLE}--force{PRIMARY_STYLE:#} \
           option", tasks.len()

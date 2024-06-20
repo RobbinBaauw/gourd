@@ -383,6 +383,11 @@ pub fn display_job(
 
         if let Some(slurm_id) = &run.slurm_id {
             writeln!(f, "scheduled on slurm as {}", slurm_id)?;
+            if let Some(in_chunk) = exp.chunks.iter().find(|x| x.runs.contains(&id)) {
+                if let Some(limits) = in_chunk.resource_limits {
+                    writeln!(f, "scheduled on slurm with these limits:\n{}", limits)?;
+                }
+            }
         }
 
         let status = &statuses[&id];
