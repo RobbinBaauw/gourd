@@ -64,14 +64,14 @@ pub fn get_examples() -> BTreeMap<&'static str, InitExample<'static>> {
     let mut examples = BTreeMap::new();
 
     examples.insert(
-        "a-simple-experiment",
+        "fibonacci-comparison",
         InitExample {
-            name: "A Simple Experiment",
-            description: "A comparative evaluation of two simple programs.",
+            name: "Fibonacci Comparison",
+            description: "A simple intro to designing Gourd experiments with programs and inputs.",
 
             directory_tarball: include_bytes!(concat!(
                 env!("OUT_DIR"),
-                "/../../../tarballs/a_simple_experiment.tar.gz"
+                "/../../../tarballs/fibonacci-comparison.tar.gz"
             )),
         },
     );

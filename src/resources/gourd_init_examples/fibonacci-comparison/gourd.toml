@@ -1,0 +1,42 @@
+# Example `gourd.toml` for the Gourd Experiment Scheduler
+# See the manual page for gourd-tutorial(7)
+#
+# "Fibonacci Comparison"
+# A simple intro to designing Gourd experiments with programs and inputs.
+
+# Put all outputs and metrics in the same folder
+output_path = "experiments"
+metrics_path = "experiments"
+experiments_folder = "experiments"
+
+# This is our first program, named 'fibonacci'.
+# The binary takes an input n and calculates the nth Fibonacci number.
+[program.fibonacci]
+binary = "./fibonacci"
+
+# This is our second program, named 'fast-fibonacci'.
+# The binary has a different implementation, and we want to see
+# if it runs faster.
+[program.fast-fibonacci]
+binary = "./fibonacci-dynamic"
+
+# Finally, our third program is named 'fastest-fibonacci'.
+# This is the same binary as 'fast-fibonacci', but the program
+# is called with an extra '-f' flag that unlocks even more speed.
+[program.fastest-fibonacci]
+binary = "./fibonacci-dynamic"
+arguments = ["-f"]
+
+
+# These three input files contain the numbers '2', '8', and '35'.
+[input.test_2]
+input = "./inputs/input_2"
+[input.test_8]
+input = "./inputs/input_8"
+[input.test_35]
+input = "./inputs/input_35"
+
+# This input file contains 'some text', which will give
+# our Fibonacci program a hard time.
+[input.bad_test]
+input = "./inputs/input_bad"
