@@ -65,7 +65,7 @@ impl FileOperations for EmptyFilesystem {
         bail!("File not found")
     }
 
-    fn make_executable(&self, _: &Path) -> Result<()> {
+    fn set_permissions(&self, _: &Path, _: u32) -> Result<()> {
         bail!("File not found")
     }
 }

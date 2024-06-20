@@ -41,7 +41,7 @@ fn test_downloading_from_url() {
     let tmp_dir_path = PathBuf::from(tmp_dir.path());
     println!("{:?}", tmp_dir_path);
 
-    download_exec(
+    download_file(
         "https://sh.rustup.rs",
         &tmp_dir_path.join(output_name),
         &REAL_FS,

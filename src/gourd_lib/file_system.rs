@@ -56,7 +56,7 @@ pub trait FileOperations {
     fn truncate_and_canonicalize_folder(&self, path: &Path) -> Result<PathBuf>;
 
     /// Make a file possible to execute.
-    fn make_executable(&self, path: &Path) -> Result<()>;
+    fn set_permissions(&self, path: &Path, perms: u32) -> Result<()>;
 
     /// Given a path try to canonicalize it.
     ///
@@ -223,7 +223,7 @@ impl FileOperations for FileSystemInteractor {
         Ok(())
     }
 
-    fn make_executable(&self, path: &Path) -> Result<()> {
+    fn set_permissions(&self, path: &Path, perms: u32) -> Result<()> {
         if self.dry_run {
             debug!("Would have made {path:?} executable (dry)");
             return Ok(());
@@ -233,7 +233,7 @@ impl FileOperations for FileSystemInteractor {
         {
             use std::fs::Permissions;
             use std::os::unix::fs::PermissionsExt;
-            fs::set_permissions(path, Permissions::from_mode(0o755)).with_context(ctx!(
+            fs::set_permissions(path, Permissions::from_mode(perms)).with_context(ctx!(
               "Could not make {path:?} executable", ;
              "Ensure that you have sufficient permissions",
             ))

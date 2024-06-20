@@ -54,7 +54,12 @@ pub use regex::Regex;
 #[serde(deny_unknown_fields)]
 pub struct Program {
     /// The path to the executable.
-    pub binary: FetchedPath,
+    ///
+    /// # Permissions
+    ///
+    /// If this file is fetched on unix the permissions
+    /// for it are: `rwxr-xr--`.
+    pub binary: FetchedPath<0o754>,
 
     /// The cli arguments for the executable.
     #[serde(default = "EMPTY_ARGS")]
@@ -93,7 +98,12 @@ pub struct Input {
     /// The path to the input.
     ///
     /// If not specified, nothing is provided on the program's input.
-    pub input: Option<FetchedPath>,
+    ///
+    /// # Permissions
+    ///
+    /// If this file is fetched on unix the permissions
+    /// for it are: `rw-r--r--`.
+    pub input: Option<FetchedPath<0x644>>,
 
     /// The additional cli arguments for the executable.
     ///

@@ -28,7 +28,9 @@ $ wget https://gourd.chla.cz/[your system here] \
 
 This command, of course, requires `curl` to be installed.
 
-The distributed installers are, one of these should be put in place of `[your system here]`:
+<br clear="left"/>
+
+The distributed installers are: (One of these should be put in place of `[your system here]`)
 - [`install-x86_64-unknown-linux-musl.sh`](https://gourd.chla.cz/install-x86_64-unknown-linux-musl.sh) (Linux systems based on musl eg: Alpine, Void)
 - [`install-x86_64-unknown-linux-gnu.sh`](https://gourd.chla.cz/install-x86_64-unknown-linux-gnu.sh) (Linux systems based on gnu eg: Ubuntu, Windows WSL)
 - [`install-x86_64-apple-darwin.sh`](https://gourd.chla.cz/install-x86_64-apple-darwin.sh) (Apple x86)
@@ -36,8 +38,6 @@ The distributed installers are, one of these should be put in place of `[your sy
 - [`install-delftblue.sh`](https://gourd.chla.cz/install-delftblue.sh) (Specifically made for DelftBlue, run it without `sudo`)
 
 Customizing installation folders is explained [here](https://gourd.chla.cz/maintainer.pdf).
-
-<br clear="left"/>
 
 ### Uninstalling
 

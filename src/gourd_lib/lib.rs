@@ -19,7 +19,7 @@ pub mod error;
 /// Constant values.
 pub mod constants;
 
-/// Interactions with the network for feching resources.
+/// Interactions with the network for fetching resources.
 #[cfg(feature = "fetching")]
 pub mod network;
 

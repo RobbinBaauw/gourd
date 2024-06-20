@@ -9,6 +9,8 @@ use crate::error::Ctx;
 use crate::file_system::FileOperations;
 
 /// Gets the files given the filepaths.
+// This function has been left here for possible
+// further extensions of the fetching/build script system.
 #[allow(unused)]
 pub fn get_resources(filepaths: Vec<&Path>) -> Result<Vec<File>> {
     let mut files: Vec<File> = vec![];
@@ -24,7 +26,7 @@ pub fn get_resources(filepaths: Vec<&Path>) -> Result<Vec<File>> {
 }
 
 /// Downloads a file given a url.
-pub fn download_exec(url: &str, output_path: &Path, fs: &impl FileOperations) -> Result<()> {
+pub fn download_file(url: &str, output_path: &Path, fs: &impl FileOperations) -> Result<()> {
     let response = ureq::get(url).call().with_context(ctx!(
       "Could not access the resource at {url}", ;
       "Check that the url is correct",
@@ -40,8 +42,6 @@ pub fn download_exec(url: &str, output_path: &Path, fs: &impl FileOperations) ->
         ))?;
 
     fs.write_bytes_truncate(output_path, &body)?;
-    fs.make_executable(output_path)?;
-
     Ok(())
 }
 
