@@ -9,7 +9,7 @@ use gourd_lib::file_system::FileOperations;
 use inquire::Select;
 
 use crate::init::interactive::ask;
-use crate::rerun::checks::check_multiple_runs_failed;
+use crate::rerun::slurm::check_multiple_runs_failed;
 use crate::status::get_statuses;
 use crate::status::ExperimentStatus;
 

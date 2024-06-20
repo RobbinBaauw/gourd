@@ -8,7 +8,9 @@ use gourd_lib::error::Ctx;
 use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
 use gourd_lib::measurement::Metrics;
+use log::debug;
 use log::trace;
+use log::warn;
 
 use super::FileSystemBasedStatus;
 use super::StatusProvider;
@@ -56,12 +58,15 @@ where
             let mut afterscript_completion = None;
 
             if run.afterscript_output_path.is_some() && completion.has_succeeded() {
-                afterscript_completion = Some(
-                    Self::get_afterscript_status(run_id, experiment, fs).with_context(ctx!(
-                        "Could not determine the afterscript status", ;
-                        "",
-                    ))?,
-                );
+                afterscript_completion = match Self::get_afterscript_status(run_id, experiment, fs)
+                {
+                    Ok(status) => Some(status),
+                    Err(e) => {
+                        warn!("Failed to get status from afterscript {}.", run_id);
+                        debug!("{}", e);
+                        None
+                    }
+                };
             }
 
             let status = FileSystemBasedStatus {

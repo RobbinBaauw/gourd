@@ -167,7 +167,7 @@ pub fn query_update_resource_limits(
     }
 
     if cpu.is_none() && script {
-        bailc!("No cpus specified in script mode", ;"", ; "",);
+        bailc!("No CPUs specified in script mode", ;"", ; "",);
     }
     if let Some(cpu_a) = cpu {
         new_rss.cpus = cpu_a;

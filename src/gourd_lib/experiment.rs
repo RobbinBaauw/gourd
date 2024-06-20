@@ -84,7 +84,7 @@ pub enum Environment {
 }
 
 /// Describes one experiment.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Experiment {
     /// The pairings of program-input for this experiment.

@@ -22,10 +22,6 @@ pub fn run_afterscript(run_id: usize, experiment: &Experiment) -> Result<()> {
     let after_out_path = &run.afterscript_output_path;
     let res_path = run.output_path.clone();
 
-    if after_out_path.is_none() {
-        return Ok(());
-    }
-
     trace!("Checking afterscript for {run_id}");
 
     let after_output = after_out_path

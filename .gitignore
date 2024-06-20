@@ -11,3 +11,4 @@ Cargo.lock
 /*.pdf
 /*.man
 compile.fish
+/*.profraw

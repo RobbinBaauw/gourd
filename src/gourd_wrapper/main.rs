@@ -1,4 +1,3 @@
-#![cfg(not(tarpaulin_include))]
 //! This wrapper runs the binary and measures metrics
 //!
 //! Run the wrapper with:
@@ -35,7 +34,7 @@ use gourd_lib::measurement::Measurement;
 use gourd_lib::measurement::Metrics;
 use gourd_lib::measurement::RUsage;
 
-/// How to style the erros.
+/// How to style the errors.
 const ERROR_STYLE: Style = anstyle::Style::new()
     .blink()
     .fg_color(Some(Color::Ansi(anstyle::AnsiColor::Red)));

@@ -82,3 +82,7 @@ pub fn print_scheduling(exp: &Experiment, starting: bool) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "tests/chunks.rs"]
+mod tests;

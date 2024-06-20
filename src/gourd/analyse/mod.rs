@@ -1,6 +1,6 @@
 use std::cmp::max;
 use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::path::Path;
 use std::time::Duration;
 
 use anyhow::anyhow;
@@ -28,8 +28,8 @@ use crate::status::Status;
 type PlotData = (u128, u128, BTreeMap<FieldRef, Vec<(u128, u128)>>);
 
 /// Collect and export metrics.
-pub fn analysis_csv(path: PathBuf, statuses: BTreeMap<usize, Status>) -> Result<PathBuf> {
-    let mut writer = Writer::from_path(&path)?;
+pub fn analysis_csv(path: &Path, statuses: BTreeMap<usize, Status>) -> Result<()> {
+    let mut writer = Writer::from_path(path)?;
 
     let header = vec![
         "id".to_string(),
@@ -41,9 +41,7 @@ pub fn analysis_csv(path: PathBuf, statuses: BTreeMap<usize, Status>) -> Result<
         "slurm completion".to_string(),
     ];
 
-    writer
-        .write_record(header)
-        .with_context(ctx!("Could not write to the CSV file at {:?}", &path; "",))?;
+    writer.write_record(header)?;
 
     for (id, status) in statuses {
         let fs_status = &status.fs_status;
@@ -55,16 +53,12 @@ pub fn analysis_csv(path: PathBuf, statuses: BTreeMap<usize, Status>) -> Result<
         ));
         record.append(&mut get_slurm_status_info(&slurm_status));
 
-        writer
-            .write_record(record)
-            .with_context(ctx!("Could not write to the CSV file at {:?}", path; "",))?;
+        writer.write_record(record)?;
     }
 
-    writer
-        .flush()
-        .with_context(ctx!("Could not write to the CSV file at {:?}", path; "",))?;
+    writer.flush()?;
 
-    Ok(path)
+    Ok(())
 }
 
 /// Gets file system info for CSV.
@@ -131,24 +125,22 @@ pub fn get_afterscript_output_info(afterscript_completion: &Option<Option<String
 
 /// Get data for plotting and generate plots.
 pub fn analysis_plot(
-    path: PathBuf,
+    path: &Path,
     statuses: BTreeMap<usize, Status>,
     experiment: Experiment,
     is_png: bool,
-) -> Result<PathBuf> {
+) -> Result<()> {
     let completions = get_completions(statuses, experiment)?;
 
     let data = get_data_for_plot(completions);
 
     if is_png {
-        make_plot(data, BitMapBackend::new(&path, PLOT_SIZE))
-            .with_context(ctx!("Failed to draw the plot", ; "", ))?;
+        make_plot(data, BitMapBackend::new(&path, PLOT_SIZE))?;
     } else {
-        make_plot(data, SVGBackend::new(&path, PLOT_SIZE))
-            .with_context(ctx!("Failed to draw the plot", ; "", ))?;
+        make_plot(data, SVGBackend::new(&path, PLOT_SIZE))?;
     }
 
-    Ok(path)
+    Ok(())
 }
 
 /// Get completion times of jobs.
@@ -162,7 +154,11 @@ pub fn get_completions(
         let program_name = experiment.runs[id].program.clone();
 
         if status.is_completed() {
-            let time = get_completion_time(status.fs_status.completion)?.as_nanos();
+            let time = match get_completion_time(status.fs_status.completion) {
+                Ok(t) => t.as_nanos(),
+                // No RUsage
+                Err(_) => continue,
+            };
 
             if completions.contains_key(&program_name) {
                 let mut times = completions[&program_name].clone();
@@ -248,8 +244,7 @@ where
         FontStyle::Normal,
         include_bytes!("../../resources/LinLibertine_R.otf"),
     )
-    .map_err(|_| anyhow!("Could not load the font"))
-    .with_context(ctx!("", ; "", ))?;
+    .map_err(|_| anyhow!("Could not load the font"))?;
 
     let style = TextStyle::from(("sans-serif", 20).into_font()).color(&BLACK);
     let root = backend.into_drawing_area();

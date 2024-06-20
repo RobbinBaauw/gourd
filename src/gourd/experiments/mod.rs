@@ -91,24 +91,28 @@ impl ExperimentExt for Experiment {
     fn latest_id_from_folder(folder: &Path) -> Result<Option<usize>> {
         let mut highest = None;
 
-        for file in fs::read_dir(folder).with_context(ctx!(
+        // More lenient handling of other files in the experiment directory,
+        // as long as they are not *.lock files.
+        // This is in line with some of our examples, which have been adjusted
+        // to also put output and metrics in the experiment dir for cleanness.
+        let file_names = fs::read_dir(folder).with_context(ctx!(
           "Could not access the experiments directory {folder:?}", ;
-          "Run some experiments first or ensure that you have suffient permissions to read it",
-        ))? {
-            let actual = match file {
-                Ok(entry) => entry,
-                Err(_) => continue,
-            };
+          "Run some experiments first or ensure that you have sufficient permissions to read it",
+        ))?.flatten()
+            // get only regular files
+            .filter(|f| f.file_type().is_ok_and(|fty| fty.is_file()))
+            // get file names
+            .filter_map(|f| f.file_name().into_string().ok())
+            // get only .lock files
+            .filter(|name| name.ends_with(".lock"));
 
-            let seq_of_file: usize = actual
-                .file_name()
-                .to_str()
-                .ok_or(anyhow!("Invalid filename in experiment directory"))?
+        for file_name in file_names {
+            let seq_of_file = file_name
                 .trim_end_matches(".lock")
                 .parse()
                 .with_context(ctx!(
-                  "Invalid name of experiment file {actual:?}", ;
-                  "Do not manually modify files in the experiment directory",
+                  "Invalid name of experiment file {:?}", file_name;
+                  "Do not manually modify .lock files in the experiment directory",
                 ))?;
 
             if highest.is_none() {

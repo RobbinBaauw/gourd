@@ -114,6 +114,7 @@ plotters = {version = "0.3.6", default-features = false, features = [
         "colormaps",
         "ab_glyph"
 ]}
+regex = "1.10.4"
 
 [build-dependencies]
 # To generate shell completions for the CLI.
@@ -137,6 +138,9 @@ toml = "0.8.12"
 # To run benchmarks on stable rust.
 easybench = "1.1.1"
 humantime = "2.1.0"
+
+# To simulate a TTY in integration tests.
+fake-tty = "0.3.1"
 
 # The release profile is for distributing gourd.
 # This means that the compiled artifacts should *not*

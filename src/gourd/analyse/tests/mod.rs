@@ -1,13 +1,48 @@
 use std::collections::BTreeMap;
+use std::default::Default;
+use std::fs;
 use std::time::Duration;
 
 use csv::Reader;
 use csv::StringRecord;
+use gourd_lib::experiment::Environment;
+use gourd_lib::experiment::Run;
 use gourd_lib::measurement::Measurement;
 use tempdir::TempDir;
 
 use super::*;
 use crate::status::SlurmState;
+
+static TEST_RUSAGE: RUsage = RUsage {
+    utime: Duration::from_micros(2137),
+    stime: Duration::from_micros(2137),
+    maxrss: 2137,
+    ixrss: 2137,
+    idrss: 2137,
+    isrss: 2137,
+    minflt: 2137,
+    majflt: 2137,
+    nswap: 2137,
+    inblock: 2137,
+    oublock: 2137,
+    msgsnd: 2137,
+    msgrcv: 2137,
+    nsignals: 2137,
+    nvcsw: 2137,
+    nivcsw: 2137,
+};
+
+#[test]
+fn test_analysis_csv_unwritable() {
+    let tmp_dir = TempDir::new("testing").unwrap();
+
+    let output_path = tmp_dir.path().join("analysis.csv");
+
+    // By creating a directory, the path becomes unwritable
+    let _ = fs::create_dir(&output_path);
+
+    assert!(analysis_csv(&output_path, BTreeMap::new()).is_err());
+}
 
 #[test]
 fn test_analysis_csv_success() {
@@ -44,7 +79,7 @@ fn test_analysis_csv_success() {
         },
     );
 
-    assert!(analysis_csv(output_path.clone(), statuses).is_ok());
+    analysis_csv(&output_path, statuses).unwrap();
 
     let mut reader = Reader::from_path(output_path).unwrap();
 
@@ -76,13 +111,87 @@ fn test_analysis_csv_success() {
 }
 
 #[test]
+fn test_analysis_png_plot_success() {
+    let tmp_dir = TempDir::new("testing").unwrap();
+    let mut statuses = BTreeMap::new();
+    let status_with_rusage = Status {
+        fs_status: FileSystemBasedStatus {
+            completion: FsState::Completed(Measurement {
+                wall_micros: Duration::from_nanos(0),
+                exit_code: 0,
+                rusage: Some(TEST_RUSAGE),
+            }),
+            afterscript_completion: None,
+        },
+        slurm_status: Some(SlurmBasedStatus {
+            completion: SlurmState::Success,
+            exit_code_program: 0,
+            exit_code_slurm: 0,
+        }),
+    };
+    let mut status_no_rusage = status_with_rusage.clone();
+    status_no_rusage.fs_status.completion = FsState::Completed(Measurement {
+        wall_micros: Duration::from_nanos(0),
+        exit_code: 0,
+        rusage: None,
+    });
+    statuses.insert(
+        0,
+        Status {
+            fs_status: FileSystemBasedStatus {
+                completion: crate::status::FsState::Pending,
+                afterscript_completion: Some(Some(String::from("lol-label"))),
+            },
+            slurm_status: None,
+        },
+    );
+    statuses.insert(1, status_no_rusage);
+    statuses.insert(2, status_with_rusage.clone());
+    statuses.insert(3, status_with_rusage);
+    let run = Run {
+        program: FieldRef::Regular(String::from("Program A")),
+        input: FieldRef::Regular(String::from("Input A")),
+        err_path: Default::default(),
+        output_path: Default::default(),
+        metrics_path: Default::default(),
+        work_dir: Default::default(),
+        slurm_id: None,
+        afterscript_output_path: None,
+        postprocessor: None,
+        rerun: None,
+    };
+    let experiment = Experiment {
+        runs: vec![run.clone(), run.clone(), run.clone(), run],
+        chunks: vec![],
+        resource_limits: None,
+        creation_time: Default::default(),
+        config: Default::default(),
+        seq: 0,
+        env: Environment::Local,
+        postprocess_inputs: Default::default(),
+    };
+
+    let png_output_path = tmp_dir.path().join("analysis.png");
+    analysis_plot(&png_output_path, statuses.clone(), experiment.clone(), true).unwrap();
+
+    assert!(&png_output_path.exists());
+    assert!(fs::read(&png_output_path).is_ok_and(|r| !r.is_empty()));
+
+    let svg_output_path = tmp_dir.path().join("analysis.svg");
+    analysis_plot(&svg_output_path, statuses, experiment, false).unwrap();
+
+    assert!(&svg_output_path.exists());
+    assert!(fs::read(&svg_output_path).is_ok_and(|r| !r.is_empty()));
+}
+
+#[test]
 fn test_analysis_csv_wrong_path() {
     let tmp_dir = TempDir::new("testing").unwrap();
 
     let output_path = tmp_dir.path().join("");
     let statuses = BTreeMap::new();
 
-    assert!(analysis_csv(output_path, statuses).is_err());
+    assert!(analysis_csv(&output_path, statuses).is_err());
     assert!(tmp_dir.close().is_ok());
 }
 
@@ -122,25 +231,7 @@ fn test_get_fs_status_info_completed() {
 
 #[test]
 fn test_format_rusage() {
-    let rusage = RUsage {
-        utime: Duration::from_micros(2137),
-        stime: Duration::from_micros(2137),
-        maxrss: 2137,
-        ixrss: 2137,
-        idrss: 2137,
-        isrss: 2137,
-        minflt: 2137,
-        majflt: 2137,
-        nswap: 2137,
-        inblock: 2137,
-        oublock: 2137,
-        msgsnd: 2137,
-        msgrcv: 2137,
-        nsignals: 2137,
-        nvcsw: 2137,
-        nivcsw: 2137,
-    };
-    let res = format_rusage(Some(rusage));
+    let res = format_rusage(Some(TEST_RUSAGE));
     let ans = "RUsage {\n    utime: 2.137ms,\n    stime: 2.137ms,\n    maxrss: 2137,\n    ixrss: 2137,\n    idrss: 2137,\n    isrss: 2137,\n    minflt: 2137,\n    majflt: 2137,\n    nswap: 2137,\n    inblock: 2137,\n    oublock: 2137,\n    msgsnd: 2137,\n    msgrcv: 2137,\n    nsignals: 2137,\n    nvcsw: 2137,\n    nivcsw: 2137,\n}";
     assert_eq!(res, ans);
 }
@@ -193,24 +284,7 @@ fn test_get_completion_time() {
     let state = FsState::Completed(Measurement {
         wall_micros: Duration::from_nanos(20),
         exit_code: 0,
-        rusage: Some(RUsage {
-            utime: Duration::from_micros(2137),
-            stime: Duration::from_micros(2137),
-            maxrss: 2137,
-            ixrss: 2137,
-            idrss: 2137,
-            isrss: 2137,
-            minflt: 2137,
-            majflt: 2137,
-            nswap: 2137,
-            inblock: 2137,
-            oublock: 2137,
-            msgsnd: 2137,
-            msgrcv: 2137,
-            nsignals: 2137,
-            nvcsw: 2137,
-            nivcsw: 2137,
-        }),
+        rusage: Some(TEST_RUSAGE),
     });
     let res = get_completion_time(state).unwrap();
 

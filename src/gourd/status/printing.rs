@@ -24,6 +24,8 @@ use super::FsState;
 use super::SlurmState;
 use super::Status;
 
+#[cfg(not(tarpaulin_include))] // There are no meaningful tests for an enum's Display implementation
+
 impl Display for SlurmState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -314,7 +316,7 @@ fn long_status(
                 write!(
                     f,
                     "  {: >numw$}a {TERTIARY_STYLE}afterscript ran \
-                            sucessfully{TERTIARY_STYLE:#}",
+                            successfully{TERTIARY_STYLE:#}",
                     run_id,
                     numw = longest_index,
                 )?;
@@ -413,7 +415,7 @@ pub fn display_job(
         } else if let Some(None) = &status.fs_status.afterscript_completion {
             writeln!(
                 f,
-                "{TERTIARY_STYLE}afterscript ran sucessfully{TERTIARY_STYLE:#}",
+                "{TERTIARY_STYLE}afterscript ran successfully{TERTIARY_STYLE:#}",
             )?;
 
             writeln!(f)?;
