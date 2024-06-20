@@ -336,6 +336,20 @@
                 For example, an experiment with 30,000 distinct runs can be scheduled in three batches
                 of 10,000 each if that is the maximum number of queued supercomputer jobs.
 
+            \subsubsection{Synopsis}
+                \Prog{gourd} \Arg{continue}
+                \oArg{experiment-id}
+                \oOpt{-s}
+                \oOptArg{-c}{ filename}
+                \oOpt{-v|-vv}
+
+            \subsubsection{Options}
+                \begin{Description}[Options]
+                  \item[\Arg{experiment-id}]
+                    The ID of an experiment to continue.
+                    By default, this is the most recent experiment.
+                \end{Description}
+
             \subsubsection{Postprocessing Slurm jobs}
                 As discussed when describing \Prog{gourd} \Arg{status}, to postprocess the output of the runs,
                 there are two options available: afterscipts and Slurm postprocessing jobs. Afterscripts are
@@ -358,12 +372,6 @@
                 As input the postprocessing binary will get the output of a run of a regular program that has
                 been specified to have this postprocessing. It will write its results to a file the way that
                 regular programs do.
-
-%            \subsubsection{Synopsis}
-%                \emph{TBD.}
-%
-%            \subsubsection{Options}
-%                \emph{TBD.}
 
 
         \subsection{GOURD CANCEL}
@@ -400,9 +408,8 @@
 
             \subsubsection{Summary}
                 The \Prog{gourd} \Arg{analyse} command collects and processes metrics generated
-                when an experiment was run.
-                It also generates a "cactus plot" to compare how quickly different algorithms run.
-
+                when an experiment was run. It can produce a CSV data file or a "cactus plot" 
+                to compare how quickly different algorithms run.
 
             \subsubsection{Synopsis}
                 \Prog{gourd} \Arg{analyse}
@@ -416,7 +423,7 @@
             \subsubsection{Options}
                 \begin{Description}[Options]
                   \item[\Arg{experiment-id}]
-                    The ID of an experiment to analuse.
+                    The ID of an experiment to analyse.
                     By default, this is the most recent experiment.
                   \item[\OptArg{-o}{ format}, \OptArg{--output}{ format}]
                     The format of the desired analysis output. There are three available:
@@ -445,6 +452,42 @@
 
                 Running \Prog{gourd} \Arg{analyse} \OptArg{-o}{ plot-svg} will create exactly the same
                 plot but in a \emph{svg} conformal format.
+
+        \subsection{GOURD SET-LIMITS}
+
+            \subsubsection{Summary}
+                The \Prog{gourd} \Arg{set-limits} command allows to update resource limits for programs.
+                The new resource limits will affect future runs that have these programs.
+
+            \subsubsection{Synopsis}
+                \Prog{gourd} \Arg{set-limits}
+                \oArg{experiment-id}
+                \oOptArg{-p}{ program-name}
+                \oOpt{-a}
+                \oOpt{--mem}{ memory-limit}
+                \oOpt{--cpu}{ cpu-limit}
+                \oOpt{--time}{ time-limit}
+                \oOpt{-s}
+                \oOpt{-c}
+                \oOpt{-v|-vv}
+
+            \subsubsection{Options}
+                \begin{Description}[Options]
+                    \item[\Arg{experiment-id}]
+                    The ID of an experiment to show the status of.
+                    By default, this is the most recent experiment.
+                    \item[\Opt{-a, --all}]
+                    Changes resource limits for all available programs, including postprocessing programs.
+                    \item[\OptArg{-p, --program}{ program-name}]
+                    Changes resource limits for the specified program (simple or postprocesing).
+                    \item[\Opt{--mem}]
+                    Allows to specify the new memory limit (a number) instead of asking for it interactively.
+                    \item[\Opt{--cpu}]
+                    Allows to specify the new cpu limit (a number) instead of asking for it interactively.
+                    \item[\Opt{--time}]
+                    Allows to specify the new time limit (in humantime format) instead of asking for it 
+                    interactively.
+                \end{Description}
 
         \subsection{GOURD VERSION}
 
