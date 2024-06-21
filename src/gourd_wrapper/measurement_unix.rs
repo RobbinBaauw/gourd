@@ -4,7 +4,11 @@ use std::process::Child;
 use std::time::Duration;
 
 use anyhow::anyhow;
+use anyhow::Context;
 use anyhow::Error;
+use gourd_lib::bailc;
+use gourd_lib::ctx;
+use gourd_lib::error::Ctx;
 use gourd_lib::measurement::RUsage;
 use libc::WIFEXITED;
 
@@ -52,7 +56,7 @@ impl GetRUsage for Child {
                 status,
             ))
         } else {
-            Err(anyhow!("Could not get the RUsage statistics."))
+            bailc!("Could not get the RUsage statistics.",;"",;"",)
         }
     }
 }

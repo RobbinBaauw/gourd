@@ -1,8 +1,11 @@
-/// User friendliness
-pub mod checks;
-/// Get the runs
+#![cfg(not(tarpaulin_include))]
+/// User interactions for SLURM reruns.
+/// This is interactive and SLURM-bound so cannot be checked locally.
+pub mod slurm;
+
+/// Retrieve runs to rerun
 pub mod runs;
-/// Handle statuses
+/// Handle run status for rerun
 pub mod status;
 
 use std::fmt::Display;

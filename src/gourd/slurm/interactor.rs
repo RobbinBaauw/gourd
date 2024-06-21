@@ -224,7 +224,6 @@ impl SlurmInteractor for SlurmCli {
         let mut sacct_cmd = Command::new("sacct");
         sacct_cmd
             .arg("-p")
-            .arg("-D")
             .arg("--format=jobid,jobname,state,exitcode")
             .arg(format!("--jobs={}", job_ids.join(",")));
 

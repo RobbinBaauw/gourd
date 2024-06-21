@@ -50,7 +50,7 @@ use crate::init::list_init_examples;
 use crate::local::run_local;
 use crate::post::postprocess_job::schedule_post_jobs;
 use crate::rerun;
-use crate::rerun::checks::query_changing_resource_limits;
+use crate::rerun::slurm::query_changing_resource_limits;
 use crate::setlim;
 use crate::slurm::checks::get_slurm_options_from_config;
 use crate::slurm::chunk::Chunkable;
@@ -267,33 +267,34 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
                 return Ok(());
             }
 
-            let output = if completed_runs.next().is_some() {
+            let mut output_path = config.experiments_folder.clone();
+
+            if completed_runs.next().is_some() {
                 match &output[..] {
-                    "csv" => analysis_csv(
-                        config
-                            .output_path
-                            .join(format!("analysis_{}.csv", experiment.seq)),
-                        statuses,
-                    )?,
-
-                    "plot-png" => analysis_plot(
-                        config
-                            .output_path
-                            .join(format!("plot_{}.png", experiment.seq)),
-                        statuses,
-                        experiment,
-                        true,
-                    )?,
-
-                    "plot-svg" => analysis_plot(
-                        config
-                            .output_path
-                            .join(format!("plot_{}.svg", experiment.seq)),
-                        statuses,
-                        experiment,
-                        false,
-                    )?,
-                    _ => bailc!("unsupported output format"),
+                    "csv" => {
+                        output_path.push(format!("analysis_{}.csv", experiment.seq));
+                        analysis_csv(&output_path, statuses).with_context(ctx!(
+                                "Could not analyse to a CSV file at {:?}",
+                                &output_path; "",
+                        ))?;
+                    }
+                    "plot-png" => {
+                        output_path.push(format!("plot_{}.png", experiment.seq));
+                        analysis_plot(&output_path, statuses, experiment, true)
+                            .with_context(ctx!(
+                                "Could not create a plot at {:?}", &output_path; "", ))?;
+                    }
+                    "plot-svg" => {
+                        output_path.push(format!("plot_{}.svg", experiment.seq));
+                        analysis_plot(&output_path, statuses, experiment, false).with_context(
+                            ctx!(
+                                    "Could not create a plot at {:?}",
+                                    &output_path; "",
+                            ),
+                        )?;
+                    }
+                    _ => bailc!("Unsupported output format {}", &output;
+                        "Use 'csv', 'plot-png', or 'plot-svg'.", ; "" ,),
                 }
             } else {
                 bailc!(
@@ -447,7 +448,12 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
 
             trace!("Selected runs: {:?}", selected_runs);
 
-            query_changing_resource_limits(&mut experiment, cmd, &selected_runs, &mut file_system)?;
+            query_changing_resource_limits(
+                &mut experiment,
+                cmd.script,
+                &selected_runs,
+                &mut file_system,
+            )?;
 
             for run_id in &selected_runs {
                 let new_id = experiment.runs.len();

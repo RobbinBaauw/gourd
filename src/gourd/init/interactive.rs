@@ -22,6 +22,7 @@ use log::info;
 
 /// Correctly handles when the user cancels the operation
 /// during an Inquire prompt.
+#[cfg(not(tarpaulin_include))]
 pub fn ask<T>(inq: InquireResult<T>) -> Result<T> {
     match inq {
         Ok(answer) => Ok(answer),
@@ -48,8 +49,8 @@ pub fn init_interactive(
     }
 
     let mut config = Config {
-        output_path: PathBuf::from("output"),
-        metrics_path: PathBuf::from("metrics"),
+        output_path: PathBuf::from("experiments"),
+        metrics_path: PathBuf::from("experiments"),
         experiments_folder: PathBuf::from("experiments"),
         programs: Default::default(),
         inputs: Default::default(),
@@ -64,8 +65,36 @@ pub fn init_interactive(
         warn_on_label_overlap: false,
     };
 
-    let slurm = if script_mode {
+    let custom_paths = if script_mode {
         false
+    } else {
+        ask(Confirm::new("Specify custom output paths?")
+            .with_help_message("By default, metrics and outputs go in the 'experiments' directory.")
+            .prompt())?
+    };
+
+    if custom_paths {
+        config.experiments_folder = PathBuf::from(ask(Text::new("Path to experiments folder: ")
+            .with_default(config.experiments_folder.to_str().unwrap())
+            .with_validator(ValueRequiredValidator::default())
+            .with_help_message("A folder where Gourd will store runtime data.")
+            .prompt())?);
+
+        config.output_path = PathBuf::from(ask(Text::new("Path to output folder: ")
+            .with_default(config.output_path.to_str().unwrap())
+            .with_validator(ValueRequiredValidator::default())
+            .with_help_message("A folder where programs' outputs will be organised.")
+            .prompt())?);
+
+        config.metrics_path = PathBuf::from(ask(Text::new("Path to metrics folder: ")
+            .with_default(config.metrics_path.to_str().unwrap())
+            .with_validator(ValueRequiredValidator::default())
+            .with_help_message("A folder where metrics will be organised.")
+            .prompt())?);
+    }
+
+    let slurm = if script_mode {
+        true
     } else {
         ask(Confirm::new("Include options for Slurm?")
             .with_help_message("These will allow the experiment to run on a cluster computer.")
@@ -73,11 +102,12 @@ pub fn init_interactive(
     };
 
     if slurm {
+        // These defaults are used in script mode and for user input.
         let mut slurm_config = SlurmConfig {
-            experiment_name: "".to_string(),
+            experiment_name: "my-experiment".to_string(),
             partition: "".to_string(),
-            array_count_limit: 0,
-            array_size_limit: 0,
+            array_count_limit: 10,
+            array_size_limit: 1000,
             out: None,
             account: "".to_string(),
             begin: None,
@@ -86,64 +116,42 @@ pub fn init_interactive(
             additional_args: None,
         };
 
-        slurm_config.experiment_name = if script_mode {
-            "my-experiment".to_string()
-        } else {
-            ask(Text::new("Slurm experiment name: ")
+        if !script_mode {
+            slurm_config.experiment_name = ask(Text::new("Slurm experiment name: ")
                 .with_validator(ValueRequiredValidator::default())
                 .with_help_message("This will be used to name jobs submitted to Slurm.")
-                .prompt())?
-        };
+                .prompt())?;
 
-        slurm_config.array_count_limit = if script_mode {
-            10
-        } else {
-            ask(CustomType::new("Slurm array count limit: ")
+            slurm_config.array_count_limit = ask(CustomType::new("Slurm array count limit: ")
                 .with_formatter(&|num: usize| format!("{}", num))
-                .with_default(10)
+                .with_default(slurm_config.array_count_limit)
                 .with_help_message("The number of job arrays that can be scheduled at once.")
-                .prompt())?
-        };
+                .prompt())?;
 
-        slurm_config.array_size_limit = if script_mode {
-            1000
-        } else {
-            ask(CustomType::new("Slurm array size limit: ")
+            slurm_config.array_size_limit = ask(CustomType::new("Slurm array size limit: ")
                 .with_formatter(&|num: usize| format!("{}", num))
-                .with_default(1000)
+                .with_default(slurm_config.array_size_limit)
                 .with_help_message("The number of runs that can be scheduled in one job array.")
-                .prompt())?
-        };
+                .prompt())?;
 
-        let enter_slurm_data_now = if script_mode {
-            false
-        } else {
-            ask(Confirm::new("Enter Slurm credentials now?")
+            let enter_slurm_data_now = ask(Confirm::new("Enter Slurm credentials now?")
                 .with_help_message(
                     "Choosing 'no' will leave the 'account' and 'partition' blank for now.",
                 )
-                .prompt())?
-        };
+                .prompt())?;
 
-        if enter_slurm_data_now {
-            slurm_config.account = if script_mode {
-                "".to_string()
-            } else {
-                ask(Text::new("Slurm account to use: ")
+            if enter_slurm_data_now {
+                slurm_config.account = ask(Text::new("Slurm account to use: ")
                     .with_validator(ValueRequiredValidator::default())
                     .with_help_message(
                         "This should be provided by the administrator of your supercomputer.",
                     )
-                    .prompt())?
-            };
+                    .prompt())?;
 
-            slurm_config.partition = if script_mode {
-                "".to_string()
-            } else {
-                ask(Text::new("Slurm partition to use: ")
+                slurm_config.partition = ask(Text::new("Slurm partition to use: ")
                     .with_help_message("Most supercomputers use this to choose types of nodes.")
-                    .prompt())?
-            };
+                    .prompt())?;
+            }
         }
 
         config.slurm = Some(slurm_config);

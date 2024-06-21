@@ -247,3 +247,7 @@ impl FileOperations for FileSystemInteractor {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/file_system.rs"]
+mod tests;

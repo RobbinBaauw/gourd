@@ -232,11 +232,23 @@ fn latest_id_correct() {
     config.metrics_path = PathBuf::from(tempdir.path());
     config.experiments_folder = PathBuf::from(tempdir.path());
 
-    Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
-    Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS).unwrap();
+    // test other files in dir that should be ignored
+    fs::create_dir(tempdir.path().join("39.lock")).unwrap();
+    fs::create_dir(tempdir.path().join("393")).unwrap();
+    fs::create_dir(tempdir.path().join("directory")).unwrap();
+    fs::write(tempdir.path().join("19"), []).unwrap();
+    fs::write(tempdir.path().join("8.lock.bkp"), []).unwrap();
+
+    // latest_id_from_folder only works if the experiments are actually saved
+    for _ in 1..=8 {
+        Experiment::from_config(&config, Local::now(), Environment::Local, &REAL_FS)
+            .unwrap()
+            .save(&config.experiments_folder, &REAL_FS)
+            .unwrap();
+    }
 
     let id = Experiment::latest_id_from_folder(tempdir.path()).unwrap();
-    assert_eq!(id, Some(2));
+    assert_eq!(id, Some(8));
 }
 
 #[test]

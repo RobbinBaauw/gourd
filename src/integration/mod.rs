@@ -4,6 +4,15 @@
 //! require presence of `Slurm` are not to be tested here, as they are not meant
 //! for the CI pipeline.
 //!
+//! ## Test Plan
+//!
+//! + [x] Test the `gourd --version` command.
+//! + [x] Test the `gourd run` command.
+//! + [x] Test the `gourd init` command.
+//! + [x] Test the `gourd status` command.
+//! + [x] Test the `gourd rerun` command.
+//! + [x] Test the `gourd analyse` command.
+//!
 //! ## Test Strategy
 //! We have one environment, in code as `TestEnv`, in practice a working
 //! directory, that is used by all the tests.
@@ -13,8 +22,11 @@
 //! - the gourd.toml configurations for each test
 //! - the gourd output folders
 
+mod afterscript;
+mod analyse;
 mod example;
-mod init;
+mod init_example;
+mod init_interactive;
 mod rerun;
 mod run;
 mod version;
@@ -24,6 +36,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Output;
+use std::string::String;
 
 use anyhow::anyhow;
 use anyhow::Result;
@@ -57,13 +70,19 @@ fn keep<K: PartialEq, V, M: FromIterator<(K, V)> + IntoIterator<Item = (K, V)> +
         .collect()
 }
 
+/// Disables RUST_BACKTRACE, executes `gourd` with arguments and appropriate
+/// error handling.
+///
+/// The first expression must evaluate to a TestEnv struct.
+/// The second expression set (after the semicolon) are string arguments to pass
+/// to `gourd` The third expression is optional and provides error context.
 #[macro_export]
 macro_rules! gourd {
     ($env:expr; $($arg:expr),*) => {
         {
             let backtrace = std::env::var("RUST_BACKTRACE").unwrap_or("0".to_string());
             std::env::set_var("RUST_BACKTRACE", "0");
-            let out = std::process::Command::new($env.gourd_path).args(&[$($arg),*]).output().unwrap();
+            let out = std::process::Command::new($env.gourd_path.clone()).args(&[$($arg),*]).output().unwrap();
             std::env::set_var("RUST_BACKTRACE", backtrace);
             out
         }
@@ -229,6 +248,12 @@ fn init() -> TestEnv {
     }
 }
 
+// A convenience macro that creates a configuration for integration testing.
+//
+// First expression: the environment (created using init())
+// Second expression (list): a list of program IDs, a subset of integration
+// testing example programs Third expression (list): a list of tuples of the
+// form (input_id, input)
 #[macro_export]
 macro_rules! config {
     ($env:expr; $($prog:expr),*; $($inp:expr),*) => {

@@ -138,6 +138,9 @@ toml = "0.8.12"
 easybench = "1.1.1"
 humantime = "2.1.0"
 
+# To simulate a TTY in integration tests.
+fake-tty = "0.3.1"
+
 # The release profile is for distributing gourd.
 # This means that the compiled artifacts should *not*
 # include any identifiable information about the system

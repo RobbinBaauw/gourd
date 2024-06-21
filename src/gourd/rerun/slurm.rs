@@ -17,7 +17,6 @@ use inquire::Select;
 use log::debug;
 use log::trace;
 
-use crate::cli::def::Cli;
 use crate::cli::printing::query_update_resource_limits;
 use crate::cli::printing::query_yes_no;
 use crate::init::interactive::ask;
@@ -34,11 +33,11 @@ use crate::status::SlurmState;
 /// experiment.
 pub fn query_changing_resource_limits(
     experiment: &mut Experiment,
-    cmd: &Cli,
+    script_mode: bool,
     selected_runs: &[usize],
     file_system: &mut impl FileOperations,
 ) -> Result<()> {
-    if experiment.env == Environment::Slurm && !cmd.script {
+    if experiment.env == Environment::Slurm && !script_mode {
         let statuses = get_statuses(experiment, file_system)?;
         let (out_of_memory, out_of_time) =
             selected_runs
@@ -76,9 +75,8 @@ pub(super) fn check_single_run_failed(
                 "Run {specific_run} has not completed yet, \
                 are you sure? \
                 You can cancel this run with \
-                {CMD_STYLE}gourd cancel {specific_run}{CMD_STYLE:#}"
+                {CMD_STYLE}gourd cancel -i {specific_run}{CMD_STYLE:#}"
             ))? {
-                // todo: confirm that this is how gourd cancel works
                 bailc!("Rerun cancelled..", ; "", ; "",);
             } else {
                 Ok(*specific_run)
@@ -212,3 +210,7 @@ pub fn query_changing_limits_for_programs(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "tests/checks.rs"]
+mod checks;
