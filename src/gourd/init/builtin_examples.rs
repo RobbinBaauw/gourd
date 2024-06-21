@@ -86,6 +86,18 @@ pub fn get_examples() -> BTreeMap<&'static str, InitExample<'static>> {
             )),
         },
     );
+    examples.insert(
+        "grid-search",
+        InitExample {
+            name: "Grid Search",
+            description: "An example of exhaustive grid search with parameters",
+
+            directory_tarball: include_bytes!(concat!(
+                env!("OUT_DIR"),
+                "/../../../tarballs/grid-search.tar.gz"
+            )),
+        },
+    );
 
     examples
 }

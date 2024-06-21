@@ -83,11 +83,11 @@
 
     For example, type:
     \Prog{gourd}~\Arg{init}
-    \Arg{--example}~\Arg{fibonacci-comparison}~\Arg{my\_fib}
+    \Arg{\ddash example}~\Arg{fibonacci-comparison}~\Arg{my\_fib}
 
     The \Prog{gourd}~\Arg{init} command will set up the \File{myexample} folder
     to match the example below!
-    Furthermore, \Prog{gourd}~\Arg{init}~\Opt{--list-examples} will show what
+    Furthermore, \Prog{gourd}~\Arg{init}~\Opt{\ddash list-examples} will show what
     other examples are accessible to you.
 
     \section{FIBONACCI COMPARISON}
@@ -196,7 +196,7 @@
     These should make the Fibonacci algorithms output the 2nd, 8th, and 35th
     numbers of the Fibonacci sequence.
     The input named \File{bad\_test} contains \File{"some text"}, which isn't
-    a valid number -- let's see how this will crash the programs.
+    a valid number - let's see how this will crash the programs.
 
     Inputs are combined with programs in a \textbf{cross product} to create
     \emph{runs}. Each program-input combination is exactly one \emph{run}.
@@ -243,7 +243,8 @@
 | >   11. test_8...... success, took: 273ms 159us 167ns
 | >
 | >
-| > [ ] #################### Running jobs... 12/12                                                          info: Experiment finished
+| > [ ] #################### Running jobs... 12/12
+| > info: Experiment finished
 | >
 | > info: Run gourd status 1 to check on this experiment
 
@@ -344,7 +345,7 @@
     Our simple Fibonacci experiment is done evaluating our two algorithms. All
     that remains to be done is collecting the runtime data. Fortunately,
     \Prog{gourd} also provides a simple way to process the numerous metrics
-    files that our runs have generates.
+    files that our runs have generated.
 
     By running \Prog{gourd}~\Arg{analyse}, you can create a CSV file that
     collects all metrics from the application's run. On UNIX-like operating
