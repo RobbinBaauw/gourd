@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 use std::path::Path;
+use std::path::PathBuf;
 
 use anyhow::Result;
 use flate2::read::GzDecoder;
@@ -42,17 +43,27 @@ impl InitExample<'_> {
         debug!("Unpacking the example archive");
         file_system.write_archive(directory, archive)?;
 
-        let mut config_path = directory.to_owned();
-        config_path.push("gourd.toml");
+        if !file_system.dry_run {
+            debug!("Entering the directory {:?}", directory);
+            let previous_dir = std::env::current_dir()?;
+            std::env::set_current_dir(directory)?;
 
-        debug!("Checking for a \"gourd.toml\" at {:?}.", config_path);
-        match Config::from_file(&config_path, false, file_system) {
-            Err(e) => {
-                debug!("Configuration check failed: {}", e.root_cause());
-                warn!("The \"gourd.toml\" configuration in this example is missing or invalid.");
-                warn!("You may have to make some changes.");
+            let config_path = PathBuf::from("gourd.toml");
+
+            debug!("Checking for a \"gourd.toml\" at {:?}.", config_path);
+            match Config::from_file(Path::new("gourd.toml"), false, file_system) {
+                Err(e) => {
+                    debug!("Configuration check failed: {}", e.root_cause());
+                    warn!(
+                        "The \"gourd.toml\" configuration in this example is missing or invalid."
+                    );
+                    warn!("You may have to make some changes.");
+                }
+                Ok(_) => debug!("A valid \"gourd.toml\" is present."),
             }
-            Ok(_) => debug!("A valid \"gourd.toml\" is present."),
+
+            debug!("Returning to the previous directory {:?}", &previous_dir);
+            std::env::set_current_dir(previous_dir)?;
         }
 
         Ok(())

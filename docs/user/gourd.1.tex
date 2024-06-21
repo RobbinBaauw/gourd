@@ -85,7 +85,7 @@
             without executing them.
             \item[\Opt{-h}, \Opt{\ddash help}]
             Display usage instructions for the \Prog{gourd} utility or any of its commands.
-            This option extends to all of the subcommands of \Prog{gourd}, for example running
+            This option extends to all of the subcommands of \Prog{gourd}: for example, running
             \Prog{gourd} \Arg{status} \Arg{-h} will display help about the \Arg{status} subcommand.
             \item[\Opt{-s}, \Opt{\ddash script}]
             Tell \Prog{gourd} to use a script-friendly interface, that is, one that does not use
@@ -97,7 +97,7 @@
     \section{COMMANDS}
 
         Using \Prog{gourd} is as simple as invoking one of its commands, such as
-        \Prog{gourd} \Arg{status}.
+        \Prog{gourd}~\Arg{init}.
         Command-line arguments are generally not necessary; to design and run
         experiments, a \File{gourd.toml} file should be in the current directory.
         The following is a summary of available commands.
@@ -118,7 +118,7 @@
             \item[\Prog{gourd} \Arg{analyse}]
               Output metrics of completed runs.
             \item[\Prog{gourd} \Arg{set-limits}]
-              Change SLURM resource limits for jobs that have not ran yet.
+              Change \Prog{Slurm} resource limits for runs not yet scheduled.
             \item[\Prog{gourd} \Arg{version}]
               Show the software version.
         \end{Description}
@@ -133,7 +133,7 @@
                 Using Slurm, additional configuration arguments are required; see
                 \Prog{gourd.toml(5)}.
 
-                In principle, however, using \Prog{gourd} \Arg{run} works in the same way for both
+                In principle, however, \Prog{gourd} \Arg{run} is used in the same way for both
                 Slurm and local execution.
                 A \File{gourd.toml} configuration file should be present in the current directory,
                 formally describing the experiment that is to be created and run.
@@ -176,14 +176,14 @@
                         \Arg{local} can additionally take more options:
                             \begin{Description}[Options]
                                 \item[\Opt{\ddash force}]
-                                  \Prog{gourd} will not run large experiments on \Arg{local} by default. This is
-                                  because doing so may use too many file descriptors too fast for a personal computing device.
-                                  To ignore the warning and run the experiment anyways use this optional flag.
-                                  If the resources are exhausted too quickly you will see an error informing you about it.
+                                  \Prog{gourd} will, by default, refuse to run large experiments on \Arg{local}. This is
+                                  because doing so may rapidly use up too many file descriptors on some operating systems.
+                                  To ignore the warning and run the experiment anyways, use this optional flag.
+                                  If the resources are exhausted too quickly, an error will be displayed.
 
                                 \item[\Opt{\ddash sequential}]
-                                  By default the runs are run concurrently with a level of parallelism. This option
-                                  can be specified to force the runs to run sequentially, that is, one after another.
+                                  By default, runs execute concurrently with a level of parallelism.
+                                  This option can be specified to force the runs to run sequentially, that is, one after another.
                                   This may be useful if you want to run bigger experiments without using too many system resources.
                                   Note that the use of this option \textbf{also} enables the \Opt{\ddash force} option.
                             \end{Description}
@@ -253,15 +253,15 @@
                       Initializes the given directory with an example configuration from \Prog{gourd-tutorial(7)}
                       (rather than a custom template for \File{gourd.toml}).
                     \item[\Opt{\ddash list-examples}]
-                      Instead of initializing a folder this will make \Prog{gourd} list all of the available
+                      Instead of initializing a folder, this will make \Prog{gourd} list all of the available
                       examples for the \emph{-e} option.
                     \item[\OptArg{\ddash git}{=true|false}]
                       Whether or not to initialize an empty git repository in the newly created folder.
                 \end{Description}
 
             \subsubsection{Listing Examples}
-                If \Opt{\ddash list-examples}, \Prog{gourd} \Arg{init} will not initialize a new folder with
-                a configuration, in fact \Arg{directory} will get ignored completely.
+                If \Opt{\ddash list-examples} is used, \Prog{gourd} \Arg{init} will not initialize a new folder with
+                a configuration. The \Arg{directory} argument will be ignored.
 
                 A list of available examples and their descriptions will be printed to the output and
                 the program will exit.
@@ -291,23 +291,23 @@
                     Instead of showing a general overview of the entire experiment show detailed
                     information about a run with this \emph{run-id}.
                   \item[\Opt{\ddash full}]
-                    If there is a lot of runs to display on the screen \Arg{status} will shorten the
-                    output, if the user still prefers to see the entire unshortened output the
-                    \Opt{\ddash full} option can be specified.
+                    By default, \Arg{status} displays a summary rather than a full list if there
+                    is a large number of runs (>100). Using \Opt{\ddash full}, the full list is
+                    always shown.
                   \item[\Opt{\ddash follow}]
                     The status will be continually displayed until all of the runs have finished.
-                    This may be useful, when for example, it is known that the jobs will finish
+                    This is useful when it is known that the jobs will finish
                     in a matter of minutes.
                 \end{Description}
 
-            \subsection{Experiment status}
+            \subsubsection{Experiment status}
                 By default, \Prog{gourd} \Arg{status} uses the \File{gourd.toml} file to determine the
                 location of experiment files generated using \Prog{gourd} \Arg{run}.
                 It finds the most recent experiment (unless \oArg{experiment-id} is specified) and shows a summary
                 containing the status of each run, and, if completed, the run's basic timing metrics.
                 The command also shows a summary of each run's error status, if any.
 
-            \subsection{Run status}
+            \subsubsection{Run status}
                 With the \OptArg{-i}{ run-id} argument, \Prog{gourd} \Arg{status} will retrieve detailed
                 run information including the arguments that the binary was called with, RUsage metrics
                 if successful, and detailed error status if it has failed.
@@ -317,13 +317,13 @@
             \subsubsection{Afterscripts}
                 To postprocess the output of the runs, there are two options available: afterscipts and Slurm
                 postprocessing jobs. Afterscripts are scripts that run locally (so for DelftBlue they do not
-                get scheduled as separate jobs) and are thus meant for quick and non-complicated postprocessing
-                (such as getting the first line of the output file). For long and complicated postprocessing
+                get scheduled as separate jobs) and are thus meant for quick and computationally inexpensive postprocessing
+                (such as getting the first line of the output file). For long or complicated postprocessing
                 with a significant computational cost, we support Slurm postprocessing jobs. A program being
                 evaluated can have both an afterscript and a postprocessing Slurm job, one of them, or neither.
 
                 An afterscript is optional and specified per program. To indicate the use of an afterscript,
-                the path to the script file needs to be specified in the gourd.toml under the chosen program.
+                the path to the script file needs to be specified in the \File{gourd.toml} under the chosen program.
                 Multiple programs can use the same script. Furthermore, if at least one program has an
                 afterscript, a path to a folder that will store the afterscript output needs to be specified
                 (once for the entire experiment, analogous to metrics and output paths). The afterscript can
@@ -413,7 +413,7 @@
                 by running \Prog{gourd} \Arg{cancel} \Arg{\ddash all} \Arg{\ddash dry}.
 
             \subsubsection{Latency}
-                Slurm may take some time to acknowledge the cancellation, thus running
+                Slurm may take some time to acknowledge the cancellation; thus, running
                 \Prog{gourd} \Arg{status} right away after a cancellation may still display
                 the runs as pending, please wait up to one minute for the changes to propagate.
 
@@ -457,12 +457,12 @@
                 represents how many runs of this program (algorithm) have already finished.
                 This allows to see a visual comparison of the time each program takes - the more runs
                 there are, the more informative the plot will result to be.
-                The plot will take into account only the runs that have completed and have a valid
-                RUsage accessible. If \Prog{gourd} \Arg{analyse} is rerun, the graph will be updated
-                according to the newest data accessible.
+                The plot will take into account only the runs that have completed and have valid
+                RUsage data. If \Prog{gourd} \Arg{analyse} is rerun, the graph will be updated
+                according to the newest available data.
 
                 Running \Prog{gourd} \Arg{analyse} \OptArg{-o}{ plot-svg} will create exactly the same
-                plot but in a \emph{svg} conformal format.
+                plot but in a \emph{svg} conformant format.
 
         \subsection{GOURD SET-LIMITS}
 
@@ -526,9 +526,8 @@
 
     \section{EXAMPLES}
 
-        This section contains some common examples of using \Prog{gourd}.
+        See the section on \Prog{gourd} \Arg{init} for runnable example directories.
         For a more detailed walkthrough with more focus on examples, use the \Prog{gourd-tutorial(7)} manual.
-
 
     \section{FILES}
 
