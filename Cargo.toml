@@ -114,7 +114,6 @@ plotters = {version = "0.3.6", default-features = false, features = [
         "colormaps",
         "ab_glyph"
 ]}
-regex = "1.10.4"
 
 [build-dependencies]
 # To generate shell completions for the CLI.

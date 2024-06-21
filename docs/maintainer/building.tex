@@ -6,19 +6,28 @@ and all of the rules for non standard builds are contained in the \texttt{build.
 
 \subsection{Features}
 
-\gourd contains two optional compilation features described below:
+\gourd contains two optional compilation features described below,
+features are optional compilation flags that can be selected by
+\texttt{-{}-features feat1, feat2, feat3, ...}
 
 \begin{itemize}
-  \item \texttt{documentation}
-  This when turned on will compile all of the documentation for \gourd\ and
-  the resulting files will be placed in \texttt{target/release/manpages}.
-
-  \item \texttt{fetching}
+\item \textbf{\texttt{fetching}} -
   This feature when turned on will compile the https backend for fetching resources
   in experiments, this was made an optional feature because it requires linking against
   OpenSSL and increases compilation time considerably.
 
-  This is tuned on by default, to turn it on specify: \texttt{--no-default-features}
+  This is on by default, to turn it off specify: \texttt{--no-default-features}
+
+\item \textbf{\texttt{builtin-examples}} -
+  Compiles the builtin examples for use in \texttt{gourd init}. It may be
+  disabled for cross compilation or if the examples should not
+  be included. See Section \ref{sec:builtin} for more information.
+
+  This is on by default, to turn it off specify: \texttt{--no-default-features}
+
+\item \textbf{\texttt{documentation}} -
+  This, when turned on, will compile all of the documentation for \gourd\ and
+  the resulting files will be placed in \texttt{target/release/manpages}.
 \end{itemize}
 
 \subsection{Building}
