@@ -305,7 +305,7 @@ pub async fn process_command(cmd: &Cli) -> Result<()> {
             };
 
             info!("Analysis successful!");
-            info!("Results have been placed in {output:?}");
+            info!("Results have been placed in {:?}", &output_path);
         }
 
         GourdCommand::Cancel(CancelStruct {

@@ -52,126 +52,310 @@
 
     Welcome to \Prog{gourd-tutorial}!
 
-    If you haven't been introduced yet, \Prog{gourd(1)} is an application that makes it easy
-    to set up experiments on a supercomputer.
-    By experiment, we mean a large-scale comparative evaluation of one or more
-    \emph{algorithms} (runnable programs) that each run on a set of \emph{inputs} and are
-    subsequently timed and profiled.
+    If you haven't been introduced yet, \Prog{gourd(1)} is an application
+    that makes it easy to set up experiments on a supercomputer.
+    By experiment, we mean a large-scale comparative evaluation of one or
+    more \emph{algorithms} (runnable programs) that each run on a set of
+    \emph{inputs} and are subsequently timed and profiled.
 
-    While this tool offers a lot of versatility, this set of runnable examples will show
-    that \Prog{gourd} experiments only take a minute to set up.
+    While this tool offers a lot of versatility, this set of runnable
+    examples will show that \Prog{gourd} experiments only take a minute to
+    set up.
 
     \section{INSTALLATION AND REFERENCE}
 
     This tutorial is designed to be interactive, so be sure to have a working copy of
     \Prog{gourd(1)} installed on your computer.
-    You can verify this by typing \Prog{gourd}~\Arg{version} in your terminal.
-    For installation instructions, refer to the \File{README.md} file in the source
-    repository.
+    You can verify this by typing \Prog{gourd}~\Arg{version} in a terminal.
+    For installation instructions, refer to the \File{README.md} file in the
+    source repository.
 
     When installed, you will also have access to the user manuals.
-    For Linux, macOS, and the like, type \Prog{man}~\Prog{gourd-tutorial} to see this
-    tutorial or \Prog{gourd} and \Prog{gourd.toml} for complete documentation.
+    For Linux, macOS, and the like, type \Prog{man}~\Prog{gourd-tutorial} to
+    see this tutorial or \Prog{gourd} and \Prog{gourd.toml} for complete
+    documentation.
 
     \section{INTERACTING WITH GOURD}
 
     Gourd is a command-line application that keeps life easy.
-    You take actions by typing \Prog{gourd} followed by a command in your terminal;
-    a complete list is in the manual.
+    You take actions by typing \Prog{gourd} followed by a command in your
+    terminal; a complete list is in the manual.
 
     For example, type:
-    \Prog{gourd}~\Arg{init}~\Arg{--example}~\Arg{a-simple-experiment}~\Arg{myexample}
+    \Prog{gourd}~\Arg{init}
+    \Arg{\ddash example}~\Arg{fibonacci-comparison}~\Arg{my\_fib}
 
-    The \Prog{gourd}~\Arg{init} command will set up the \File{myexample} folder to match
-    the example below!
-    Make sure to use \Prog{cd} to enter the folder if you're following along.
+    The \Prog{gourd}~\Arg{init} command will set up the \File{myexample} folder
+    to match the example below!
+    Furthermore, \Prog{gourd}~\Arg{init}~\Opt{\ddash list-examples} will show what
+    other examples are accessible to you.
 
-    NOTE: The above instructions will not work as \Arg{init} is not implemented on this branch.
+    \section{FIBONACCI COMPARISON}
 
+    Let's begin by designing a simple experiment.
+    We will compare three versions of an algorithm that calculates Fibonacci
+    numbers.
 
-    \section{A SIMPLE EXPERIMENT}
+    First, let's define the experimental setup using a \File{gourd.toml}
+    file. This file will specify the files, programs, and parameters of our
+    setup in a reproducible way.
 
-    In \Prog{gourd(1)}, each experimental setup is defined using a \File{gourd.toml} file.
-    To make one, let's open \File{gourd.toml} in an editor and start by defining a pair
-    of \textbf{programs}.
+    Open \File{gourd.toml} in an editor and type in the following lines:
 
-% -IF LINUX/OSX
     \begin{verbatim}
-…  +-------------------------------------------------------------------+
-1  | [programs.my-program]                                             |
-2  | binary = "/bin/sleep"                                             |
-3  |                                                                   |
-4  | [programs.my-other-program]                                       |
-5  | binary = "/bin/bash"                                              |
-6  | args = "./my_other_program.sh"                                    |
+
+`                             ./gourd.toml
+`  +-------------------------------------------------------------------+
+1  | experiments_folder = "experiments"                                |
+2  | metrics_path = "experiments"                                      |
+3  | output_path = "experiments"                                       |
+4  |                                                                   |
+`  /_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_/
+`  \___________________________________________________________________\
+    \end{verbatim}
+
+    In the TOML format, values (such as file paths) are in quotes (\File{"}).
+    You can also add comments using the hash character.
+
+    The lines above set up the folder structure for our experiment's outputs.
+    This particular setup puts everything in the same folder.
+
+    Now, let's configure programs - the algorithms we are evaluating.
+
+    \subsection{Defining programs}
+
+    \begin{verbatim}
+    ____________________________________________________________________
+`  /_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _/
+`  \                          ./gourd.toml                             \
+`  |` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` `|
+5  | [program.fibonacci]                                               |
+6  | binary = "./fibonacci"                                            |
 7  |                                                                   |
-…  /_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_/
-…  \___________________________________________________________________\
+8  | [program.fast-fibonacci]                                          |
+9  | binary = "./fibonacci-dynamic"                                    |
+10 |                                                                   |
+11 | [program.fastest-fibonacci]                                       |
+12 | binary = "./fibonacci-dynamic"                                    |
+13 | arguments = ["-f"]                                                |
+14 |                                                                   |
+`  /_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_/
+`  \___________________________________________________________________\
     \end{verbatim}
 
-    In this file, we have defined two programs with unique names:
+    The lines above set up three uniquely named programs:
     \begin{Description}[programs]\setlength{\itemsep}{0cm}
-    \item[my-program:] the \File{sleep} binary, which waits a set amount of seconds,
-    \item[my-other-program:] a \File{bash} script that returns whatever input it received.
+    \item[fibonacci:] a slow Fibonacci number calculator.
+    \item[fast-fibonacci] a faster version using Dynamic Programming.
+    \item[fastest-fibonacci:] the same binary file as \Arg{fast-fibonacci} run
+      with an additional command-line argument, \Opt{-f}, which should make it
+      even faster!
     \end{Description}
 
-% -ENDIF LINUX/OSX
+    Each program links to a \Arg{binary} -- the executable file that runs our
+    algorithm. In this case, our Fibonacci algorithms are compiled in Rust.
+    If you are following this tutorial with
+    \Prog{gourd}~\Arg{init}
+    \Arg{--example}~\Arg{fibonacci-comparison},
+    the folder contains both binaries:
+    \File{fibonacci} and \File{fibonacci-dynamic}.
 
+    In our evaluation, we are going to see how the three programs compare when
+    running different test cases as inputs.
+    Let's add inputs to our \File{gourd.toml}.
 
-
-% -IF WINDOWS
-%    \begin{verbatim}
-%
-%   +-------------------------------------------------------------------+
-%1  | [programs.MyProgram]                                              |
-%2  | binary = "./myprogram.bat"                                        |
-%3  |                                                                   |
-%…  /_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_/
-%   \___________________________________________________________________\
-%
-%    \end{verbatim}
-% -ENDIF WINDOWS
-
-    That's great, but now we need inputs: test cases that we actually run the
-    programs with.
-    Let's add those.
+    \subsection{Defining inputs}
 
     \begin{verbatim}
-…   ____________________________________________________________________
-…  /_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _/
-…  \                                                                   \
-…  |` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` `|
-8  | [inputs.one]                                                      |
-9  | input = "./input-one"                                             |
-10 |                                                                   |
-11 | [inputs.two]                                                      |
-12 | args = ["2"]                                                      |
-13 |                                                                   |
-14 | [inputs.one-two]                                                  |
-16 | input = "./input-one"                                             |
-17 | args = ["2"]                                                      |
-18 |                                                                   |
-…  /_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_/
-…  \___________________________________________________________________\
+    ____________________________________________________________________
+`  /_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _/
+`  \                          ./gourd.toml                             \
+`  |` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` ` `|
+15 | [input.test_2]                                                    |
+16 | input = "./inputs/input_2"                                        |
+17 |                                                                   |
+18 | [input.test_8]                                                    |
+19 | input = "./inputs/input_8"                                        |
+20 |                                                                   |
+21 | [input.test_35]                                                   |
+22 | input = "./inputs/input_35"                                       |
+23 |                                                                   |
+24 | [input.bad_test]                                                  |
+25 | input = "./inputs/input_bad"                                      |
+26 |                                                                   |
+`  /_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_`_/
+`  \___________________________________________________________________\
+
     \end{verbatim}
 
-    What you see now in the file are the following uniquely named inputs:
-    \begin{Description}[inputs]\setlength{\itemsep}{0cm}
-    \item[one:] a path to an \File{./input-one} file containing the string \File{"1"},
-    \item[two:] an input specified by directly passing an argument, \File{"2"},
-    \item[abc-one:] an input specified by a combination of the two.
+    The lines above set up four uniquely named inputs.
+    Each input refers to a file whose contents are fed into the program.
+
+    In this example, inputs \File{test\_2}, \File{test\_8}, and \File{test\_35}
+    link to files containing the numbers \File{2}, \File{8}, and \File{35}.
+    These should make the Fibonacci algorithms output the 2nd, 8th, and 35th
+    numbers of the Fibonacci sequence.
+    The input named \File{bad\_test} contains \File{"some text"}, which isn't
+    a valid number - let's see how this will crash the programs.
+
+    Inputs are combined with programs in a \textbf{cross product} to create
+    \emph{runs}. Each program-input combination is exactly one \emph{run}.
+    In this example, 3 programs * 4 inputs results in 12 \emph{runs}.
+
+    \subsection{Running the evaluation}
+
+    Our \File{gourd.toml} is complete - now it is time to run the evaluation
+    using \Prog{gourd}~\Arg{run}. Typing \Prog{gourd}~\Arg{run} in a terminal
+    will tell you that it has two subcommands:
+
+    \begin{Description}[subcommands]\setlength{\itemsep}{0cm}
+    \item[\Arg{local}] Run locally on your computer. If connected via SSH to a
+      cluster computer, \Arg{local} uses the very limited computing power of
+      the login node.
+    \item[\Arg{slurm}] Send to the SLURM cluster scheduler on a supercomputer.
     \end{Description}
 
-    The inputs above are combined with the programs in a \textbf{cross product}
-    to create \emph{runs}.
-    This means that each program and each input are combined together.
-    Therefore, exactly one run in our new experiment that combines
-    \File{my-other-program} and \File{one-two}, and it translates into the following
-    program call:
-    \begin{itemize}
-    \item Run \File{/bin/bash} with \File{./my-other-program.sh~2} as arguments and
-    the contents of \File{./input-one} as input.
-    \end{itemize}
+    The \Arg{slurm} subcommand needs some extra configuration, so let's go with
+    \Arg{local} for now. Type \Prog{gourd}~\Arg{run}~\Arg{local}.
+
+    \begin{verbatim}
+
+|   $ gourd run local
+|
+| > info: Experiment started
+| >
+| > For program fast-fibonacci:
+| >    0. bad_test.... failed, code: 25856
+| >    1. test_2...... success, took: 171ms 903us 417ns
+| >    2. test_35..... success, took: 172ms 2us 417ns
+| >    3. test_8...... success, took: 175ms 546us 750ns
+| >
+| > For program fastest-fibonacci:
+| >    4. bad_test.... failed, code: 25856
+| >    5. test_2...... success, took: 149ms 219us 542ns
+| >    6. test_35..... success, took: 154ms 733us 667ns
+| >    7. test_8...... success, took: 146ms 695us 334ns
+| >
+| > For program fibonacci:
+| >    8. bad_test.... failed, code: 25856
+| >    9. test_2...... success, took: 272ms 265us 667ns
+| >   10. test_35..... success, took: 328ms 935us 292ns
+| >   11. test_8...... success, took: 273ms 159us 167ns
+| >
+| >
+| > [ ] #################### Running jobs... 12/12
+| > info: Experiment finished
+| >
+| > info: Run gourd status 1 to check on this experiment
+
+    \end{verbatim}
+
+    If you are seeing similar output, you have successfully reproduced a Gourd
+    experiment!
+
+    \subsection{Displaying status}
+
+    The \Arg{run} command has created an experiment from the experimental
+    setup and executed it on your computer. Each of the twelve runs are shown
+    here, grouped by program, alongside with their completion status. In fact,
+    you can show this view at any time by typing \Prog{gourd}~\Arg{status}.
+
+    We can see that runs 0,~4,~and~8 have failed. Let's take a closer look at
+    why that is! Type \Prog{gourd}~\Arg{status}~\Opt{-i}~\Arg{4} to check on
+    run number 4.
+
+    \begin{verbatim}
+
+|   $ gourd status -i 4
+|
+| > program: fastest-fibonacci
+| >   binary: FetchedPath("/fib-folder/fibonacci-dynamic")
+| > input: Regular("bad_test")
+| >   file: Some(FetchedPath("/fib-folder/inputs/input_bad"))
+| >   arguments: ["-f"]
+| >
+| > output path: "/fib-folder/experiments/1/fastest-fibonacci/4/stdout"
+| > stderr path: "/fib-folder/experiments/1/fastest-fibonacci/4/stderr"
+| > metric path: "/fib-folder/experiments/1/fastest-fibonacci/4/metrics"
+| >
+| > file status? failed, code: 25856
+| > metrics:
+| >   user   cpu time: 1ms 274us
+| >   system cpu time: 1ms 735us
+| >   page faults: 1
+| >   signals received: 0
+| >   context switches: 11
+
+    \end{verbatim}
+
+    The detailed status, which you can see above, allows us to easily inspect
+    the experiment's output and errors by accessing the files at
+    \File{output path}.
+
+    \subsection{Rerunning failed runs}
+
+    These files reveal that \File{bad\_test} fails because the Fibonacci
+    programs are expecting a number, but the input is "some text" instead!
+    Let's fix the problem and replace it with 10, a decidedly more valid
+    number.
+
+    \begin{verbatim}
+
+`                           ./inputs/input_bad
+`  +-------------------------------------------------------------------+
+`  | <<<<<<< new version                                               |
+`  | 10                                                                |
+`  | =======                                                           |
+`  | some text                                                         |
+`  | >>>>>>> old version                                               |
+`  +-------------------------------------------------------------------+
+
+    \end{verbatim}
+
+    Now we have fixed the problem, and the input called \File{bad\_test} is not
+    so bad after all.
+
+    You can imagine that running the whole experiment again when only 1/4 of
+    the results are invalid would be a waste. We are going to use
+    \Prog{gourd}~\Arg{rerun} to repeat only the runs that failed.
+
+    \begin{verbatim}
+
+|    $ gourd rerun
+|
+| >  ? What would you like to do?
+| >  * Rerun only failed (3 runs)
+| >    Rerun all finished (12 runs)
+| >  [↑↓ to move, enter to select, type to filter]
+| >
+| >  info: 3 new runs have been created
+| >  info: Run 'gourd continue 1' to schedule them
+
+    \end{verbatim}
+
+    The \Prog{gourd}~\Arg{rerun} command suggests rerunning the failed runs
+    only! Another option supported by \Arg{rerun} is to specify a list of IDs
+    for it to reschedule.
+
+    After \Arg{rerun}, it is necessary to use \Prog{gourd}~\Arg{continue} to
+    actually execute the newly created runs. Try this in your terminal.
+
+    \subsection{Collecting data}
+
+    Our simple Fibonacci experiment is done evaluating our two algorithms. All
+    that remains to be done is collecting the runtime data. Fortunately,
+    \Prog{gourd} also provides a simple way to process the numerous metrics
+    files that our runs have generated.
+
+    By running \Prog{gourd}~\Arg{analyse}, you can create a CSV file that
+    collects all metrics from the application's run. On UNIX-like operating
+    systems, RUsage provides a large array of useful data such as context
+    switches and page faults in addition to basic timing.
+
+    Furthermore, \Prog{gourd}~\Arg{analyse}~\OptArg{-o }{ output-type} supports
+    other ways of collecting and visualising the experiment's output.
+    Try the \File{plot-png} output type, which produces a cactus-plot summary
+    of the programs' runtimes.
 
     \section{SEE ALSO}
 
@@ -183,7 +367,7 @@
     Ανδρέας Τσατσάνης <\Email{a.tsatsanis@student.tudelft.nl}>\\[0.1cm]\MANbr
     Rūta Giedrytė <\Email{r.giedryte@student.tudelft.nl}>\\[0.1cm]\MANbr
     Mikołaj Gazeel <\Email{m.j.gazeel@student.tudelft.nl}>\\[0.1cm]\MANbr
-    Jan Piotrowski <\Email{me@jan.wf}>
+    Jan Piotrowski <\Email{me@jan.wf}>\\[0.1cm]\MANbr
     Lukáš Chládek <\Email{l@chla.cz}>\\[0.1cm]\MANbr
 %@% IF LATEX %@%
 \end{adjustwidth}

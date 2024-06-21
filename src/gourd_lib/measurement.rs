@@ -73,7 +73,7 @@ impl Display for RUsage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(
             f,
-            "  {NAME_STYLE}user   cpu time{NAME_STYLE:#}: {}",
+            "  {NAME_STYLE}user  cpu  time{NAME_STYLE:#}: {}",
             humantime::Duration::from(self.utime)
         )?;
         writeln!(
@@ -88,7 +88,7 @@ impl Display for RUsage {
         )?;
         writeln!(
             f,
-            "  {NAME_STYLE}signals recieved{NAME_STYLE:#}: {}",
+            "  {NAME_STYLE}signals received{NAME_STYLE:#}: {}",
             self.nsignals
         )?;
         writeln!(

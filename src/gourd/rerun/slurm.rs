@@ -53,7 +53,7 @@ pub fn query_changing_resource_limits(
                 });
 
         if query_yes_no(&format!(
-            "{} runs ran out of memory and {} runs ran out of time.\
+            "{} runs ran out of memory and {} runs ran out of time. \
                      Do you want to change the resource limits for their programs?",
             out_of_memory, out_of_time
         ))? {
