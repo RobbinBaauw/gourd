@@ -1,6 +1,10 @@
 #![cfg(unix)]
 
+// This is loosely based on: https://docs.rs/command-rusage
+// Licensed under MIT.
+
 use std::process::Child;
+use std::ptr::addr_of_mut;
 use std::time::Duration;
 
 use anyhow::anyhow;
@@ -23,14 +27,14 @@ impl GetRUsage for Child {
         let mut status: i32 = 0;
 
         let mut rusage;
+
+        // SAFETY: Calling libc is always unsafe, we also have to
+        // pass in the arguments as pointers for libc to modify them.
+        //
+        // This should be safe as long as libc is correctly loaded.
         unsafe {
             rusage = empty_raw_rusage();
-            libc::wait4(
-                pid,
-                &mut status as *mut libc::c_int,
-                0i32,
-                &mut rusage as *mut libc::rusage,
-            );
+            libc::wait4(pid, addr_of_mut!(status), 0i32, addr_of_mut!(rusage));
         }
 
         if WIFEXITED(status) {

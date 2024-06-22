@@ -1,4 +1,36 @@
-//! Gourd allows
+//! # `gourd`
+//!
+//! **`gourd`** is a command-line tool that schedules parallel runs for
+//! algorithm comparisons.
+//!
+//! Given the parameters of the experiment, a number of test datasets,
+//! and algorithm implementations to compare, `gourd` runs the experiment in
+//! parallel and provides many options for processing its results.
+//!
+//! While originally envisioned for the DelftBlue supercomputer at
+//! Delft University of Technology, `gourd` can replicate the experiment on
+//! any cluster computer with the _Slurm_ scheduler, on any UNIX-like system,
+//! and on Microsoft Windows.
+//!
+//!
+//! # Usage
+//!
+//! Verify that `gourd` is installed by running:
+//! ```
+//! $ gourd version
+//! ```
+//!
+//! Congratulations! Now you can use `gourd`.
+//!
+//! There is extensive tutorials and documentation which can be accessed in many
+//! different formats.
+//!
+//! As a manpage, with the `man` command:
+//! ```
+//! $ man gourd
+//! $ man gourd.toml
+//! $ man gourd-tutorial
+//! ```
 
 /// An interface for communicating with `gourd-wrapper`, a separately
 /// packaged binary that encapsulates the user's programs.
