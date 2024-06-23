@@ -105,7 +105,7 @@ pub struct Input {
     ///
     /// If this file is fetched on unix the permissions
     /// for it are: `rw-r--r--`.
-    pub input: Option<FetchedPath<0x644>>,
+    pub input: Option<FetchedPath<0o644>>,
 
     /// The additional cli arguments for the executable.
     ///

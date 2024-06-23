@@ -266,8 +266,6 @@ fn long_status(
                 statuses[&run_id].clone()
             };
 
-            // TODO: introduce logic to handle all possible mismatches.
-
             write!(
                 f,
                 "  {: >numw$}. {NAME_STYLE}{:.<width$}{NAME_STYLE:#}.... {}",
@@ -352,14 +350,13 @@ pub fn display_job(
         let input = &exp.get_input(run)?;
 
         writeln!(f, "{NAME_STYLE}program{NAME_STYLE:#}: {}", run.program)?;
-        writeln!(
-            f,
-            "  {NAME_STYLE}binary{NAME_STYLE:#}: {:?}",
-            program.binary
-        )?;
+        writeln!(f, "  {NAME_STYLE}binary{NAME_STYLE:#}: {}", program.binary)?;
 
-        writeln!(f, "{NAME_STYLE}input{NAME_STYLE:#}: {:?}", run.input)?;
-        writeln!(f, " {NAME_STYLE}file{NAME_STYLE:#}: {:?}", input.input)?;
+        writeln!(f, "{NAME_STYLE}input{NAME_STYLE:#}: {}", run.input)?;
+
+        if let Some(input_file) = &input.input {
+            writeln!(f, "  {NAME_STYLE}file{NAME_STYLE:#}:   {}", input_file)?;
+        }
 
         let mut args = vec![];
         args.append(&mut program.arguments.clone());

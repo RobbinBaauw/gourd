@@ -1,4 +1,6 @@
 use std::fmt;
+use std::fmt::Debug;
+use std::fmt::Display;
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::path::PathBuf;
@@ -116,6 +118,12 @@ impl<'de, const PERM: u32> Deserialize<'de> for FetchedPath<PERM> {
         };
 
         deserializer.deserialize_str(visitor)
+    }
+}
+
+impl<const PERM: u32> Display for FetchedPath<PERM> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.0)
     }
 }
 

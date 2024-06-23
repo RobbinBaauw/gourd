@@ -2,7 +2,7 @@
 
 [package]
 name = "gourd"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 default-run = "gourd"
 authors = [
@@ -172,3 +172,5 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }
 [lints.clippy]
 redundant_static_lifetimes = "allow"
 missing_docs_in_private_items = "warn"
+missing_safety_doc = "warn"
+undocumented_unsafe_blocks = "warn"
