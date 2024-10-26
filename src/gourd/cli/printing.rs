@@ -8,6 +8,7 @@ use gourd_lib::bailc;
 use gourd_lib::config::slurm::ResourceLimits;
 use gourd_lib::constants::style_from_fg;
 use gourd_lib::constants::ERROR_STYLE;
+use gourd_lib::constants::GOURD_VERSION;
 use gourd_lib::constants::HELP_STYLE;
 use gourd_lib::constants::LOGO;
 use gourd_lib::constants::NAME_STYLE;
@@ -44,7 +45,7 @@ pub fn print_version(script: bool) {
     let mut to_print = LOGO.replace(
         "{LINE1}",
         &format!(
-            "  at version {}{}{:#} \"Snake Gourd\"",
+            "  at version {}{}{:#} {GOURD_VERSION:?}",
             PRIMARY_STYLE,
             crate_version!(),
             PRIMARY_STYLE

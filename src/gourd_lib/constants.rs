@@ -8,6 +8,9 @@ use anstyle::Style;
 
 use crate::config::slurm::ResourceLimits;
 
+/// The version name for Gourd!
+pub const GOURD_VERSION: &str = "Snake Gourd";
+
 /// The default path to the wrapper, that is, we assume `gourd_wrapper` is in
 /// $PATH.
 pub const WRAPPER_DEFAULT: fn() -> String = || "gourd_wrapper".to_string();
