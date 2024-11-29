@@ -26,6 +26,9 @@ pub struct SacctOutput {
     /// Current state of the job
     pub state: String,
 
+    /// Number of tasks for job
+    pub ntasks: usize,
+
     /// Exit code of slurm
     pub slurm_exit_code: isize,
 
@@ -130,11 +133,12 @@ fn flatten_job_id(jobs: Vec<SacctOutput>) -> Result<Vec<SacctOutput>> {
     let mut result = vec![];
 
     for job in jobs {
-        for id in flatten_slurm_id(job.job_id.clone())? {
+        for id in flatten_slurm_id(job.job_id.clone(), job.ntasks)? {
             result.push(SacctOutput {
                 job_id: id,
                 job_name: job.job_name.clone(),
                 state: job.state.clone(),
+                ntasks: 1,
                 slurm_exit_code: job.slurm_exit_code,
                 program_exit_code: job.program_exit_code,
             })
@@ -148,7 +152,7 @@ fn flatten_job_id(jobs: Vec<SacctOutput>) -> Result<Vec<SacctOutput>> {
 /// and expands it into `[1234_56, 1234_57, 1234_58]`.
 ///
 /// all ids are represented as Strings.
-pub fn flatten_slurm_id(id: String) -> Result<Vec<String>> {
+pub fn flatten_slurm_id(id: String, ntasks: usize) -> Result<Vec<String>> {
     let mut result = vec![];
 
     // Match job ids in form NUMBER_[ranges]
@@ -157,7 +161,7 @@ pub fn flatten_slurm_id(id: String) -> Result<Vec<String>> {
     let range = Regex::new(r"([0-9]+)_\[(..*?)\]$").with_context(ctx!("",;"",))?;
 
     // Match job ids in form NUMBER_NUMBER
-    let solo = Regex::new(r"([0-9]+)_([0-9]+)$").with_context(ctx!("",;"",))?;
+    let solo = Regex::new(r"([0-9]+)_([0-9]+).([0-9]+)$").with_context(ctx!("",;"",))?;
 
     if let Some(captures) = range.captures(&id) {
         let batch_id = &captures[1];
@@ -172,20 +176,25 @@ pub fn flatten_slurm_id(id: String) -> Result<Vec<String>> {
                 let end: usize = over_separators[1].parse()?;
 
                 for run_id in begin..=end {
-                    result.push(format!("{}_{}", batch_id, run_id))
+                    for task in 0..ntasks {
+                        result.push(format!("{}_{}.{}", batch_id, run_id, task))
+                    }
                 }
             } else if over_separators.len() == 1 {
                 let run_id: usize = over_separators[0].parse()?;
-                result.push(format!("{}_{}", batch_id, run_id))
+                for task in 0..ntasks {
+                    result.push(format!("{}_{}.{}", batch_id, run_id, task))
+                }
             }
         }
     }
 
     if let Some(captures) = solo.captures(&id) {
         let batch_id = &captures[1];
-        let run_id = captures[2].parse::<usize>()?;
+        let job_id = captures[2].parse::<usize>()?;
+        let run_id = captures[3].parse::<usize>()?;
 
-        result.push(format!("{}_{}", batch_id, run_id))
+        result.push(format!("{}_{}.{}", batch_id, job_id, run_id))
     }
 
     Ok(result)

@@ -222,10 +222,10 @@ impl SlurmInteractor for SlurmCli {
         // `%A` gets replaced with array *job* id, `%a` with the array *task* id
         // this is read in `src/gourd/status/slurm_files.rs` to get the output.
         let slurm_out = experiment
-            .slurm_out("%A_%a")
+            .slurm_out("%A_%a.$i")
             .ok_or(anyhow!("Slurm config not found (unreachable)"))?;
         let slurm_err = experiment
-            .slurm_err("%A_%a")
+            .slurm_err("%A_%a.$i")
             .ok_or(anyhow!("Slurm config not found (unreachable)"))?;
 
         let chunk_runs_per_job = chunk.runs[0].0.len();
@@ -240,13 +240,11 @@ impl SlurmInteractor for SlurmCli {
 #SBATCH --cpus-per-task=\"{}\"
 #SBATCH --mem-per-cpu=\"{}\"
 #SBATCH --account=\"{}\"
-#SBATCH --output={:?}
-#SBATCH --error={:?}
 {}
 set -x
 
 for i in $(seq 0 {}); do
-    srun -c1 -n1 --exact --mem-per-cpu=\"{}\" {} {} {} $SLURM_ARRAY_TASK_ID $i &
+    srun -c1 -n1 --exact --mem-per-cpu=\"{}\" --output={:?} --error={:?} {} {} {} $SLURM_ARRAY_TASK_ID $i &
 done
 wait
 ",
@@ -259,11 +257,11 @@ wait
             resource_limits.cpus,
             resource_limits.mem_per_cpu,
             slurm_config.account,
-            slurm_out,
-            slurm_err,
             optional_args,
             chunk_runs_per_job - 1,
             resource_limits.mem_per_cpu,
+            slurm_out,
+            slurm_err,
             experiment.wrapper,
             exp_path.display(),
             chunk_index
@@ -335,11 +333,10 @@ wait
         let mut sacct_cmd = Command::new("sacct");
         sacct_cmd
             .arg("-p")
-            .arg("--allocations")
             .arg("--starttime")
             .arg(since.format("%Y-%m-%d %H:%M:%S").to_string()) // YYYY-MM-DD[THH:MM[:SS]] from slurm docs
             .arg("--endtime=now")
-            .arg("--format=jobid,jobname,state,exitcode");
+            .arg("--format=jobid,jobname,state,ntasks,exitcode");
 
         trace!("Gathering slurm status with: {sacct_cmd:?}");
 
@@ -362,6 +359,7 @@ wait
                 job_id: fields[0].to_string(),
                 job_name: fields[1].to_string(),
                 state: fields[2].to_string(),
+                ntasks: fields[3].parse()?,
                 slurm_exit_code: exit_codes[0].parse().unwrap_or(0),
                 program_exit_code: exit_codes[1].parse().unwrap_or(0),
             });
