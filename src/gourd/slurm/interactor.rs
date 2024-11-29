@@ -336,7 +336,7 @@ wait
             .arg("--starttime")
             .arg(since.format("%Y-%m-%d %H:%M:%S").to_string()) // YYYY-MM-DD[THH:MM[:SS]] from slurm docs
             .arg("--endtime=now")
-            .arg("--format=jobid,jobname,state,ntasks,exitcode");
+            .arg("--format=jobid,jobname,state,alloccpus,exitcode");
 
         trace!("Gathering slurm status with: {sacct_cmd:?}");
 
@@ -353,13 +353,13 @@ wait
             .skip(1)
         {
             let fields = job.split('|').collect::<Vec<&str>>();
-            let exit_codes = fields[3].split(':').collect::<Vec<&str>>();
+            let exit_codes = fields[4].split(':').collect::<Vec<&str>>();
 
             result.push(SacctOutput {
                 job_id: fields[0].to_string(),
                 job_name: fields[1].to_string(),
                 state: fields[2].to_string(),
-                ntasks: fields[3].parse()?,
+                ncpus: fields[3].parse()?,
                 slurm_exit_code: exit_codes[0].parse().unwrap_or(0),
                 program_exit_code: exit_codes[1].parse().unwrap_or(0),
             });

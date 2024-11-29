@@ -27,7 +27,7 @@ pub struct SacctOutput {
     pub state: String,
 
     /// Number of tasks for job
-    pub ntasks: usize,
+    pub ncpus: usize,
 
     /// Exit code of slurm
     pub slurm_exit_code: isize,
@@ -133,12 +133,12 @@ fn flatten_job_id(jobs: Vec<SacctOutput>) -> Result<Vec<SacctOutput>> {
     let mut result = vec![];
 
     for job in jobs {
-        for id in flatten_slurm_id(job.job_id.clone(), job.ntasks)? {
+        for id in flatten_slurm_id(job.job_id.clone(), job.ncpus)? {
             result.push(SacctOutput {
                 job_id: id,
                 job_name: job.job_name.clone(),
                 state: job.state.clone(),
-                ntasks: 1,
+                ncpus: 1,
                 slurm_exit_code: job.slurm_exit_code,
                 program_exit_code: job.program_exit_code,
             })
@@ -152,7 +152,7 @@ fn flatten_job_id(jobs: Vec<SacctOutput>) -> Result<Vec<SacctOutput>> {
 /// and expands it into `[1234_56, 1234_57, 1234_58]`.
 ///
 /// all ids are represented as Strings.
-pub fn flatten_slurm_id(id: String, ntasks: usize) -> Result<Vec<String>> {
+pub fn flatten_slurm_id(id: String, ncpus: usize) -> Result<Vec<String>> {
     let mut result = vec![];
 
     // Match job ids in form NUMBER_[ranges]
@@ -176,13 +176,14 @@ pub fn flatten_slurm_id(id: String, ntasks: usize) -> Result<Vec<String>> {
                 let end: usize = over_separators[1].parse()?;
 
                 for run_id in begin..=end {
-                    for task in 0..ntasks {
+                    // TODO this should be 0..ntasks, but that is empty if still pending
+                    for task in 0..ncpus {
                         result.push(format!("{}_{}.{}", batch_id, run_id, task))
                     }
                 }
             } else if over_separators.len() == 1 {
                 let run_id: usize = over_separators[0].parse()?;
-                for task in 0..ntasks {
+                for task in 0..ncpus {
                     result.push(format!("{}_{}.{}", batch_id, run_id, task))
                 }
             }
