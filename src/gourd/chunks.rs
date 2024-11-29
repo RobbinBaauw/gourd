@@ -13,13 +13,17 @@ use serde::Serialize;
 
 use crate::status::ExperimentStatus;
 
+/// A job is scheduled and can have multiple runs
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct Job(pub Vec<usize>);
+
 /// Describes one chunk: a Slurm array of scheduled runs with common resource
 /// limits. Chunks are created at runtime; a run is in one chunk iff it has
 /// been scheduled.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Chunk {
     /// The runs that belong to this chunk (by RunID)
-    pub runs: Vec<usize>,
+    pub runs: Vec<Job>,
 
     /// The resource limits of this chunk.
     ///
@@ -59,6 +63,7 @@ pub trait Chunkable {
     fn next_chunks(
         &mut self,
         chunk_length: usize,
+        tasks_per_run: usize,
         how_many: usize,
         status: ExperimentStatus,
     ) -> Result<Vec<Chunk>>;
@@ -66,7 +71,7 @@ pub trait Chunkable {
     /// Add the runs to the experiment so the wrapper can find them,
     ///
     /// returns the chunk index that was just created.
-    fn register_runs(&mut self, runs: &[usize]) -> usize;
+    fn register_runs(&mut self, runs: &Vec<Job>) -> usize;
 
     /// Once a chunk has been scheduled, mark all of its runs as scheduled with
     /// their slurm ids
@@ -83,6 +88,7 @@ impl Chunkable for Experiment {
     fn next_chunks(
         &mut self,
         chunk_length: usize,
+        runs_per_job: usize,
         how_many: usize,
         status: ExperimentStatus,
     ) -> Result<Vec<Chunk>> {
@@ -103,12 +109,24 @@ impl Chunkable for Experiment {
             .collect::<Vec<&[(usize, &Run)]>>();
 
         for c in separated {
-            for f in c.chunks(chunk_length) {
+            let job_chunks = c.chunks_exact(runs_per_job);
+            let job_chunks_remainder = job_chunks.remainder();
+
+            let jobs: Vec<Job> = job_chunks.map(|c| {
+                Job(c.iter().map(|(i, _)| *i).collect())
+            }).collect();
+
+            for chunk_jobs in jobs.chunks(chunk_length) {
                 chunks.push(Chunk {
-                    runs: f.iter().map(|(i, _)| *i).collect(),
-                    resource_limits: f[0].1.limits,
+                    runs: chunk_jobs.to_vec(),
+                    resource_limits: c[0].1.limits,
                 });
             }
+
+            chunks.push(Chunk {
+                runs: vec![Job(job_chunks_remainder.iter().map(|(i, _)| *i).collect())],
+                resource_limits: c[0].1.limits,
+            });
         }
 
         chunks.sort_unstable();
@@ -118,8 +136,8 @@ impl Chunkable for Experiment {
         Ok(chunks.into_iter().take(how_many).collect())
     }
 
-    fn register_runs(&mut self, runs: &[usize]) -> usize {
-        self.chunks.push(runs.to_vec());
+    fn register_runs(&mut self, runs: &Vec<Job>) -> usize {
+        self.chunks.push(runs.iter().map(|j| j.0.clone()).collect());
 
         debug!(
             "creating chunks: {:?}, latest = {:?}",
@@ -131,10 +149,12 @@ impl Chunkable for Experiment {
     }
 
     fn mark_chunk_scheduled(&mut self, chunk: &Chunk, batch_id: String) {
-        for (task_id, run_id) in chunk.runs.iter().enumerate() {
-            // because we schedule an array by specifying the run_id(s) in a list,
-            // the sub id should be == run_id.
-            self.runs[*run_id].slurm_id = Some(format!("{}_{}", batch_id, task_id));
+        for (task_idx, run_ids) in chunk.runs.iter().enumerate() {
+            for (run_idx, run_id) in run_ids.0.iter().enumerate() {
+                // because we schedule an array by specifying the run_id(s) in a list,
+                // the sub id should be == run_id.
+                self.runs[*run_id].slurm_id = Some(format!("{}_{}.{}", batch_id, task_idx, run_idx));
+            }
         }
     }
 
@@ -152,11 +172,11 @@ impl Chunkable for Experiment {
     }
 
     fn scheduled_nodep(&self) -> usize {
-        let mut set = HashSet::new();
+        let mut set: HashSet<usize> = HashSet::new();
 
         for chunk in &self.chunks {
             for run in chunk {
-                set.insert(run);
+                set.extend(run);
             }
         }
 

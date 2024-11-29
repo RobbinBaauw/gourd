@@ -37,6 +37,11 @@ pub struct SlurmConfig {
     /// If left `None`, a value fetched directly from slurm will be used.
     pub max_submit: Option<usize>,
 
+    /// Number of tasks per job
+    ///
+    /// If left `None`, the default is 1.
+    pub ntasks: Option<usize>,
+
     /// Account to charge for this job
     pub account: String,
 

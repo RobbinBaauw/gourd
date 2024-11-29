@@ -105,6 +105,7 @@ pub fn init_interactive(
             partition: "".to_string(),
             array_size_limit: None,
             max_submit: None,
+            ntasks: None,
             account: "".to_string(),
             begin: None,
             mail_type: None,

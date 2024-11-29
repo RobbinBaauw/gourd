@@ -228,11 +228,13 @@ impl SlurmInteractor for SlurmCli {
             .slurm_err("%A_%a")
             .ok_or(anyhow!("Slurm config not found (unreachable)"))?;
 
+        let chunk_runs_per_job = chunk.runs[0].0.len();
+
         let contents = format!(
             "#!/bin/bash
 #SBATCH --job-name=\"{}\"
 #SBATCH --array=\"{}-{}\"
-#SBATCH --ntasks=1
+#SBATCH --ntasks=\"{}\"
 #SBATCH --partition=\"{}\"
 #SBATCH --time=\"{}\"
 #SBATCH --cpus-per-task=\"{}\"
@@ -243,11 +245,15 @@ impl SlurmInteractor for SlurmCli {
 {}
 set -x
 
-{} {} {} $SLURM_ARRAY_TASK_ID
+for i in $(seq 0 {}); do
+    srun -c1 -n1 --exact --mem-per-cpu=\"{}\" {} {} {} $SLURM_ARRAY_TASK_ID $i &
+done
+wait
 ",
             slurm_config.experiment_name,
             0,
             &chunk.runs.len() - 1,
+            chunk_runs_per_job,
             slurm_config.partition,
             format_slurm_duration(resource_limits.time_limit),
             resource_limits.cpus,
@@ -256,6 +262,8 @@ set -x
             slurm_out,
             slurm_err,
             optional_args,
+            chunk_runs_per_job - 1,
+            resource_limits.mem_per_cpu,
             experiment.wrapper,
             exp_path.display(),
             chunk_index

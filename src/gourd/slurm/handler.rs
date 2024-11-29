@@ -87,13 +87,16 @@ where
             );
         }
 
+        let ntasks = slurm_config.ntasks.unwrap_or(1);
+        debug!("Ntasks: {ntasks}");
+
         let max_chunk_size = min(max_array_size, capacity);
         debug!("Max Chunk Size: {max_chunk_size}");
 
         let max_next_chunks = capacity.div(min(max_array_size, capacity));
         debug!("Max Next Chunks: {max_next_chunks}");
 
-        let chunks_to_schedule = experiment.next_chunks(max_chunk_size, max_next_chunks, status)?;
+        let chunks_to_schedule = experiment.next_chunks(max_chunk_size, ntasks, max_next_chunks, status)?;
 
         let mut counter = 0;
         for (chunk_id, chunk) in chunks_to_schedule.iter().enumerate() {

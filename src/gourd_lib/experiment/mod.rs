@@ -194,7 +194,7 @@ pub struct Experiment {
     pub slurm: Option<SlurmConfig>,
 
     /// A mapping of job array task id indices to run ids.
-    pub chunks: Vec<Vec<usize>>,
+    pub chunks: Vec<Vec<Vec<usize>>>,
 
     /// The input groups present in this experiment.
     pub groups: Vec<String>,

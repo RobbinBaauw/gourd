@@ -14,7 +14,7 @@ use gourd_lib::experiment::Experiment;
 use gourd_lib::file_system::FileOperations;
 use log::trace;
 
-use crate::chunks::Chunkable;
+use crate::chunks::{Chunkable, Job};
 use crate::status::ExperimentStatus;
 #[cfg(target_os = "linux")]
 use crate::wrapper::check_binary_linux::verify_arch;
@@ -42,7 +42,7 @@ pub fn wrap(
     let binding = experiment.clone();
     let runs_to_iterate = binding.unscheduled(status);
     let chunk_index =
-        experiment.register_runs(&runs_to_iterate.iter().map(|(v, _)| *v).collect::<Vec<_>>());
+        experiment.register_runs(&runs_to_iterate.iter().map(|(v, _)| Job(vec![*v])).collect());
 
     trace!("There are {} unscheduled runs", runs_to_iterate.len());
 
